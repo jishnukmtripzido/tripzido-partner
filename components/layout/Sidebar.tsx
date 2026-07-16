@@ -1,0 +1,210 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { Route } from "next";
+import { useAuth } from "@/context/AuthContext";
+
+interface SidebarProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+interface SidebarLink {
+  href: Route;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const LINKS: SidebarLink[] = [
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+      />
+    ),
+  },
+  {
+    href: "/fleet",
+    label: "My Fleet",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+      />
+    ),
+  },
+  {
+    href: "/fleet/block",
+    label: "Block Bikes",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+      />
+    ),
+  },
+  {
+    href: "/bookings",
+    label: "Bookings",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+      />
+    ),
+  },
+  {
+    href: "/ledger",
+    label: "Ledger",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+      />
+    ),
+  },
+  {
+    href: "/profile",
+    label: "Profile",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+      />
+    ),
+  },
+];
+
+/**
+ * Slide-in drawer opened from the hamburger button in Header. Not
+ * present in the original HTML mockups — added since every screen
+ * has a hamburger button that needs somewhere to go. Kept in the
+ * same visual language (brand-yellow accents, Nunito headings,
+ * rounded-xl surfaces) as the rest of the app.
+ */
+export function Sidebar({ open, onClose }: SidebarProps) {
+  const pathname = usePathname();
+  const { user, logout } = useAuth();
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <div
+        onClick={onClose}
+        className="absolute inset-0 bg-black/50 animate-overlay-in"
+        aria-hidden="true"
+      />
+
+      <aside className="absolute left-0 top-0 bottom-0 w-[82%] max-w-xs bg-white shadow-2xl flex flex-col animate-drawer-in pt-safe">
+        <div className="px-5 pt-6 pb-5 border-b border-gray-100">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <div className="bg-brand-yellow-lg p-1.5 rounded-lg flex items-center justify-center h-8 w-8">
+                <svg
+                  className="w-5 h-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+              </div>
+              <h2 className="font-heading font-extrabold text-lg tracking-tight">
+                tripzido{" "}
+                <span className="font-semibold text-font-dim text-xs tracking-normal align-middle">
+                  partner
+                </span>
+              </h2>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="Close menu"
+              className="text-gray-400 hover:text-font-main-sub transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-brand-yellow/20 text-brand-secondary flex items-center justify-center font-heading font-bold">
+              {user?.first_name?.[0]?.toUpperCase() ?? "P"}
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-font-main-sub">
+                {user ? `${user.first_name} ${user.last_name ?? ""}`.trim() : "Partner"}
+              </p>
+              <p className="text-xs text-font-dim">{user?.phone_number ?? "Not signed in"}</p>
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto hide-scrollbar px-3 py-4 space-y-1">
+          {LINKS.map((link) => {
+            const active = pathname.startsWith(link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={onClose}
+                className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                  active
+                    ? "bg-brand-yellow/20 text-brand-secondary"
+                    : "text-font-dim hover:bg-gray-50"
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {link.icon}
+                </svg>
+                {link.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="p-3 border-t border-gray-100 pb-safe">
+          <button
+            onClick={() => {
+              onClose();
+              logout();
+            }}
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
+            </svg>
+            Log out
+          </button>
+        </div>
+      </aside>
+    </div>
+  );
+}
