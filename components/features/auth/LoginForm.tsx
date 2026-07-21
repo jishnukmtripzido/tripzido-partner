@@ -3,37 +3,60 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PhoneInput } from "./PhoneInput";
-import { sendOtpApi, verifyOtpApi } from "@/services/auth.service";
+import {
+  sendOtpApi,
+  verifyOtpApi,
+  getProfileApi,
+} from "@/services/auth.service";
 import { useAuth } from "@/context/AuthContext";
+import { useTurnstile } from "@/hooks/useTurnstile";
+import { useOtpInput } from "@/hooks/useOtpInput";
 
-/**
- * The mockup only shows a "Send OTP" button with no next step, so a
- * tap on it would be a dead end. This adds the OTP-entry step inline
- * (same card, no route change) so the flow actually completes.
- */
 export function LoginForm() {
   const router = useRouter();
   const { login } = useAuth();
 
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [isHuman, setIsHuman] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [otpError, setOtpError] = useState<string | null>(null);
 
-  const canSendOtp = phone.length === 10 && isHuman && !isSubmitting;
-  const canVerify = otp.length === 6 && !isSubmitting;
+  const {
+    token: turnstileToken,
+    tokenRef,
+    reset: resetTurnstile,
+  } = useTurnstile(step === "phone");
+
+  const {
+    otp,
+    refs: otpRefs,
+    handleChange: handleOtpChange,
+    handleKeyDown: handleOtpKeyDown,
+    reset: resetOtp,
+  } = useOtpInput(step === "otp");
+
+  const canSendOtp = phone.length === 10 && !!turnstileToken && !isSubmitting;
+  const canVerify = otp.join("").length === 4 && !isSubmitting;
 
   async function handleSendOtp() {
     if (!canSendOtp) return;
+    const token = tokenRef.current;
+    if (!token) return;
+
     setIsSubmitting(true);
-    setError(null);
+    setSendError(null);
     try {
-      await sendOtpApi(phone);
+      const data = await sendOtpApi(phone, token);
+      if (!data.success) {
+        setSendError(data.message || "Failed to send OTP");
+        resetTurnstile();
+        return;
+      }
       setStep("otp");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send OTP");
+      setSendError(err instanceof Error ? err.message : "Failed to send OTP");
+      resetTurnstile();
     } finally {
       setIsSubmitting(false);
     }
@@ -42,16 +65,58 @@ export function LoginForm() {
   async function handleVerifyOtp() {
     if (!canVerify) return;
     setIsSubmitting(true);
-    setError(null);
+    setOtpError(null);
     try {
-      const res = await verifyOtpApi(phone, otp);
-      login(res.user, res.access_token);
+      const code = otp.join("");
+      const res = await verifyOtpApi(phone, code);
+
+      if (!res.success || !res.data) {
+        setOtpError(res.message || "Invalid OTP");
+        resetOtp();
+        return;
+      }
+
+      const { access_token } = res.data;
+
+      // verify-otp returns tokens only — fetch profile for name/phone.
+      let user = { phone_number: phone, first_name: "", last_name: "" };
+      try {
+        const profile = await getProfileApi(access_token);
+        if (profile.success && profile.data) {
+          user = {
+            phone_number: profile.data.mobile_number,
+            first_name: profile.data.first_name,
+            last_name: profile.data.last_name,
+          };
+        }
+      } catch {
+        // Profile fetch failed — don't block login on it, just proceed
+        // with the placeholder. Dashboard can refetch profile later.
+      }
+
+      login(user, access_token);
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Invalid OTP");
+      setOtpError(err instanceof Error ? err.message : "Invalid OTP");
+      resetOtp();
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function handleChangeNumber() {
+    setStep("phone");
+    setPhone("");
+    resetOtp();
+    setOtpError(null);
+    setSendError(null);
+  }
+
+  function handleResend() {
+    setStep("phone");
+    resetOtp();
+    setOtpError(null);
+    setSendError(null);
   }
 
   return (
@@ -67,25 +132,12 @@ export function LoginForm() {
         <>
           <div className="space-y-6">
             <PhoneInput value={phone} onChange={setPhone} />
-
-            <label className="border border-gray-200 rounded-lg p-3 flex justify-between items-center bg-gray-50/50 cursor-pointer">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={isHuman}
-                  onChange={(e) => setIsHuman(e.target.checked)}
-                  className="w-5 h-5 accent-brand-yellow rounded border-gray-300"
-                />
-                <span className="text-sm font-medium">Verify you are human</span>
-              </div>
-              <div className="text-[10px] text-gray-400 text-right">
-                <span className="font-bold block text-gray-500">CLOUDFLARE</span>
-                Privacy • Help
-              </div>
-            </label>
+            <div id="cf-turnstile-container" className="flex justify-center" />
           </div>
 
-          {error && <p className="text-sm text-red-500 font-medium mt-4">{error}</p>}
+          {sendError && (
+            <p className="text-sm text-red-500 font-medium mt-4">{sendError}</p>
+          )}
 
           <div className="mt-8 space-y-4">
             <button
@@ -97,11 +149,17 @@ export function LoginForm() {
             </button>
             <p className="text-center text-xs text-font-dim mt-4">
               By continuing, you agree to our{" "}
-              <a href="#" className="text-brand-yellow-lg font-semibold hover:underline">
+              <a
+                href="#"
+                className="text-brand-yellow-lg font-semibold hover:underline"
+              >
                 Terms of Service
               </a>{" "}
               &{" "}
-              <a href="#" className="text-brand-yellow-lg font-semibold hover:underline">
+              <a
+                href="#"
+                className="text-brand-yellow-lg font-semibold hover:underline"
+              >
                 Privacy Policy
               </a>
             </p>
@@ -110,24 +168,39 @@ export function LoginForm() {
       ) : (
         <div className="animate-fade-in">
           <p className="text-sm font-medium text-font-dim mb-6">
-            Enter the 6-digit code sent to{" "}
-            <span className="font-semibold text-font-main-sub">+91 {phone}</span>
+            Enter the 4-digit code sent to{" "}
+            <span className="font-semibold text-font-main-sub">
+              +91 {phone}
+            </span>
           </p>
 
-          <label className="block text-sm font-semibold mb-2">
-            OTP <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            placeholder="••••••"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-            className="w-full border-2 border-brand-yellow rounded-xl py-3.5 px-4 outline-none font-semibold text-center tracking-[0.5em] placeholder-gray-300 focus:ring-4 focus:ring-brand-yellow/20 transition-all"
-          />
+          <div className="flex gap-2 mb-2 justify-center">
+            {otp.map((digit, i) => (
+              <input
+                key={i}
+                ref={(el) => {
+                  otpRefs.current[i] = el;
+                }}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                value={digit}
+                onChange={(e) => handleOtpChange(i, e.target.value)}
+                onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                className={`w-14 h-14 text-center text-xl font-bold rounded-xl border-2 outline-none transition-all ${
+                  otpError
+                    ? "border-red-400 bg-red-50"
+                    : digit
+                      ? "border-brand-yellow bg-brand-yellow/5"
+                      : "border-gray-200 bg-gray-50"
+                } focus:border-brand-yellow focus:ring-4 focus:ring-brand-yellow/20`}
+              />
+            ))}
+          </div>
 
-          {error && <p className="text-sm text-red-500 font-medium mt-4">{error}</p>}
+          {otpError && (
+            <p className="text-sm text-red-500 font-medium mt-2">{otpError}</p>
+          )}
 
           <div className="mt-8 space-y-3">
             <button
@@ -137,16 +210,20 @@ export function LoginForm() {
             >
               {isSubmitting ? "Verifying..." : "Verify & Continue"}
             </button>
-            <button
-              onClick={() => {
-                setStep("phone");
-                setOtp("");
-                setError(null);
-              }}
-              className="w-full text-sm font-semibold text-font-dim py-2"
-            >
-              Change mobile number
-            </button>
+            <div className="flex justify-between items-center pt-1">
+              <button
+                onClick={handleChangeNumber}
+                className="text-sm font-semibold text-font-dim py-2"
+              >
+                Change mobile number
+              </button>
+              <button
+                onClick={handleResend}
+                className="text-sm font-semibold text-brand-yellow-lg py-2"
+              >
+                Resend OTP
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,20 +1,39 @@
 import type { NextConfig } from "next";
 
+// Two build modes from one file:
+//  - `next build`                      -> normal build, deployed on a
+//    real Node server for browser use. headers() and the default
+//    Image Optimization loader both work fine here.
+//  - `CAPACITOR_BUILD=true next build` -> static export bundled into
+//    the Capacitor app. No Node server ever runs it, so anything that
+//    depends on one has to be switched off for this pass.
+const isCapacitorBuild = process.env.CAPACITOR_BUILD === "true";
+
 const nextConfig: NextConfig = {
-  async headers() {
-    return [
-      {
-        source: "/",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "no-cache, must-revalidate",
-          },
-        ],
-      },
-    ];
-  },
+  ...(isCapacitorBuild && { output: "export" as const }),
+
+  // headers() requires a server to apply on each request — Next
+  // errors at build time if this coexists with output: "export".
+  ...(!isCapacitorBuild && {
+    async headers() {
+      return [
+        {
+          source: "/",
+          headers: [
+            { key: "Cache-Control", value: "no-cache, must-revalidate" },
+          ],
+        },
+      ];
+    },
+  }),
+
   images: {
+    // Default loader needs a server to resize/serve images on demand.
+    // Doesn't exist inside Capacitor's webview, so images would just
+    // fail to load there. unoptimized serves the original file as-is
+    // instead — only needed for the Capacitor pass; web build keeps
+    // real optimization.
+    unoptimized: isCapacitorBuild,
     qualities: [70, 75, 80],
     dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",
     remotePatterns: [
