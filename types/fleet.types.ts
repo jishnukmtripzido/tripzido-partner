@@ -5,6 +5,8 @@ export interface Vehicle {
   name: string;
   quantity: number;
   kind: VehicleKind;
+  imageUrl?: string | null;
+  locationName?: string;
 }
 
 export interface BlockEntry {

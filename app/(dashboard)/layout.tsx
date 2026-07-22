@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
 import { MobileShell } from "@/components/layout/MobileShell";
@@ -9,16 +9,33 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { SKIP_AUTH } from "@/lib/devFlags";
 
+// Drill-down screens (detail/edit) reached by tapping into a list get
+// the full viewport instead of the tab bar — matches the usual mobile
+// pattern of losing the tab bar once you're a level deep. Prefix match
+// so /fleet/listing (detail) and the future /fleet/listing/edit both
+// hide it without a second entry needed later.
+const HIDE_BOTTOM_NAV_PREFIXES = ["/fleet/listing"];
+
 function DashboardChrome({ children }: { children: React.ReactNode }) {
   const { open, closeSidebar } = useSidebar();
+  const pathname = usePathname();
+  const showBottomNav = !HIDE_BOTTOM_NAV_PREFIXES.some((prefix) =>
+    pathname.startsWith(prefix),
+  );
 
   return (
     <MobileShell>
       <Sidebar open={open} onClose={closeSidebar} />
-      {/* pb-20 reserves room for the absolutely-positioned BottomNav,
-          exactly like the original `pb-20` wrapper in each mockup. */}
-      <div className="flex-1 flex flex-col pb-20 min-h-0">{children}</div>
-      <BottomNav />
+      {/* pb-20 only needed to reserve room for BottomNav when it's
+          actually rendered — dropped on drill-down screens so content
+          uses the full height instead of leaving dead space at the
+          bottom. */}
+      <div
+        className={`flex-1 flex flex-col min-h-0 ${showBottomNav ? "pb-20" : ""}`}
+      >
+        {children}
+      </div>
+      {showBottomNav && <BottomNav />}
     </MobileShell>
   );
 }
