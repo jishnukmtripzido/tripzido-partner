@@ -32,6 +32,7 @@ import type {
   ListingUpdatePayload,
 } from "@/types/listing-create.types";
 import type { ListingDetail, ListingImage } from "@/types/listing-detail.types";
+import { PageLoader } from "@/components/ui/PageLoader";
 
 interface PricingPackageDraft {
   packageTypeId: number | null;
@@ -220,7 +221,7 @@ export default function EditListingPage() {
       <>
         <Header title="Edit listing" onBack={() => router.back()} />
         <main className="flex-1 px-5 pt-10">
-          <p className="text-sm text-font-dim text-center">Loading...</p>
+          <PageLoader />
         </main>
       </>
     );
@@ -426,7 +427,7 @@ function LocationPicker({
             Pickup location
           </label>
           {locationsLoading ? (
-            <p className="text-xs text-font-dim">Loading...</p>
+            <PageLoader />
           ) : (
             <select
               value={form.pickupLocationId ?? ""}

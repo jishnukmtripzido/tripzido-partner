@@ -11,6 +11,7 @@ import {
 import { ConfirmStatusChangeModal } from "@/components/features/bookings/ConfirmStatusChangeModal";
 import { STATUS_BADGE_STYLES, STATUS_ACTION_CONFIG } from "@/lib/bookingStatus";
 import type { VendorBookingDetail, BookingStatus } from "@/types/booking.types";
+import { PageLoader } from "@/components/ui/PageLoader";
 
 export default function BookingDetailPage() {
   const router = useRouter();
@@ -86,9 +87,7 @@ export default function BookingDetailPage() {
         onBack={() => router.back()}
       />
       <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6">
-        {isLoading && (
-          <p className="text-sm text-font-dim text-center mt-10">Loading...</p>
-        )}
+        {isLoading && <PageLoader />}
         {error && !isLoading && (
           <p className="text-sm text-red-500 text-center mt-10">{error}</p>
         )}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { DesktopBlocker } from "@/components/ui/DesktopBlocker";
+import { PageLoader } from "@/components/ui/PageLoader";
 
 const MOBILE_BREAKPOINT = 768; // px — matches Tailwind's `md`
 
@@ -10,9 +11,6 @@ const MOBILE_BREAKPOINT = 768; // px — matches Tailwind's `md`
  * browser) it shows a "use the app on mobile" screen instead of the
  * real UI. Uses a live media-query listener rather than user-agent
  * sniffing, since UA strings are unreliable inside webviews.
- *
- * `isChecking` avoids a flash of the blocker (or the app) before we
- * know the real viewport width on first paint.
  */
 export function DesktopGate({ children }: { children: ReactNode }) {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -31,7 +29,7 @@ export function DesktopGate({ children }: { children: ReactNode }) {
     return () => mql.removeEventListener("change", update);
   }, []);
 
-  if (isChecking) return null;
+  if (isChecking) return <PageLoader fullScreen />;
 
   return isDesktop ? <DesktopBlocker /> : <>{children}</>;
 }

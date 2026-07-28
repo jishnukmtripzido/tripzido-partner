@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Header } from "@/components/layout/Header";
 import { getListingDetailApi } from "@/services/fleet.service";
+import { PageLoader } from "@/components/ui/PageLoader";
 import type {
   ListingDetail,
   ListingImage,
@@ -91,9 +92,7 @@ export default function ListingDetailPage() {
       />
 
       <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6">
-        {isLoading && (
-          <p className="text-sm text-font-dim text-center mt-10">Loading...</p>
-        )}
+        {isLoading && <PageLoader />}
 
         {error && !isLoading && (
           <div className="text-center mt-10">

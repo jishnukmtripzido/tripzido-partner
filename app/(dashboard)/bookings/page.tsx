@@ -17,6 +17,8 @@ import type {
   VendorBookingListItem,
   BookingStatus,
 } from "@/types/booking.types";
+import { PageLoader } from "@/components/ui/PageLoader";
+import { InlineLoader } from "@/components/ui/InLineLoader";
 
 export default function BookingsPage() {
   const { openSidebar } = useSidebar();
@@ -69,8 +71,6 @@ export default function BookingsPage() {
     }
   }, [token, isLoading, hasNext, tab]);
 
-  // Reset pagination whenever the tab changes — a fresh status filter
-  // is effectively a fresh list, not more pages of the old one.
   useEffect(() => {
     setBookings([]);
     setHasNext(true);
@@ -145,14 +145,14 @@ export default function BookingsPage() {
     }
   }
 
+  const isInitialLoad = isLoading && bookings.length === 0 && !error;
+
   return (
     <>
       <Header
         title="Bookings"
         onMenuClick={openSidebar}
         rightSlot={
-          // Decorative only, per request — no onClick, matches how
-          // "Add Bike" looked before it was wired up.
           <button className="flex items-center gap-1 bg-brand-yellow text-brand-secondary px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-brand-yellow-lg transition-colors">
             <svg
               className="w-4 h-4"
@@ -188,51 +188,53 @@ export default function BookingsPage() {
         ))}
       </div>
 
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-2 pb-6">
-        <div className="space-y-3">
-          {bookings.map((booking) => (
-            <BookingListItem
-              key={booking.id}
-              booking={booking}
-              onClick={() =>
-                router.push(`/bookings/detail?id=${booking.id}` as Route)
-              }
-              onStatusAction={(target) =>
-                handleStatusAction(booking.id, target)
-              }
-            />
-          ))}
-        </div>
-
-        {bookings.length === 0 && !isLoading && !error && (
-          <p className="text-sm text-font-dim text-center mt-10">
-            No bookings in this category yet.
-          </p>
-        )}
-
-        {error && (
-          <div className="text-center mt-4">
-            <p className="text-sm text-red-500 font-medium">{error}</p>
-            <button
-              onClick={handleRetry}
-              className="mt-2 text-sm font-semibold text-brand-yellow-lg"
-            >
-              Retry
-            </button>
+      {isInitialLoad ? (
+        <PageLoader />
+      ) : (
+        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-2 pb-6">
+          <div className="space-y-3">
+            {bookings.map((booking) => (
+              <BookingListItem
+                key={booking.id}
+                booking={booking}
+                onClick={() =>
+                  router.push(`/bookings/detail?id=${booking.id}` as Route)
+                }
+                onStatusAction={(target) =>
+                  handleStatusAction(booking.id, target)
+                }
+              />
+            ))}
           </div>
-        )}
-        {isLoading && !error && (
-          <p className="text-sm text-font-dim text-center mt-4">Loading...</p>
-        )}
-        {!hasNext && !error && bookings.length > 0 && (
-          <p className="text-xs text-font-dim text-center mt-4">
-            {bookings.length} booking(s)
-          </p>
-        )}
 
-        <div ref={sentinelRef} className="h-1" />
-        <div className="h-6" />
-      </main>
+          {bookings.length === 0 && !isLoading && !error && (
+            <p className="text-sm text-font-dim text-center mt-10">
+              No bookings in this category yet.
+            </p>
+          )}
+
+          {error && (
+            <div className="text-center mt-4">
+              <p className="text-sm text-red-500 font-medium">{error}</p>
+              <button
+                onClick={handleRetry}
+                className="mt-2 text-sm font-semibold text-brand-yellow-lg"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {isLoading && !error && <InlineLoader />}
+          {!hasNext && !error && bookings.length > 0 && (
+            <p className="text-xs text-font-dim text-center mt-4">
+              {bookings.length} booking(s)
+            </p>
+          )}
+
+          <div ref={sentinelRef} className="h-1" />
+          <div className="h-6" />
+        </main>
+      )}
 
       {actionTarget && (
         <ConfirmStatusChangeModal

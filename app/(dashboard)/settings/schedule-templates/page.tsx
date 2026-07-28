@@ -12,6 +12,7 @@ import {
 import { saveReturnTo } from "@/lib/listingDraft";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { ScheduleTemplate } from "@/types/listing-create.types";
+import { PageLoader } from "@/components/ui/PageLoader";
 
 export default function ScheduleTemplatesPage() {
   const router = useRouter();
@@ -91,9 +92,7 @@ export default function ScheduleTemplatesPage() {
         }
       />
       <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 space-y-3">
-        {loading && (
-          <p className="text-sm text-font-dim text-center mt-10">Loading...</p>
-        )}
+        {loading && <PageLoader />}
         {error && (
           <p className="text-sm text-red-500 text-center mt-10">{error}</p>
         )}

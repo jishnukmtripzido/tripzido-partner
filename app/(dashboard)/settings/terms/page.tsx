@@ -8,6 +8,7 @@ import {
   getVendorTermsApi,
   saveVendorTermsApi,
 } from "@/services/settings.service";
+import { PageLoader } from "@/components/ui/PageLoader";
 
 export default function VendorTermsPage() {
   const router = useRouter();
@@ -106,7 +107,7 @@ export default function VendorTermsPage() {
       <Header title="Terms & Conditions" onBack={() => router.back()} />
       <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 space-y-5">
         {loading ? (
-          <p className="text-sm text-font-dim text-center mt-10">Loading...</p>
+          <PageLoader />
         ) : (
           <>
             {version !== null && (

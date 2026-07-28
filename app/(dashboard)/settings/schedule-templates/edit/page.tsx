@@ -9,6 +9,7 @@ import {
   getScheduleTemplateDetailApi,
   updateScheduleTemplateApi,
 } from "@/services/fleet.service";
+import { PageLoader } from "@/components/ui/PageLoader";
 
 const DAY_NAMES = [
   "Monday",
@@ -117,7 +118,7 @@ export default function EditScheduleTemplatePage() {
       <>
         <Header title="Edit schedule" onBack={() => router.back()} />
         <main className="flex-1 px-5 pt-10">
-          <p className="text-sm text-font-dim text-center">Loading...</p>
+          <PageLoader />
         </main>
       </>
     );

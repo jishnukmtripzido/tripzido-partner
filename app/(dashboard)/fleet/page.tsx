@@ -9,6 +9,8 @@ import { useSidebar } from "@/context/SidebarContext";
 import { useAuth } from "@/context/AuthContext";
 import { getFleetApi, type FleetListing } from "@/services/fleet.service";
 import type { Vehicle } from "@/types/fleet.types";
+import { PageLoader } from "@/components/ui/PageLoader";
+import { InlineLoader } from "@/components/ui/InLineLoader";
 
 function toVehicleKind(vehicleType: string): Vehicle["kind"] {
   return vehicleType === "SCOOTER" ? "scooter" : "motorcycle";
@@ -93,6 +95,8 @@ export default function FleetPage() {
     loadNextPage();
   }
 
+  const isInitialLoad = isLoading && vehicles.length === 0 && !error;
+
   return (
     <>
       <Header
@@ -121,42 +125,44 @@ export default function FleetPage() {
         }
       />
 
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6">
-        <div className="space-y-3">
-          {vehicles.map((vehicle) => (
-            <VehicleListItem
-              key={vehicle.id}
-              vehicle={vehicle}
-              onClick={() =>
-                router.push(`/fleet/listing?id=${vehicle.id}` as Route)
-              }
-            />
-          ))}
-        </div>
-
-        {error && (
-          <div className="text-center mt-4">
-            <p className="text-sm text-red-500 font-medium">{error}</p>
-            <button
-              onClick={handleRetry}
-              className="mt-2 text-sm font-semibold text-brand-yellow-lg"
-            >
-              Retry
-            </button>
+      {isInitialLoad ? (
+        <PageLoader />
+      ) : (
+        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6">
+          <div className="space-y-3">
+            {vehicles.map((vehicle) => (
+              <VehicleListItem
+                key={vehicle.id}
+                vehicle={vehicle}
+                onClick={() =>
+                  router.push(`/fleet/listing?id=${vehicle.id}` as Route)
+                }
+              />
+            ))}
           </div>
-        )}
-        {isLoading && !error && (
-          <p className="text-sm text-font-dim text-center mt-4">Loading...</p>
-        )}
-        {!hasNext && !error && vehicles.length > 0 && (
-          <p className="text-xs text-font-dim text-center mt-4">
-            {vehicles.length} of {vehicles.length} bikes
-          </p>
-        )}
 
-        <div ref={sentinelRef} className="h-1" />
-        <div className="h-6" />
-      </main>
+          {error && (
+            <div className="text-center mt-4">
+              <p className="text-sm text-red-500 font-medium">{error}</p>
+              <button
+                onClick={handleRetry}
+                className="mt-2 text-sm font-semibold text-brand-yellow-lg"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {isLoading && !error && <InlineLoader />}
+          {!hasNext && !error && vehicles.length > 0 && (
+            <p className="text-xs text-font-dim text-center mt-4">
+              {vehicles.length} of {vehicles.length} bikes
+            </p>
+          )}
+
+          <div ref={sentinelRef} className="h-1" />
+          <div className="h-6" />
+        </main>
+      )}
     </>
   );
 }

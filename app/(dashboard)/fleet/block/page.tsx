@@ -15,14 +15,14 @@ import type {
   VendorBlockedPeriod,
   BlockUpdatePayload,
 } from "@/types/block.types";
+import { PageLoader } from "@/components/ui/PageLoader";
+import { InlineLoader } from "@/components/ui/InLineLoader";
 
 export default function BlockBikesPage() {
   const { openSidebar } = useSidebar();
   const { token } = useAuth();
 
   const [blocks, setBlocks] = useState<VendorBlockedPeriod[]>([]);
-
-  console.log("blocks state:", blocks); // Debugging line to check the state of blocks
   const [hasNext, setHasNext] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,6 +123,8 @@ export default function BlockBikesPage() {
     setShowAddModal(false);
   }
 
+  const isInitialLoad = isLoading && blocks.length === 0 && !error;
+
   return (
     <>
       <Header
@@ -151,47 +153,49 @@ export default function BlockBikesPage() {
         }
       />
 
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6">
-        <div className="space-y-4">
-          {blocks.map((block) => (
-            <BlockListItem
-              key={block.id}
-              block={block}
-              onSave={handleSaveBlock}
-              onDelete={handleDeleteBlock}
-            />
-          ))}
-        </div>
-
-        {blocks.length === 0 && !isLoading && !error && (
-          <p className="text-sm text-font-dim text-center mt-10">
-            No blocks yet.
-          </p>
-        )}
-
-        {error && (
-          <div className="text-center mt-4">
-            <p className="text-sm text-red-500 font-medium">{error}</p>
-            <button
-              onClick={handleRetry}
-              className="mt-2 text-sm font-semibold text-brand-yellow-lg"
-            >
-              Retry
-            </button>
+      {isInitialLoad ? (
+        <PageLoader />
+      ) : (
+        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6">
+          <div className="space-y-4">
+            {blocks.map((block) => (
+              <BlockListItem
+                key={block.id}
+                block={block}
+                onSave={handleSaveBlock}
+                onDelete={handleDeleteBlock}
+              />
+            ))}
           </div>
-        )}
-        {isLoading && !error && (
-          <p className="text-sm text-font-dim text-center mt-4">Loading...</p>
-        )}
-        {!hasNext && !error && blocks.length > 0 && (
-          <p className="text-xs text-font-dim text-center mt-4">
-            {blocks.length} block(s)
-          </p>
-        )}
 
-        <div ref={sentinelRef} className="h-1" />
-        <div className="h-6" />
-      </main>
+          {blocks.length === 0 && !isLoading && !error && (
+            <p className="text-sm text-font-dim text-center mt-10">
+              No blocks yet.
+            </p>
+          )}
+
+          {error && (
+            <div className="text-center mt-4">
+              <p className="text-sm text-red-500 font-medium">{error}</p>
+              <button
+                onClick={handleRetry}
+                className="mt-2 text-sm font-semibold text-brand-yellow-lg"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {isLoading && !error && <InlineLoader />}
+          {!hasNext && !error && blocks.length > 0 && (
+            <p className="text-xs text-font-dim text-center mt-4">
+              {blocks.length} block(s)
+            </p>
+          )}
+
+          <div ref={sentinelRef} className="h-1" />
+          <div className="h-6" />
+        </main>
+      )}
 
       {showAddModal && (
         <AddBlockModal
