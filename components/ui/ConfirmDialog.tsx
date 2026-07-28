@@ -1,5 +1,7 @@
 "use client";
 
+import { useDismissTransition } from "@/hooks/useDismissTransition";
+
 interface ConfirmDialogProps {
   title: string;
   message: string;
@@ -23,14 +25,21 @@ export function ConfirmDialog({
   onCancel,
   onConfirm,
 }: ConfirmDialogProps) {
+  // dismiss() plays the exit transition, THEN calls onCancel — the
+  // parent's conditional render ({x && <ConfirmDialog/>}) needs no
+  // changes, it just unmounts slightly later than the click.
+  const { phase, dismiss } = useDismissTransition(onCancel);
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div
-        onClick={onCancel}
-        className="absolute inset-0 bg-black/50"
+        onClick={dismiss}
+        className={`modal-backdrop modal-backdrop-${phase} absolute inset-0 bg-black/50`}
         aria-hidden="true"
       />
-      <div className="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-5 pb-safe">
+      <div
+        className={`modal-panel modal-panel-${phase} relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-5 pb-safe`}
+      >
         <h3 className="font-heading font-bold text-base text-font-main-sub mb-2">
           {title}
         </h3>
@@ -42,7 +51,7 @@ export function ConfirmDialog({
 
         <div className="flex gap-3">
           <button
-            onClick={onCancel}
+            onClick={dismiss}
             disabled={submitting}
             className="flex-1 border-2 border-gray-200 rounded-xl py-3 text-sm font-bold text-font-dim disabled:opacity-50"
           >

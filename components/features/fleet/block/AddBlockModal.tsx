@@ -8,6 +8,7 @@ import {
 } from "@/services/fleet.service";
 import { createBlockApi } from "@/services/block.service";
 import type { VendorBlockedPeriod } from "@/types/block.types";
+import { useDismissTransition } from "@/hooks/useDismissTransition";
 
 const REASON_OPTIONS = [
   { value: "MAINTENANCE", label: "Maintenance" },
@@ -29,6 +30,7 @@ interface AddBlockModalProps {
 
 export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
   const { token } = useAuth();
+  const { phase, dismiss } = useDismissTransition(onClose);
 
   const [listings, setListings] = useState<FleetListing[]>([]);
   const [listingsLoading, setListingsLoading] = useState(true);
@@ -94,11 +96,13 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div
-        onClick={onClose}
-        className="absolute inset-0 bg-black/50"
+        onClick={dismiss}
+        className={`modal-backdrop modal-backdrop-${phase} absolute inset-0 bg-black/50`}
         aria-hidden="true"
       />
-      <div className="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-5 pb-safe max-h-[90vh] overflow-y-auto">
+      <div
+        className={`modal-panel modal-panel-${phase} relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-5 pb-safe max-h-[90vh] overflow-y-auto`}
+      >
         <h3 className="font-heading font-bold text-base text-font-main-sub mb-4">
           Block bikes
         </h3>
@@ -218,7 +222,7 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
 
         <div className="flex gap-3 mt-5">
           <button
-            onClick={onClose}
+            onClick={dismiss}
             disabled={submitting}
             className="flex-1 border-2 border-gray-200 rounded-xl py-3 text-sm font-bold text-font-dim disabled:opacity-50"
           >

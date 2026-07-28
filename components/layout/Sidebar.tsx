@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { Route } from "next";
 import { useAuth } from "@/context/AuthContext";
 import { logoutApi } from "@/services/auth.service";
+import { useMountTransition } from "@/hooks/useMountTransition";
 
 interface SidebarProps {
   open: boolean;
@@ -108,17 +109,19 @@ const LINKS: SidebarLink[] = [
 ];
 
 /**
- * Slide-in drawer opened from the hamburger button in Header. Not
- * present in the original HTML mockups — added since every screen
- * has a hamburger button that needs somewhere to go. Kept in the
- * same visual language (brand-yellow accents, Nunito headings,
- * rounded-xl surfaces) as the rest of the app.
+ * Slide-in drawer opened from the hamburger button in Header. Uses
+ * useMountTransition so it plays a real enter AND exit animation —
+ * previously this referenced animate-overlay-in / animate-drawer-in,
+ * neither of which exist in globals.css, so it had no animation at
+ * all. Backdrop reuses the existing .modal-backdrop-* fade classes;
+ * the drawer panel uses the new .drawer-panel-* slide classes.
  */
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, token, refreshToken, logout } = useAuth();
+  const { shouldRender, phase } = useMountTransition(open, 250);
 
-  if (!open) return null;
+  if (!shouldRender) return null;
 
   function handleLogout() {
     if (token && refreshToken) {
@@ -134,11 +137,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     <div className="fixed inset-0 z-50">
       <div
         onClick={onClose}
-        className="absolute inset-0 bg-black/50 animate-overlay-in"
+        className={`modal-backdrop modal-backdrop-${phase} absolute inset-0 bg-black/50`}
         aria-hidden="true"
       />
 
-      <aside className="absolute left-0 top-0 bottom-0 w-[82%] max-w-xs bg-white shadow-2xl flex flex-col animate-drawer-in pt-safe">
+      <aside
+        className={`drawer-panel drawer-panel-${phase} absolute left-0 top-0 bottom-0 w-[82%] max-w-xs bg-white shadow-2xl flex flex-col pt-safe`}
+      >
         <div className="px-5 pt-6 pb-5 border-b border-gray-100">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">

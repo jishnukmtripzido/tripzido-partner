@@ -171,3 +171,20 @@
       rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
   }
 }
+
+/* ── Sidebar drawer panel — slides in from the left ─────────────────────
+   Pairs with the existing .modal-backdrop-* classes above for the
+   dimmed overlay (reused as-is, not duplicated).
+*/
+.drawer-panel {
+  transition: transform 250ms ease;
+}
+.drawer-panel-enter {
+  transform: translateX(-100%);
+}
+.drawer-panel-entered {
+  transform: translateX(0);
+}
+.drawer-panel-exit {
+  transform: translateX(-100%);
+}
