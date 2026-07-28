@@ -34,6 +34,7 @@ export interface ListingImage {
 
 export interface ListingPackage {
   id: number;
+  package_type_id: number; // NEW
   name: string;
   category: string;
   duration_hours: string;
@@ -54,6 +55,7 @@ export interface ListingScheduleDay {
 
 export interface ListingSchedule {
   has_schedule: boolean;
+  id: number | null; // NEW
   template_name: string | null;
   days: ListingScheduleDay[];
 }

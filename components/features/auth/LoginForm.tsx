@@ -76,7 +76,7 @@ export function LoginForm() {
         return;
       }
 
-      const { access_token } = res.data;
+      const { access_token, refresh_token } = res.data;
 
       // verify-otp returns tokens only — fetch profile for name/phone.
       let user = { phone_number: phone, first_name: "", last_name: "" };
@@ -94,7 +94,7 @@ export function LoginForm() {
         // with the placeholder. Dashboard can refetch profile later.
       }
 
-      login(user, access_token);
+      login(user, access_token, refresh_token);
       router.push("/dashboard");
     } catch (err) {
       setOtpError(err instanceof Error ? err.message : "Invalid OTP");

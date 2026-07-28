@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Route } from "next";
 import { useAuth } from "@/context/AuthContext";
+import { logoutApi } from "@/services/auth.service";
 
 interface SidebarProps {
   open: boolean;
@@ -78,6 +79,21 @@ const LINKS: SidebarLink[] = [
     ),
   },
   {
+    href: "/settings",
+    label: "Settings",
+    icon: (
+      <>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+        />
+        <circle cx="12" cy="12" r="3" strokeWidth={2} />
+      </>
+    ),
+  },
+  {
     href: "/profile",
     label: "Profile",
     icon: (
@@ -100,9 +116,19 @@ const LINKS: SidebarLink[] = [
  */
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, token, refreshToken, logout } = useAuth();
 
   if (!open) return null;
+
+  function handleLogout() {
+    if (token && refreshToken) {
+      logoutApi(token, refreshToken).catch(() => {
+        // Ignored — session is cleared locally regardless.
+      });
+    }
+    onClose();
+    logout();
+  }
 
   return (
     <div className="fixed inset-0 z-50">
@@ -143,8 +169,18 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               aria-label="Close menu"
               className="text-gray-400 hover:text-font-main-sub transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -155,9 +191,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </div>
             <div>
               <p className="font-semibold text-sm text-font-main-sub">
-                {user ? `${user.first_name} ${user.last_name ?? ""}`.trim() : "Partner"}
+                {user
+                  ? `${user.first_name} ${user.last_name ?? ""}`.trim()
+                  : "Partner"}
               </p>
-              <p className="text-xs text-font-dim">{user?.phone_number ?? "Not signed in"}</p>
+              <p className="text-xs text-font-dim">
+                {user?.phone_number ?? "Not signed in"}
+              </p>
             </div>
           </div>
         </div>
@@ -176,7 +216,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     : "text-font-dim hover:bg-gray-50"
                 }`}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   {link.icon}
                 </svg>
                 {link.label}
@@ -187,13 +232,15 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         <div className="p-3 border-t border-gray-100 pb-safe">
           <button
-            onClick={() => {
-              onClose();
-              logout();
-            }}
+            onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"

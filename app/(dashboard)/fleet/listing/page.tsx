@@ -11,6 +11,8 @@ import type {
   ListingPackage,
   ListingScheduleDay,
 } from "@/types/listing-detail.types";
+import type { Route } from "next";
+import { saveReturnTo } from "@/lib/listingDraft";
 
 const STATUS_STYLES: Record<string, string> = {
   APPROVED: "bg-green-100 text-green-700",
@@ -77,12 +79,9 @@ export default function ListingDetailPage() {
         rightSlot={
           listing && (
             <button
-              onClick={() => {
-                // TODO: editing flow isn't built yet — wire this once
-                // the edit page exists, e.g.
-                // router.push(`/fleet/listing/edit?id=${listing.id}` as Route)
-                alert("Editing is coming soon.");
-              }}
+              onClick={() =>
+                router.push(`/fleet/listing/edit?id=${listing.id}` as Route)
+              }
               className="text-sm font-bold text-brand-secondary bg-brand-yellow px-3 py-1.5 rounded-lg hover:bg-brand-yellow-lg transition-colors shrink-0"
             >
               Edit
@@ -104,7 +103,7 @@ export default function ListingDetailPage() {
 
         {listing && !isLoading && (
           <div className="space-y-5">
-            <ImageGallery listing={listing} />
+            <VehicleTypeHeroImage listing={listing} />
 
             <div>
               <span
@@ -157,6 +156,10 @@ export default function ListingDetailPage() {
                   />
                 )}
               </div>
+            </Section>
+
+            <Section title={`Photos (${listing.images.length})`}>
+              <VendorUploadedPhotos listing={listing} />
             </Section>
 
             <Section title="Pickup Location">
@@ -279,22 +282,12 @@ export default function ListingDetailPage() {
 
 // ── Sub-components ─────────────────────────────────────────────────────
 
-function ImageGallery({ listing }: { listing: ListingDetail }) {
-  const images: ListingImage[] =
-    listing.images.length > 0
-      ? listing.images
-      : listing.vehicle_type.primary_image
-        ? [
-            {
-              id: 0,
-              image_url: listing.vehicle_type.primary_image,
-              is_primary: true,
-              sort_order: 0,
-            },
-          ]
-        : [];
-
-  if (images.length === 0) {
+// Always the catalog VehicleType photo — consistent for every listing
+// of the same model, regardless of what this specific unit has
+// uploaded. Vendor-uploaded photos live in their own section below
+// (VendorUploadedPhotos), not here.
+function VehicleTypeHeroImage({ listing }: { listing: ListingDetail }) {
+  if (!listing.vehicle_type.primary_image) {
     return (
       <div className="w-full h-48 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center">
         <svg
@@ -315,14 +308,40 @@ function ImageGallery({ listing }: { listing: ListingDetail }) {
   }
 
   return (
-    <div className="flex gap-2 overflow-x-auto hide-scrollbar -mx-5 px-5">
+    <div className="w-full h-56 bg-gray-50 rounded-2xl border border-gray-100 p-3">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={listing.vehicle_type.primary_image}
+        alt={listing.vehicle_type.name}
+        className="w-full h-full object-contain"
+      />
+    </div>
+  );
+}
+
+// The vendor's own photos of this specific unit — separate from the
+// hero image above. Empty state is expected and normal right after a
+// listing is created with photo upload skipped.
+function VendorUploadedPhotos({ listing }: { listing: ListingDetail }) {
+  const images: ListingImage[] = listing.images;
+
+  if (images.length === 0) {
+    return (
+      <p className="text-sm text-font-dim">
+        No photos uploaded for this listing yet.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex gap-2 overflow-x-auto hide-scrollbar -mx-1 px-1">
       {images.map((img: ListingImage) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           key={img.id}
           src={img.image_url ?? undefined}
           alt={listing.vehicle_type.name}
-          className="h-48 w-auto rounded-2xl object-cover shrink-0 border border-gray-100"
+          className="h-28 w-28 rounded-xl object-cover shrink-0 border border-gray-100"
         />
       ))}
     </div>

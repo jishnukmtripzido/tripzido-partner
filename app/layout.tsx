@@ -42,7 +42,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${nunito.variable} font-sans`}>
+      {/* suppressHydrationWarning only silences mismatches on this
+          element's own attributes (e.g. cz-shortcut-listen injected by
+          the ColorZilla browser extension after load, before React
+          hydrates) — it does NOT suppress hydration warnings for
+          anything nested inside <body>, so a real mismatch in a child
+          component would still surface normally. */}
+      <body
+        suppressHydrationWarning
+        className={`${inter.variable} ${nunito.variable} font-sans`}
+      >
         {/* Cloudflare Turnstile — loaded once, globally, so
             useTurnstile's `window.turnstile` is available wherever
             LoginForm mounts. `lazyOnload` rather than

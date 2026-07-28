@@ -99,7 +99,10 @@ export default function FleetPage() {
         title="Bikes"
         onMenuClick={openSidebar}
         rightSlot={
-          <button className="flex items-center gap-1 bg-brand-yellow text-brand-secondary px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-brand-yellow-lg transition-colors">
+          <button
+            onClick={() => router.push("/fleet/listing/new" as Route)}
+            className="flex items-center gap-1 bg-brand-yellow text-brand-secondary px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-brand-yellow-lg transition-colors"
+          >
             <svg
               className="w-4 h-4"
               fill="none"

@@ -9,12 +9,19 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { SKIP_AUTH } from "@/lib/devFlags";
 
-// Drill-down screens (detail/edit) reached by tapping into a list get
-// the full viewport instead of the tab bar — matches the usual mobile
-// pattern of losing the tab bar once you're a level deep. Prefix match
-// so /fleet/listing (detail) and the future /fleet/listing/edit both
-// hide it without a second entry needed later.
-const HIDE_BOTTOM_NAV_PREFIXES = ["/fleet/listing"];
+// Drill-down screens (detail/edit/create) reached by tapping into a
+// list get the full viewport instead of the tab bar — matches the
+// usual mobile pattern of losing the tab bar once you're a level
+// deep. Prefix match so /fleet/listing, /fleet/listing/new, and
+// /fleet/schedule-templates/new all hide it without a separate entry
+// per sub-route.
+const HIDE_BOTTOM_NAV_PREFIXES = [
+  "/fleet/listing",
+  "/fleet/schedule-templates",
+  "/bookings/detail",
+  "/settings/terms",
+  "/settings/schedule-templates/edit",
+];
 
 function DashboardChrome({ children }: { children: React.ReactNode }) {
   const { open, closeSidebar } = useSidebar();
