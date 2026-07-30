@@ -1,62 +1,84 @@
 "use client";
 
-import type { LedgerEntry } from "@/types/ledger.types";
-
-const STATUS_STYLES = {
-  success: { badge: "bg-green-100 text-brand-green", dot: "bg-green-50 text-brand-green", amount: "text-brand-green" },
-  pending: { badge: "bg-yellow-100 text-yellow-700", dot: "bg-yellow-50 text-yellow-600", amount: "text-yellow-700" },
-  failed: { badge: "bg-red-100 text-red-600", dot: "bg-red-50 text-red-500", amount: "text-red-600" },
-} as const;
+import type { VendorPayout } from "@/types/ledger.types";
+import { PAYOUT_STATUS_STYLES } from "@/lib/payoutStatus";
 
 interface LedgerListItemProps {
-  entry: LedgerEntry;
-  highlighted?: boolean;
+  entry: VendorPayout;
+  onClick: () => void;
 }
 
-export function LedgerListItem({ entry, highlighted = false }: LedgerListItemProps) {
-  const styles = STATUS_STYLES[entry.status];
-
+export function LedgerListItem({ entry, onClick }: LedgerListItemProps) {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4 relative overflow-hidden">
-      {highlighted && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-yellow" />
-      )}
-
-      <div className="flex justify-between items-center border-b border-gray-50 pb-3">
+    <button
+      onClick={onClick}
+      className="w-full text-left bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:border-brand-yellow transition-colors"
+    >
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${styles.dot}`}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          <div className="w-8 h-8 rounded-full bg-brand-yellow/15 flex items-center justify-center shrink-0">
+            <svg
+              className="w-4 h-4 text-brand-secondary"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+              />
             </svg>
           </div>
-          <span className="font-heading font-bold text-sm text-font-main-sub">{entry.title}</span>
+          <span className="font-heading font-bold text-sm text-font-main-sub">
+            Payout #{entry.id}
+          </span>
         </div>
-        <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${styles.badge}`}>
-          {entry.status}
+        <span
+          className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+            PAYOUT_STATUS_STYLES[entry.status] ?? "bg-gray-100 text-gray-600"
+          }`}
+        >
+          {entry.status_label}
         </span>
       </div>
 
-      <div>
-        <p className="text-xs text-font-dim font-medium mb-1">Amount</p>
-        <p className={`font-heading font-extrabold text-2xl ${styles.amount}`}>
-          ₹{entry.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-        </p>
-      </div>
+      <p className="text-2xl font-heading font-extrabold text-font-main-sub mb-3">
+        ₹
+        {Number(entry.total_amount).toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        })}
+      </p>
 
-      <div className="grid grid-cols-1 gap-2 text-xs bg-gray-50 p-3 rounded-xl border border-gray-100">
+      <div className="bg-gray-50 rounded-xl p-3 space-y-1.5 text-xs">
         <div className="flex justify-between">
-          <span className="text-font-dim">Initiated</span>
-          <span className="font-semibold text-font-main-sub">{entry.initiatedLabel}</span>
+          <span className="text-font-dim">Bookings covered</span>
+          <span className="font-semibold text-font-main-sub">
+            {entry.items_count}
+          </span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-font-dim">Updated</span>
-          <span className="font-semibold text-font-main-sub">{entry.updatedLabel}</span>
-        </div>
-        <div className="flex justify-between pt-1 mt-1 border-t border-gray-200/50">
-          <span className="text-font-dim">UTR</span>
-          <span className="font-mono font-bold text-gray-600">{entry.utr}</span>
-        </div>
+        {entry.paid_at && (
+          <div className="flex justify-between">
+            <span className="text-font-dim">Paid on</span>
+            <span className="font-semibold text-font-main-sub">
+              {new Date(entry.paid_at).toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}
+            </span>
+          </div>
+        )}
+        {entry.utr_number && (
+          <div className="flex justify-between">
+            <span className="text-font-dim">UTR</span>
+            <span className="font-semibold text-font-main-sub">
+              {entry.utr_number}
+            </span>
+          </div>
+        )}
       </div>
-    </div>
+    </button>
   );
 }

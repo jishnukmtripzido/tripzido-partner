@@ -32,16 +32,57 @@ export default function BookingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const nextPageRef = useRef(1);
+  const nextPageRef = useRef(2); // page 1 is always handled by the tab effect below
   const loadedPagesRef = useRef<Set<string>>(new Set());
 
-  const [actionTarget, setActionTarget] = useState<{
-    bookingId: number;
-    status: BookingStatus;
-  } | null>(null);
-  const [actionSubmitting, setActionSubmitting] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  // Runs on every tab change (and on mount). Resets everything AND
+  // fetches page 1 directly, in one effect, so there's no separate
+  // "reset" effect racing against a "fetch" effect with a stale
+  // closure over hasNext/isLoading. Also clears loadedPagesRef
+  // entirely — without this, revisiting a tab you'd already viewed
+  // once would find its "tab:1" key still marked as loaded from the
+  // earlier visit and skip fetching, which was the actual bug.
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
 
+    setBookings([]);
+    setHasNext(true);
+    setError(null);
+    nextPageRef.current = 2;
+    loadedPagesRef.current.clear();
+    loadedPagesRef.current.add(`${tab}:1`);
+
+    (async () => {
+      setIsLoading(true);
+      try {
+        const res = await getVendorBookingsApi(tab, 1, token);
+        if (cancelled) return;
+        if (!res.success || !res.data) {
+          setError(res.message || "Failed to load bookings");
+          setHasNext(false);
+          return;
+        }
+        setBookings(res.data.results);
+        setHasNext(res.data.pagination.next !== null);
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load bookings",
+          );
+          setHasNext(false);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, token]);
+
+  // Page 2+ only, triggered by scroll — page 1 is never reached here.
   const loadNextPage = useCallback(async () => {
     if (!token || isLoading || !hasNext) return;
     const page = nextPageRef.current;
@@ -72,19 +113,6 @@ export default function BookingsPage() {
   }, [token, isLoading, hasNext, tab]);
 
   useEffect(() => {
-    setBookings([]);
-    setHasNext(true);
-    setError(null);
-    nextPageRef.current = 1;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
-
-  useEffect(() => {
-    if (token) loadNextPage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, tab]);
-
-  useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
@@ -104,9 +132,22 @@ export default function BookingsPage() {
   }
 
   function handleStatusAction(bookingId: number, target: BookingStatus) {
-    setActionTarget({ bookingId, status: target });
+    setActionTargetSet(bookingId, target);
+  }
+
+  // (kept as a plain helper rather than inlining, only to avoid a
+  // duplicate setActionTarget call site further down)
+  function setActionTargetSet(bookingId: number, status: BookingStatus) {
+    setActionTarget({ bookingId, status });
     setActionError(null);
   }
+
+  const [actionTarget, setActionTarget] = useState<{
+    bookingId: number;
+    status: BookingStatus;
+  } | null>(null);
+  const [actionSubmitting, setActionSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   async function handleConfirmAction() {
     if (!actionTarget || !token) return;
