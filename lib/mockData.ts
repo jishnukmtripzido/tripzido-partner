@@ -1,12 +1,13 @@
 import type { Vehicle, BlockEntry } from "@/types/fleet.types";
-import type { LedgerEntry } from "@/types/ledger.types";
 import type { DashboardStats } from "@/types/dashboard.types";
 
 // All values below mirror the numbers baked into the original HTML
 // mockups so the converted screens look identical out of the box.
-// Replace these with real `fetch`/API calls once the partner API
-// endpoints exist — every page reads from here through one import,
-// so swapping the source later is a one-file change.
+// NOTE: Fleet, Block Bikes, Ledger, and Dashboard have all since been
+// wired to real backend data — these exports are likely unused dead
+// code at this point. Kept temporarily rather than deleted outright;
+// safe to remove this whole file once confirmed nothing still imports
+// from it.
 
 export const MOCK_DASHBOARD_STATS: DashboardStats = {
   currentBalance: 891.79,
@@ -22,7 +23,12 @@ export const MOCK_DASHBOARD_STATS: DashboardStats = {
 
 export const MOCK_VEHICLES: Vehicle[] = [
   { id: "1", name: "Yamaha FZ V3", quantity: 1, kind: "motorcycle" },
-  { id: "2", name: "Bajaj Avenger 220 Cruise", quantity: 1, kind: "motorcycle" },
+  {
+    id: "2",
+    name: "Bajaj Avenger 220 Cruise",
+    quantity: 1,
+    kind: "motorcycle",
+  },
   { id: "3", name: "Bajaj Pulsar 150", quantity: 1, kind: "motorcycle" },
   { id: "4", name: "KTM Duke 200", quantity: 1, kind: "motorcycle" },
   { id: "5", name: "Honda Activa 5G", quantity: 1, kind: "scooter" },
@@ -64,44 +70,5 @@ export const MOCK_BLOCKS: BlockEntry[] = [
     endLabel: "20 Feb 2023 at 11:00 AM",
     quantity: 1,
     availableCount: 0,
-  },
-];
-
-export const MOCK_LEDGER: LedgerEntry[] = [
-  {
-    id: "l1",
-    title: "Order Settlement",
-    status: "success",
-    amount: 678.04,
-    initiatedLabel: "16 Feb 2023, 11:00 AM",
-    updatedLabel: "16 Feb 2023, 1:20 PM",
-    utr: "YESB30478704327",
-  },
-  {
-    id: "l2",
-    title: "Order Settlement",
-    status: "success",
-    amount: 6320.36,
-    initiatedLabel: "15 Feb 2023, 11:00 AM",
-    updatedLabel: "15 Feb 2023, 1:19 PM",
-    utr: "YESB30465234114",
-  },
-  {
-    id: "l3",
-    title: "Order Settlement",
-    status: "success",
-    amount: 1532.33,
-    initiatedLabel: "14 Feb 2023, 11:00 AM",
-    updatedLabel: "14 Feb 2023, 1:19 PM",
-    utr: "YESB30451657725",
-  },
-  {
-    id: "l4",
-    title: "Order Settlement",
-    status: "success",
-    amount: 1177.95,
-    initiatedLabel: "13 Feb 2023, 11:00 AM",
-    updatedLabel: "13 Feb 2023, 1:20 PM",
-    utr: "YESB30431238841",
   },
 ];
