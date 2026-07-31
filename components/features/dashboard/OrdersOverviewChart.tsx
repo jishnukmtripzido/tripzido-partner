@@ -3,14 +3,22 @@
 import { useState } from "react";
 
 interface OrdersOverviewChartProps {
-  bars: number[]; // 0-100 heights, oldest week first
+  bars: number[]; // 0-100 heights, oldest first
   rangeLabel: string;
+  /** e.g. ["Mon","Tue",...] — falls back to "Week N" if omitted, so
+   * this stays backward compatible with any other caller. */
+  dayLabels?: string[];
 }
 
 const RANGE_OPTIONS = ["This Month", "Last Month", "Last 3 Months"] as const;
 
-export function OrdersOverviewChart({ bars, rangeLabel }: OrdersOverviewChartProps) {
-  const [range, setRange] = useState<(typeof RANGE_OPTIONS)[number]>("This Month");
+export function OrdersOverviewChart({
+  bars,
+  rangeLabel,
+  dayLabels,
+}: OrdersOverviewChartProps) {
+  const [range, setRange] =
+    useState<(typeof RANGE_OPTIONS)[number]>("This Month");
   const highestIndex = bars.indexOf(Math.max(...bars));
 
   return (
@@ -19,7 +27,9 @@ export function OrdersOverviewChart({ bars, rangeLabel }: OrdersOverviewChartPro
         <h3 className="font-heading font-bold text-lg">Orders Overview</h3>
         <select
           value={range}
-          onChange={(e) => setRange(e.target.value as (typeof RANGE_OPTIONS)[number])}
+          onChange={(e) =>
+            setRange(e.target.value as (typeof RANGE_OPTIONS)[number])
+          }
           className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-1.5 font-medium outline-none focus:border-brand-yellow focus:ring-1 focus:ring-brand-yellow"
         >
           {RANGE_OPTIONS.map((opt) => (
@@ -45,7 +55,7 @@ export function OrdersOverviewChart({ bars, rangeLabel }: OrdersOverviewChartPro
       </div>
       <div className="flex justify-between mt-2 text-[10px] text-gray-400 font-medium">
         {bars.map((_, i) => (
-          <span key={i}>Week {i + 1}</span>
+          <span key={i}>{dayLabels?.[i] ?? `Week ${i + 1}`}</span>
         ))}
       </div>
     </div>
