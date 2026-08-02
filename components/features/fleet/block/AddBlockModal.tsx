@@ -38,6 +38,7 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
   const [listingId, setListingId] = useState<number | null>(null);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [isIndefinite, setIsIndefinite] = useState(false);
   const [count, setCount] = useState(1);
   const [reason, setReason] = useState("OTHER");
   const [note, setNote] = useState("");
@@ -66,7 +67,11 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
   const maxCount = selectedListing?.quantity ?? 1;
 
   async function handleSubmit() {
-    if (!token || !listingId || !start || !end) return;
+    if (!token || !listingId || !start) return;
+    if (!isIndefinite && !end) {
+      setError("Please set an end date, or mark this block as indefinite.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -74,7 +79,7 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
         {
           listing_id: listingId,
           start_datetime: start,
-          end_datetime: end,
+          end_datetime: isIndefinite ? null : end,
           count,
           reason,
           note,
@@ -145,17 +150,34 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
               className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
             />
           </div>
+
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
-              End
+            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 mb-2">
+              <input
+                type="checkbox"
+                checked={isIndefinite}
+                onChange={(e) => {
+                  setIsIndefinite(e.target.checked);
+                  if (e.target.checked) setEnd("");
+                }}
+              />
+              Block until further notice (no end date)
             </label>
-            <input
-              type="datetime-local"
-              value={end}
-              min={start || nowLocalInputValue()}
-              onChange={(e) => setEnd(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
-            />
+
+            {!isIndefinite && (
+              <>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  End
+                </label>
+                <input
+                  type="datetime-local"
+                  value={end}
+                  min={start || nowLocalInputValue()}
+                  onChange={(e) => setEnd(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+                />
+              </>
+            )}
           </div>
 
           {selectedListing && (
@@ -230,7 +252,9 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting || !listingId || !start || !end}
+            disabled={
+              submitting || !listingId || !start || (!isIndefinite && !end)
+            }
             className="flex-1 rounded-xl py-3 text-sm font-bold bg-brand-yellow text-brand-secondary hover:bg-brand-yellow-lg disabled:opacity-50"
           >
             {submitting ? "Creating..." : "Create block"}

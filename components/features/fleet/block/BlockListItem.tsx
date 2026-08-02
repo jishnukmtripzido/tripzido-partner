@@ -33,6 +33,7 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftStart, setDraftStart] = useState("");
   const [draftEnd, setDraftEnd] = useState("");
+  const [draftIndefinite, setDraftIndefinite] = useState(false);
   const [draftCount, setDraftCount] = useState(block?.count ?? 1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,31 +42,43 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  const [closing, setClosing] = useState(false);
+  const [closeError, setCloseError] = useState<string | null>(null);
+
   if (!block) {
     console.warn("BlockListItem received an undefined block prop");
     return null;
   }
 
   const now = new Date();
+  // Indefinite blocks (end_datetime === null) are "active" as soon as
+  // start has passed — there's no end boundary to compare against.
   const isActive =
     new Date(block.start_datetime) <= now &&
-    now <= new Date(block.end_datetime);
+    (block.end_datetime === null || now <= new Date(block.end_datetime));
 
   function startEditing() {
     setDraftStart(toLocalInputValue(block.start_datetime));
-    setDraftEnd(toLocalInputValue(block.end_datetime));
+    setDraftIndefinite(block.end_datetime === null);
+    setDraftEnd(
+      block.end_datetime ? toLocalInputValue(block.end_datetime) : "",
+    );
     setDraftCount(block.count);
     setError(null);
     setIsEditing(true);
   }
 
   async function handleSave() {
+    if (!draftIndefinite && !draftEnd) {
+      setError("Please set an end date, or mark this block as indefinite.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
       const res = await onSave(block.id, {
         start_datetime: draftStart,
-        end_datetime: draftEnd,
+        end_datetime: draftIndefinite ? null : draftEnd,
         count: draftCount,
       });
       if (!res.success) {
@@ -75,6 +88,23 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
       setIsEditing(false);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleCloseNow() {
+    setClosing(true);
+    setCloseError(null);
+    try {
+      const res = await onSave(block.id, {
+        start_datetime: block.start_datetime,
+        end_datetime: new Date().toISOString(),
+        count: block.count,
+      });
+      if (!res.success) {
+        setCloseError(res.message || "Failed to close block");
+      }
+    } finally {
+      setClosing(false);
     }
   }
 
@@ -115,18 +145,36 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
             />
           </div>
+
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
-              End
+            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 mb-2">
+              <input
+                type="checkbox"
+                checked={draftIndefinite}
+                onChange={(e) => {
+                  setDraftIndefinite(e.target.checked);
+                  if (e.target.checked) setDraftEnd("");
+                }}
+              />
+              Block until further notice (no end date)
             </label>
-            <input
-              type="datetime-local"
-              value={draftEnd}
-              min={nowLocalInputValue()}
-              onChange={(e) => setDraftEnd(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            />
+
+            {!draftIndefinite && (
+              <>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  End
+                </label>
+                <input
+                  type="datetime-local"
+                  value={draftEnd}
+                  min={nowLocalInputValue()}
+                  onChange={(e) => setDraftEnd(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </>
+            )}
           </div>
+
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-gray-600">
               Bikes blocked{" "}
@@ -180,6 +228,15 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
             Block ID #{block.id}
           </span>
           <div className="flex items-center gap-3">
+            {block.is_indefinite && isActive && (
+              <button
+                onClick={handleCloseNow}
+                disabled={closing}
+                className="text-xs font-bold text-green-600 disabled:opacity-50"
+              >
+                {closing ? "Closing..." : "Close now"}
+              </button>
+            )}
             <button
               onClick={startEditing}
               className="text-xs font-bold text-brand-yellow-lg"
@@ -197,6 +254,11 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
             </button>
           </div>
         </div>
+
+        {closeError && (
+          <p className="text-xs text-red-500 font-medium mb-2">{closeError}</p>
+        )}
+
         <div className="flex justify-between items-start gap-2">
           <div className="flex-1">
             <h3 className="font-heading font-bold text-font-main-sub text-base mb-1 leading-tight pr-2">
@@ -210,7 +272,9 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
               </p>
               <p className="text-font-dim">
                 <span className="font-semibold text-gray-700">End:</span>{" "}
-                {new Date(block.end_datetime).toLocaleString()}
+                {block.end_datetime
+                  ? new Date(block.end_datetime).toLocaleString()
+                  : "Until further notice"}
               </p>
             </div>
           </div>
