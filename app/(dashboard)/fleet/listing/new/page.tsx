@@ -9,6 +9,7 @@ import {
   getVehicleTypesApi,
   getPackageTypesApi,
   getScheduleTemplatesApi,
+  getPickupPointsApi,
   createListingApi,
   uploadListingImagesApi,
 } from "@/services/fleet.service";
@@ -28,6 +29,7 @@ import type {
   PickupLocationOption,
   PackageTypeOption,
   ScheduleTemplate,
+  PickupPoint,
   ListingCreatePayload,
 } from "@/types/listing-create.types";
 
@@ -56,6 +58,8 @@ interface WizardDraft {
   cityName: string;
   pickupLocationId: number | null;
   pickupLocationName: string;
+  pickupPointId: number | null;
+  pickupPointLabel: string;
   scheduleTemplateId: number | null;
   scheduleTemplateName: string;
   pricingPackages: PricingPackageDraft[];
@@ -77,6 +81,8 @@ const EMPTY_DRAFT: WizardDraft = {
   cityName: "",
   pickupLocationId: null,
   pickupLocationName: "",
+  pickupPointId: null,
+  pickupPointLabel: "",
   scheduleTemplateId: null,
   scheduleTemplateName: "",
   pricingPackages: [],
@@ -100,18 +106,12 @@ export default function NewListingPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdListingId, setCreatedListingId] = useState<number | null>(null);
 
-  // Restore any in-progress draft on mount — this is what makes the
-  // "create a schedule template" round trip work without losing
-  // everything the vendor already picked.
   useEffect(() => {
     const saved = loadDraft<WizardDraft>();
     if (saved) setDraft(saved);
     setHydrated(true);
   }, []);
 
-  // Persist on every change, but only once hydration has actually run
-  // — otherwise the very first render's EMPTY_DRAFT would overwrite a
-  // just-restored draft before the effect above gets to it.
   useEffect(() => {
     if (hydrated) saveDraft(draft);
   }, [draft, hydrated]);
@@ -130,7 +130,11 @@ export default function NewListingPage() {
   const canProceed = (() => {
     switch (draft.step) {
       case 1:
-        return !!draft.vehicleTypeId && !!draft.pickupLocationId;
+        return (
+          !!draft.vehicleTypeId &&
+          !!draft.pickupLocationId &&
+          !!draft.pickupPointId
+        );
       case 2:
         return !!draft.scheduleTemplateId;
       case 3:
@@ -153,6 +157,7 @@ export default function NewListingPage() {
       const payload: ListingCreatePayload = {
         vehicle_type_id: draft.vehicleTypeId!,
         pickup_location_id: draft.pickupLocationId!,
+        pickup_point_id: draft.pickupPointId!,
         schedule_template_id: draft.scheduleTemplateId!,
         available_count: Number(draft.availableCount) || 1,
         security_deposit_amount: draft.securityDepositAmount || "0",
@@ -192,9 +197,18 @@ export default function NewListingPage() {
   }
 
   function handleCreateScheduleTemplate() {
-    // Draft is already persisted via the effect above — safe to leave.
     saveReturnTo("/fleet/listing/new");
     router.push("/fleet/schedule-templates/new" as Route);
+  }
+
+  function handleCreatePickupPoint() {
+    saveReturnTo("/fleet/listing/new");
+    const params = new URLSearchParams();
+    if (draft.pickupLocationId)
+      params.set("pickup_location_id", String(draft.pickupLocationId));
+    if (draft.pickupLocationName)
+      params.set("pickup_location_name", draft.pickupLocationName);
+    router.push(`/fleet/pickup-points/new?${params.toString()}` as Route);
   }
 
   if (!hydrated || !token) return null;
@@ -239,7 +253,12 @@ export default function NewListingPage() {
         </div>
 
         {draft.step === 1 && (
-          <StepVehicleLocation draft={draft} update={update} token={token} />
+          <StepVehicleLocation
+            draft={draft}
+            update={update}
+            token={token}
+            onCreatePickupPoint={handleCreatePickupPoint}
+          />
         )}
         {draft.step === 2 && (
           <StepSchedule
@@ -300,10 +319,12 @@ function StepVehicleLocation({
   draft,
   update,
   token,
+  onCreatePickupPoint,
 }: {
   draft: WizardDraft;
   update: (patch: Partial<WizardDraft>) => void;
   token: string;
+  onCreatePickupPoint: () => void;
 }) {
   const [vehicleQuery, setVehicleQuery] = useState("");
   const [vehicleResults, setVehicleResults] = useState<VehicleTypeOption[]>([]);
@@ -315,6 +336,9 @@ function StepVehicleLocation({
 
   const [locations, setLocations] = useState<PickupLocationOption[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(false);
+
+  const [pickupPoints, setPickupPoints] = useState<PickupPoint[]>([]);
+  const [pickupPointsLoading, setPickupPointsLoading] = useState(false);
 
   useEffect(() => {
     if (!vehicleQuery.trim()) {
@@ -370,6 +394,26 @@ function StepVehicleLocation({
     };
   }, [draft.cityId]);
 
+  useEffect(() => {
+    if (!draft.pickupLocationId) {
+      setPickupPoints([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setPickupPointsLoading(true);
+      try {
+        const res = await getPickupPointsApi(token, draft.pickupLocationId!);
+        if (!cancelled && res.success && res.data) setPickupPoints(res.data);
+      } finally {
+        if (!cancelled) setPickupPointsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [draft.pickupLocationId, token]);
+
   function selectVehicleType(vt: VehicleTypeOption) {
     update({
       vehicleTypeId: vt.id,
@@ -385,6 +429,8 @@ function StepVehicleLocation({
       cityName: city.name,
       pickupLocationId: null,
       pickupLocationName: "",
+      pickupPointId: null,
+      pickupPointLabel: "",
     });
     setCityQuery(city.name);
     setCityResults([]);
@@ -455,6 +501,8 @@ function StepVehicleLocation({
                   cityName: "",
                   pickupLocationId: null,
                   pickupLocationName: "",
+                  pickupPointId: null,
+                  pickupPointLabel: "",
                 });
                 setCityQuery("");
               }}
@@ -515,6 +563,8 @@ function StepVehicleLocation({
                 update({
                   pickupLocationId: loc?.id ?? null,
                   pickupLocationName: loc?.location_name ?? "",
+                  pickupPointId: null,
+                  pickupPointLabel: "",
                 });
               }}
               className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-yellow bg-white"
@@ -526,6 +576,61 @@ function StepVehicleLocation({
                 </option>
               ))}
             </select>
+          )}
+        </div>
+      )}
+
+      {draft.pickupLocationId && (
+        <div>
+          <label className="block text-sm font-semibold mb-2">
+            Exact pickup address
+          </label>
+          {pickupPointsLoading ? (
+            <p className="text-xs text-font-dim">
+              Loading your saved addresses...
+            </p>
+          ) : pickupPoints.length === 0 ? (
+            <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl">
+              <p className="text-sm text-font-dim mb-3">
+                No saved addresses in this area yet.
+              </p>
+              <button
+                onClick={onCreatePickupPoint}
+                className="text-sm font-bold text-brand-secondary bg-brand-yellow px-4 py-2 rounded-lg"
+              >
+                + Add pickup point
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {pickupPoints.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() =>
+                      update({
+                        pickupPointId: p.id,
+                        pickupPointLabel: p.label || p.address,
+                      })
+                    }
+                    className={`w-full text-left border-2 rounded-xl px-4 py-3 text-sm transition-colors ${
+                      draft.pickupPointId === p.id
+                        ? "border-brand-yellow bg-brand-yellow/5"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <p className="font-medium">{p.label || "Pickup point"}</p>
+                    <p className="text-xs text-font-dim mt-0.5">{p.address}</p>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={onCreatePickupPoint}
+                className="text-sm font-semibold text-brand-yellow-lg mt-2"
+              >
+                + Add a new pickup point
+              </button>
+            </>
           )}
         </div>
       )}
@@ -583,7 +688,6 @@ function StepSchedule({
   return (
     <div className="space-y-4">
       {error && <p className="text-sm text-red-500">{error}</p>}
-
       {templates.length === 0 ? (
         <div className="text-center py-8 border border-dashed border-gray-200 rounded-xl">
           <p className="text-sm text-font-dim mb-3">
@@ -673,14 +777,13 @@ function StepPricing({
       ],
     });
   }
-
   function updatePackage(index: number, patch: Partial<PricingPackageDraft>) {
-    const next = draft.pricingPackages.map((p, i) =>
-      i === index ? { ...p, ...patch } : p,
-    );
-    update({ pricingPackages: next });
+    update({
+      pricingPackages: draft.pricingPackages.map((p, i) =>
+        i === index ? { ...p, ...patch } : p,
+      ),
+    });
   }
-
   function removePackage(index: number) {
     update({
       pricingPackages: draft.pricingPackages.filter((_, i) => i !== index),
@@ -732,7 +835,6 @@ function StepPricing({
                 </option>
               ))}
             </select>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
@@ -761,7 +863,6 @@ function StepPricing({
                 />
               </div>
             </div>
-
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -773,7 +874,6 @@ function StepPricing({
               />
               Allow pay at pickup
             </label>
-
             {pkg.payAtPickupEnabled && (
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
@@ -796,7 +896,6 @@ function StepPricing({
           </div>
         );
       })}
-
       <button
         onClick={addPackage}
         className="w-full border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm font-semibold text-font-dim hover:border-brand-yellow hover:text-brand-secondary transition-colors"
@@ -933,6 +1032,7 @@ function StepReview({
         label="Location"
         value={`${draft.pickupLocationName}, ${draft.cityName}`}
       />
+      <ReviewRow label="Pickup point" value={draft.pickupPointLabel} />
       <ReviewRow label="Schedule" value={draft.scheduleTemplateName} />
       <ReviewRow
         label="Pricing packages"
@@ -1010,7 +1110,6 @@ function PhotoUploadPanel({
         Your listing was created. Add a few photos now, or skip and add them
         later.
       </p>
-
       <input
         type="file"
         accept="image/*"
@@ -1018,7 +1117,6 @@ function PhotoUploadPanel({
         onChange={(e) => handleFiles(e.target.files)}
         className="block w-full text-sm"
       />
-
       {previews.length > 0 && (
         <div className="flex gap-2 overflow-x-auto hide-scrollbar">
           {previews.map((src, i) => (
@@ -1032,12 +1130,10 @@ function PhotoUploadPanel({
           ))}
         </div>
       )}
-
       {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
       {uploaded && (
         <p className="text-sm text-green-600 font-medium">Photos uploaded.</p>
       )}
-
       <div className="space-y-3">
         <button
           onClick={handleUpload}

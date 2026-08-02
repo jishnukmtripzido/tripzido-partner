@@ -9,6 +9,7 @@ import {
   getListingDetailApi,
   getPackageTypesApi,
   getScheduleTemplatesApi,
+  getPickupPointsApi,
   updateListingApi,
   uploadListingImagesApi,
   deleteListingImageApi,
@@ -29,10 +30,10 @@ import type {
   PickupLocationOption,
   PackageTypeOption,
   ScheduleTemplate,
+  PickupPoint,
   ListingUpdatePayload,
 } from "@/types/listing-create.types";
 import type { ListingDetail, ListingImage } from "@/types/listing-detail.types";
-import { PageLoader } from "@/components/ui/PageLoader";
 
 interface PricingPackageDraft {
   packageTypeId: number | null;
@@ -47,6 +48,8 @@ interface EditFormState {
   cityName: string;
   pickupLocationId: number | null;
   pickupLocationName: string;
+  pickupPointId: number | null;
+  pickupPointLabel: string;
   scheduleTemplateId: number | null;
   scheduleTemplateName: string;
   pricingPackages: PricingPackageDraft[];
@@ -66,6 +69,9 @@ function detailToFormState(detail: ListingDetail): EditFormState {
     cityName: detail.pickup_location.city_name,
     pickupLocationId: detail.pickup_location.id,
     pickupLocationName: detail.pickup_location.name,
+    pickupPointId: detail.pickup_point?.id ?? null,
+    pickupPointLabel:
+      detail.pickup_point?.label || detail.pickup_point?.address || "",
     scheduleTemplateId: detail.schedule.id,
     scheduleTemplateName: detail.schedule.template_name ?? "",
     pricingPackages: detail.pricing_packages.map((pkg) => ({
@@ -112,8 +118,6 @@ export default function EditListingPage() {
 
   const draftKey = listingId ? editDraftKey(listingId) : "";
 
-  // Restore in-progress edits from sessionStorage (schedule-template
-  // round trip) if present; otherwise load fresh from the API.
   useEffect(() => {
     if (!token || !listingId) return;
     let cancelled = false;
@@ -135,9 +139,6 @@ export default function EditListingPage() {
           `${res.data.vehicle_type.brand} ${res.data.vehicle_type.name} (${res.data.vehicle_type.make_year})`,
         );
         setImages(res.data.images);
-        // Only seed the form from the API if nothing was restored —
-        // a saved draft means the vendor was mid-edit before
-        // navigating away, and their in-progress changes should win.
         if (!restored) setForm(detailToFormState(res.data));
       } catch (err) {
         if (!cancelled) {
@@ -168,6 +169,17 @@ export default function EditListingPage() {
     router.push("/fleet/schedule-templates/new" as Route);
   }
 
+  function handleCreatePickupPoint() {
+    if (!listingId) return;
+    saveReturnTo(`/fleet/listing/edit?id=${listingId}`);
+    const params = new URLSearchParams();
+    if (form?.pickupLocationId)
+      params.set("pickup_location_id", String(form.pickupLocationId));
+    if (form?.pickupLocationName)
+      params.set("pickup_location_name", form.pickupLocationName);
+    router.push(`/fleet/pickup-points/new?${params.toString()}` as Route);
+  }
+
   async function handleSubmit() {
     if (!token || !form || !listingId) return;
     setSubmitting(true);
@@ -175,6 +187,7 @@ export default function EditListingPage() {
     try {
       const payload: ListingUpdatePayload = {
         pickup_location_id: form.pickupLocationId!,
+        pickup_point_id: form.pickupPointId!,
         schedule_template_id: form.scheduleTemplateId!,
         available_count: Number(form.availableCount) || 1,
         security_deposit_amount: form.securityDepositAmount || "0",
@@ -221,7 +234,7 @@ export default function EditListingPage() {
       <>
         <Header title="Edit listing" onBack={() => router.back()} />
         <main className="flex-1 px-5 pt-10">
-          <PageLoader />
+          <p className="text-sm text-font-dim text-center">Loading...</p>
         </main>
       </>
     );
@@ -255,7 +268,12 @@ export default function EditListingPage() {
         </div>
 
         <Section title="Pickup location">
-          <LocationPicker form={form} update={update} />
+          <LocationPicker
+            form={form}
+            update={update}
+            token={token!}
+            onCreatePickupPoint={handleCreatePickupPoint}
+          />
         </Section>
 
         <Section title="Photos">
@@ -295,11 +313,16 @@ export default function EditListingPage() {
 
         <button
           onClick={handleSubmit}
-          disabled={submitting}
+          disabled={submitting || !form.pickupPointId}
           className="w-full font-bold rounded-xl py-4 text-center bg-brand-yellow text-brand-secondary hover:bg-brand-yellow-lg transition-colors disabled:opacity-50"
         >
           {submitting ? "Saving..." : "Save changes"}
         </button>
+        {!form.pickupPointId && (
+          <p className="text-xs text-red-500 text-center -mt-3">
+            Select an exact pickup point before saving.
+          </p>
+        )}
         <p className="text-xs text-font-dim text-center">
           Saving sends this listing back for admin approval.
         </p>
@@ -330,14 +353,20 @@ function Section({
 function LocationPicker({
   form,
   update,
+  token,
+  onCreatePickupPoint,
 }: {
   form: EditFormState;
   update: (patch: Partial<EditFormState>) => void;
+  token: string;
+  onCreatePickupPoint: () => void;
 }) {
   const [cityQuery, setCityQuery] = useState("");
   const [cityResults, setCityResults] = useState<City[]>([]);
   const [locations, setLocations] = useState<PickupLocationOption[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(false);
+  const [pickupPoints, setPickupPoints] = useState<PickupPoint[]>([]);
+  const [pickupPointsLoading, setPickupPointsLoading] = useState(false);
 
   useEffect(() => {
     if (!cityQuery.trim()) {
@@ -368,12 +397,34 @@ function LocationPicker({
     };
   }, [form.cityId]);
 
+  useEffect(() => {
+    if (!form.pickupLocationId) {
+      setPickupPoints([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setPickupPointsLoading(true);
+      try {
+        const res = await getPickupPointsApi(token, form.pickupLocationId!);
+        if (!cancelled && res.success && res.data) setPickupPoints(res.data);
+      } finally {
+        if (!cancelled) setPickupPointsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [form.pickupLocationId, token]);
+
   function selectCity(city: City) {
     update({
       cityId: city.id,
       cityName: city.name,
       pickupLocationId: null,
       pickupLocationName: "",
+      pickupPointId: null,
+      pickupPointLabel: "",
     });
     setCityQuery("");
     setCityResults([]);
@@ -427,7 +478,7 @@ function LocationPicker({
             Pickup location
           </label>
           {locationsLoading ? (
-            <PageLoader />
+            <p className="text-xs text-font-dim">Loading...</p>
           ) : (
             <select
               value={form.pickupLocationId ?? ""}
@@ -438,6 +489,8 @@ function LocationPicker({
                 update({
                   pickupLocationId: loc?.id ?? null,
                   pickupLocationName: loc?.location_name ?? "",
+                  pickupPointId: null,
+                  pickupPointLabel: "",
                 });
               }}
               className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
@@ -449,6 +502,61 @@ function LocationPicker({
                 </option>
               ))}
             </select>
+          )}
+        </div>
+      )}
+
+      {form.pickupLocationId && (
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">
+            Exact pickup address
+          </label>
+          {pickupPointsLoading ? (
+            <p className="text-xs text-font-dim">
+              Loading your saved addresses...
+            </p>
+          ) : pickupPoints.length === 0 ? (
+            <div className="text-center py-4 border border-dashed border-gray-200 rounded-xl">
+              <p className="text-xs text-font-dim mb-2">
+                No saved addresses in this area yet.
+              </p>
+              <button
+                onClick={onCreatePickupPoint}
+                className="text-xs font-bold text-brand-secondary bg-brand-yellow px-3 py-1.5 rounded-lg"
+              >
+                + Add pickup point
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {pickupPoints.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() =>
+                      update({
+                        pickupPointId: p.id,
+                        pickupPointLabel: p.label || p.address,
+                      })
+                    }
+                    className={`w-full text-left border-2 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                      form.pickupPointId === p.id
+                        ? "border-brand-yellow bg-brand-yellow/5"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <p className="font-medium">{p.label || "Pickup point"}</p>
+                    <p className="text-xs text-font-dim mt-0.5">{p.address}</p>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={onCreatePickupPoint}
+                className="text-xs font-semibold text-brand-yellow-lg mt-2"
+              >
+                + Add a new pickup point
+              </button>
+            </>
           )}
         </div>
       )}

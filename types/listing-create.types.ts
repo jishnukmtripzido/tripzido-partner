@@ -77,6 +77,7 @@ export interface PricingPackageInput {
 export interface ListingCreatePayload {
   vehicle_type_id: number;
   pickup_location_id: number;
+  pickup_point_id: number;
   schedule_template_id: number;
   available_count: number;
   security_deposit_amount: string;
@@ -103,6 +104,7 @@ export interface PickupLocationOption {
 
 export interface ListingUpdatePayload {
   pickup_location_id: number;
+  pickup_point_id: number;
   schedule_template_id: number;
   available_count: number;
   security_deposit_amount: string;
@@ -113,4 +115,26 @@ export interface ListingUpdatePayload {
   operating_hours_start?: string | null;
   operating_hours_end?: string | null;
   pricing_packages: PricingPackageInput[];
+}
+
+export interface PickupPoint {
+  id: number;
+  pickup_location: number | null;
+  pickup_location_name: string | null;
+  label: string;
+  address: string;
+  contact_numbers: string[];
+  latitude: number | null;
+  longitude: number | null;
+  google_maps_link: string;
+}
+
+export interface PickupPointPayload {
+  pickup_location: number | null;
+  label: string;
+  address: string;
+  contact_numbers: string[];
+  latitude: number | null;
+  longitude: number | null;
+  google_maps_link: string;
 }

@@ -13,9 +13,11 @@ import { SKIP_AUTH } from "@/lib/devFlags";
 const HIDE_BOTTOM_NAV_PREFIXES = [
   "/fleet/listing",
   "/fleet/schedule-templates",
+  "/fleet/pickup-points", // NEW
   "/bookings/detail",
   "/settings/terms",
   "/settings/schedule-templates/edit",
+  "/settings/pickup-points/edit", // NEW
 ];
 
 function DashboardChrome({ children }: { children: React.ReactNode }) {

@@ -11,6 +11,7 @@ export interface FleetListing {
   quantity: number;
   status: string;
   primary_image: string | null;
+  pickup_point_label: string | null;
 }
 
 export interface FleetPage {
@@ -215,4 +216,59 @@ export async function deleteScheduleTemplateApi(
   return api.delete(`/api/vehicles/vendor/schedule-templates/${templateId}/`, {
     token: accessToken,
   });
+}
+
+import type {
+  PickupPoint,
+  PickupPointPayload,
+} from "@/types/listing-create.types";
+
+export async function getPickupPointsApi(
+  token: string,
+  pickupLocationId?: number,
+) {
+  const params = pickupLocationId
+    ? `?pickup_location_id=${pickupLocationId}`
+    : "";
+  return api.get<{ success: boolean; message: string; data?: PickupPoint[] }>(
+    `/api/vehicles/vendor/pickup-points/${params}`,
+    { token },
+  );
+}
+
+export async function getPickupPointDetailApi(id: number, token: string) {
+  return api.get<{ success: boolean; message: string; data?: PickupPoint }>(
+    `/api/vehicles/vendor/pickup-points/${id}/`,
+    { token },
+  );
+}
+
+export async function createPickupPointApi(
+  payload: PickupPointPayload,
+  token: string,
+) {
+  return api.post<{ success: boolean; message: string; data?: PickupPoint }>(
+    "/api/vehicles/vendor/pickup-points/",
+    payload,
+    { token },
+  );
+}
+
+export async function updatePickupPointApi(
+  id: number,
+  payload: PickupPointPayload,
+  token: string,
+) {
+  return api.patch<{ success: boolean; message: string; data?: PickupPoint }>(
+    `/api/vehicles/vendor/pickup-points/${id}/`,
+    payload,
+    { token },
+  );
+}
+
+export async function deletePickupPointApi(id: number, token: string) {
+  return api.delete<{ success: boolean; message: string }>(
+    `/api/vehicles/vendor/pickup-points/${id}/`,
+    { token },
+  );
 }

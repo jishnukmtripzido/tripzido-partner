@@ -7,6 +7,7 @@ export interface Vehicle {
   kind: VehicleKind;
   imageUrl?: string | null;
   locationName?: string;
+  pickupPointLabel?: string;
 }
 
 export interface BlockEntry {

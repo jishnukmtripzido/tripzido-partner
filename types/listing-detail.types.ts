@@ -77,6 +77,7 @@ export interface ListingDetail {
   available_count: number;
   vehicle_type: ListingVehicleType;
   pickup_location: ListingPickupLocation;
+  pickup_point: ListingPickupPoint | null;
   images: ListingImage[];
   pricing_packages: ListingPackage[];
   schedule: ListingSchedule;
@@ -88,4 +89,14 @@ export interface ListingDetailResponse {
   success: boolean;
   message: string;
   data?: ListingDetail;
+}
+
+export interface ListingPickupPoint {
+  id: number;
+  label: string;
+  address: string;
+  contact_numbers: string[];
+  latitude: number | null;
+  longitude: number | null;
+  google_maps_link: string;
 }

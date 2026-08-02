@@ -171,6 +171,10 @@ export default function ListingDetailPage() {
               </p>
             </Section>
 
+            <Section title="Exact Pickup Address">
+              <ExactPickupAddress listing={listing} />
+            </Section>
+
             <Section
               title={`Pricing Packages (${listing.pricing_packages.length})`}
             >
@@ -279,12 +283,6 @@ export default function ListingDetailPage() {
   );
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────
-
-// Always the catalog VehicleType photo — consistent for every listing
-// of the same model, regardless of what this specific unit has
-// uploaded. Vendor-uploaded photos live in their own section below
-// (VendorUploadedPhotos), not here.
 function VehicleTypeHeroImage({ listing }: { listing: ListingDetail }) {
   if (!listing.vehicle_type.primary_image) {
     return (
@@ -318,9 +316,6 @@ function VehicleTypeHeroImage({ listing }: { listing: ListingDetail }) {
   );
 }
 
-// The vendor's own photos of this specific unit — separate from the
-// hero image above. Empty state is expected and normal right after a
-// listing is created with photo upload skipped.
 function VendorUploadedPhotos({ listing }: { listing: ListingDetail }) {
   const images: ListingImage[] = listing.images;
 
@@ -343,6 +338,71 @@ function VendorUploadedPhotos({ listing }: { listing: ListingDetail }) {
           className="h-28 w-28 rounded-xl object-cover shrink-0 border border-gray-100"
         />
       ))}
+    </div>
+  );
+}
+
+function ExactPickupAddress({ listing }: { listing: ListingDetail }) {
+  const pickupPoint = listing.pickup_point;
+
+  if (pickupPoint === null || pickupPoint === undefined) {
+    return (
+      <p className="text-sm text-font-dim">
+        No exact pickup point set for this listing yet, add one from Edit.
+      </p>
+    );
+  }
+
+  const hasMapLink =
+    pickupPoint.latitude !== null || pickupPoint.google_maps_link.length > 0;
+  const mapHref =
+    pickupPoint.google_maps_link.length > 0
+      ? pickupPoint.google_maps_link
+      : "https://www.google.com/maps?q=" +
+        pickupPoint.latitude +
+        "," +
+        pickupPoint.longitude;
+
+  const labelText =
+    pickupPoint.label.length > 0 ? pickupPoint.label : "Pickup point";
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="font-semibold text-font-main-sub">{labelText}</p>
+        <p className="text-sm text-font-dim mt-1">{pickupPoint.address}</p>
+      </div>
+
+      {pickupPoint.contact_numbers.length > 0 && (
+        <div>
+          <p className="text-xs text-font-dim mb-1">Contact numbers</p>
+          <div className="flex flex-wrap gap-2">
+            {pickupPoint.contact_numbers.map(function renderContact(num) {
+              const telHref = "tel:" + num;
+              return (
+                <a
+                  key={num}
+                  href={telHref}
+                  className="text-sm font-semibold text-brand-secondary bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5"
+                >
+                  {num}
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {hasMapLink && (
+        <a
+          href={mapHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-yellow-lg"
+        >
+          Open in Maps
+        </a>
+      )}
     </div>
   );
 }

@@ -81,6 +81,12 @@ export function VehicleListItem({ vehicle, onClick }: VehicleListItemProps) {
                 {LOCATION_ICON}
               </svg>
               {vehicle.locationName}
+              {vehicle.pickupPointLabel && (
+                <span className="text-gray-400">
+                  {" "}
+                  • {vehicle.pickupPointLabel}
+                </span>
+              )}
             </p>
           )}
         </div>
