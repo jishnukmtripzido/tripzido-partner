@@ -10,6 +10,13 @@ import { PickupPointForm } from "@/components/features/fleet/PickupPointForm";
 import { loadReturnTo, clearReturnTo } from "@/lib/listingDraft";
 import type { PickupPointPayload } from "@/types/listing-create.types";
 
+function formatFieldErrors(errors?: Record<string, string[]>): string {
+  if (!errors) return "";
+  return Object.entries(errors)
+    .map(([field, msgs]) => `${field}: ${msgs.join(" ")}`)
+    .join(" | ");
+}
+
 export default function NewPickupPointPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,7 +39,11 @@ export default function NewPickupPointPage() {
     try {
       const res = await createPickupPointApi(data, token);
       if (!res.success) {
-        setError(res.message || "Failed to create pickup point");
+        setError(
+          formatFieldErrors(res.errors) ||
+            res.message ||
+            "Failed to create pickup point",
+        );
         return;
       }
       const returnTo = loadReturnTo("/settings/pickup-points");

@@ -140,8 +140,8 @@ export function PickupPointForm({
           latitude={lat}
           longitude={lng}
           onChange={(la, lo) => {
-            setLat(la);
-            setLng(lo);
+            setLat(Math.round(la * 1e6) / 1e6);
+            setLng(Math.round(lo * 1e6) / 1e6);
           }}
         />
         {lat != null && lng != null && (

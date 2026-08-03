@@ -6,6 +6,7 @@ import type { Route } from "next";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/context/AuthContext";
 import {
+  getBrandsApi,
   getVehicleTypesApi,
   getPackageTypesApi,
   getScheduleTemplatesApi,
@@ -23,7 +24,9 @@ import {
   clearDraft,
   saveReturnTo,
 } from "@/lib/listingDraft";
+import { SearchPickerSheet } from "@/components/ui/SearchPickerSheet";
 import type {
+  BrandOption,
   VehicleTypeOption,
   City,
   PickupLocationOption,
@@ -46,12 +49,13 @@ interface PricingPackageDraft {
   packageTypeId: number | null;
   price: string;
   payAtPickupEnabled: boolean;
-  partialPaymentPercentage: string;
   kmLimit: string;
 }
 
 interface WizardDraft {
   step: number;
+  brandId: number | null;
+  brandName: string;
   vehicleTypeId: number | null;
   vehicleTypeLabel: string;
   cityId: number | null;
@@ -69,12 +73,12 @@ interface WizardDraft {
   excessChargePerKm: string;
   lateReturnPenaltyPerHour: string;
   doorstepDeliveryEnabled: boolean;
-  operatingHoursStart: string;
-  operatingHoursEnd: string;
 }
 
 const EMPTY_DRAFT: WizardDraft = {
   step: 1,
+  brandId: null,
+  brandName: "",
   vehicleTypeId: null,
   vehicleTypeLabel: "",
   cityId: null,
@@ -92,8 +96,6 @@ const EMPTY_DRAFT: WizardDraft = {
   excessChargePerKm: "",
   lateReturnPenaltyPerHour: "",
   doorstepDeliveryEnabled: false,
-  operatingHoursStart: "",
-  operatingHoursEnd: "",
 };
 
 export default function NewListingPage() {
@@ -167,15 +169,13 @@ export default function NewListingPage() {
         excess_charge_per_km: draft.excessChargePerKm || null,
         late_return_penalty_per_hour: draft.lateReturnPenaltyPerHour || null,
         doorstep_delivery_enabled: draft.doorstepDeliveryEnabled,
-        operating_hours_start: draft.operatingHoursStart || null,
-        operating_hours_end: draft.operatingHoursEnd || null,
+        operating_hours_start: null,
+        operating_hours_end: null,
         pricing_packages: draft.pricingPackages.map((p) => ({
           package_type_id: p.packageTypeId!,
           price: p.price,
           pay_at_pickup_enabled: p.payAtPickupEnabled,
-          partial_payment_percentage: p.payAtPickupEnabled
-            ? p.partialPaymentPercentage || null
-            : null,
+          partial_payment_percentage: null,
           km_limit: p.kmLimit ? Number(p.kmLimit) : null,
         })),
       };
@@ -315,6 +315,8 @@ export default function NewListingPage() {
 
 // ── Step 1: Vehicle & location ──────────────────────────────────────────
 
+type ActiveSheet = "brand" | "vehicleType" | "city" | null;
+
 function StepVehicleLocation({
   draft,
   update,
@@ -326,12 +328,17 @@ function StepVehicleLocation({
   token: string;
   onCreatePickupPoint: () => void;
 }) {
-  const [vehicleQuery, setVehicleQuery] = useState("");
-  const [vehicleResults, setVehicleResults] = useState<VehicleTypeOption[]>([]);
-  const [vehicleLoading, setVehicleLoading] = useState(false);
+  const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null);
 
-  const [cityQuery, setCityQuery] = useState(draft.cityName);
-  const [cityResults, setCityResults] = useState<City[]>([]);
+  const [brandItems, setBrandItems] = useState<BrandOption[]>([]);
+  const [brandLoading, setBrandLoading] = useState(false);
+
+  const [vehicleTypeItems, setVehicleTypeItems] = useState<VehicleTypeOption[]>(
+    [],
+  );
+  const [vehicleTypeLoading, setVehicleTypeLoading] = useState(false);
+
+  const [cityItems, setCityItems] = useState<City[]>([]);
   const [cityLoading, setCityLoading] = useState(false);
 
   const [locations, setLocations] = useState<PickupLocationOption[]>([]);
@@ -340,39 +347,57 @@ function StepVehicleLocation({
   const [pickupPoints, setPickupPoints] = useState<PickupPoint[]>([]);
   const [pickupPointsLoading, setPickupPointsLoading] = useState(false);
 
-  useEffect(() => {
-    if (!vehicleQuery.trim()) {
-      setVehicleResults([]);
+  async function fetchBrands(query: string) {
+    setBrandLoading(true);
+    try {
+      const res = await getBrandsApi(token, query);
+      setBrandItems(res.data ?? []);
+    } finally {
+      setBrandLoading(false);
+    }
+  }
+
+  async function fetchVehicleTypes(query: string) {
+    if (!draft.brandId) return;
+    setVehicleTypeLoading(true);
+    try {
+      const res = await getVehicleTypesApi(query, token, draft.brandId);
+      setVehicleTypeItems(res.data?.results ?? []);
+    } finally {
+      setVehicleTypeLoading(false);
+    }
+  }
+
+  async function fetchCities(query: string) {
+    if (!query.trim()) {
+      setCityItems([]);
       return;
     }
-    const timer = setTimeout(async () => {
-      setVehicleLoading(true);
-      try {
-        const res = await getVehicleTypesApi(vehicleQuery, token);
-        setVehicleResults(res.data?.results ?? []);
-      } finally {
-        setVehicleLoading(false);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [vehicleQuery, token]);
+    setCityLoading(true);
+    try {
+      const res = await searchCitiesApi(query);
+      setCityItems(res.data?.results ?? []);
+    } finally {
+      setCityLoading(false);
+    }
+  }
 
   useEffect(() => {
-    if (!cityQuery.trim()) {
-      setCityResults([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      setCityLoading(true);
+    if (!draft.pickupLocationId) return;
+    let cancelled = false;
+    (async () => {
+      setPickupPointsLoading(true);
       try {
-        const res = await searchCitiesApi(cityQuery);
-        setCityResults(res.data?.results ?? []);
+        const res = await getPickupPointsApi(token, draft.pickupLocationId!);
+        if (!cancelled && res.success && res.data) setPickupPoints(res.data);
       } finally {
-        setCityLoading(false);
+        if (!cancelled) setPickupPointsLoading(false);
       }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [cityQuery]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [draft.pickupLocationId, token]);
 
   useEffect(() => {
     if (!draft.cityId) {
@@ -394,151 +419,67 @@ function StepVehicleLocation({
     };
   }, [draft.cityId]);
 
-  useEffect(() => {
-    if (!draft.pickupLocationId) {
-      setPickupPoints([]);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      setPickupPointsLoading(true);
-      try {
-        const res = await getPickupPointsApi(token, draft.pickupLocationId!);
-        if (!cancelled && res.success && res.data) setPickupPoints(res.data);
-      } finally {
-        if (!cancelled) setPickupPointsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [draft.pickupLocationId, token]);
-
-  function selectVehicleType(vt: VehicleTypeOption) {
-    update({
-      vehicleTypeId: vt.id,
-      vehicleTypeLabel: `${vt.brand} ${vt.name} (${vt.make_year})`,
-    });
-    setVehicleQuery("");
-    setVehicleResults([]);
+  function openBrandSheet() {
+    setActiveSheet("brand");
+    fetchBrands("");
   }
-
-  function selectCity(city: City) {
-    update({
-      cityId: city.id,
-      cityName: city.name,
-      pickupLocationId: null,
-      pickupLocationName: "",
-      pickupPointId: null,
-      pickupPointLabel: "",
-    });
-    setCityQuery(city.name);
-    setCityResults([]);
+  function openVehicleTypeSheet() {
+    if (!draft.brandId) return;
+    setActiveSheet("vehicleType");
+    fetchVehicleTypes("");
+  }
+  function openCitySheet() {
+    setActiveSheet("city");
+    setCityItems([]);
   }
 
   return (
     <div className="space-y-6">
       <div>
+        <label className="block text-sm font-semibold mb-2">Brand</label>
+        <button
+          onClick={openBrandSheet}
+          className={`w-full text-left flex items-center justify-between border-2 rounded-xl px-4 py-3 text-sm ${
+            draft.brandId
+              ? "border-brand-yellow bg-brand-yellow/5 font-medium"
+              : "border-gray-300 text-font-dim"
+          }`}
+        >
+          {draft.brandName || "Select a brand"}
+          <ChevronIcon />
+        </button>
+      </div>
+
+      <div>
         <label className="block text-sm font-semibold mb-2">Vehicle type</label>
-        {draft.vehicleTypeId ? (
-          <div className="flex items-center justify-between border-2 border-brand-yellow rounded-xl px-4 py-3 bg-brand-yellow/5">
-            <span className="font-medium text-sm">
-              {draft.vehicleTypeLabel}
-            </span>
-            <button
-              onClick={() =>
-                update({ vehicleTypeId: null, vehicleTypeLabel: "" })
-              }
-              className="text-xs font-semibold text-red-500"
-            >
-              Change
-            </button>
-          </div>
-        ) : (
-          <>
-            <input
-              type="text"
-              value={vehicleQuery}
-              onChange={(e) => setVehicleQuery(e.target.value)}
-              placeholder="Search by brand or model..."
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-yellow"
-            />
-            {vehicleLoading && (
-              <p className="text-xs text-font-dim mt-2">Searching...</p>
-            )}
-            {vehicleResults.length > 0 && (
-              <div className="mt-2 border border-gray-100 rounded-xl divide-y divide-gray-100 max-h-56 overflow-y-auto">
-                {vehicleResults.map((vt) => (
-                  <button
-                    key={vt.id}
-                    onClick={() => selectVehicleType(vt)}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50"
-                  >
-                    <span className="font-medium">
-                      {vt.brand} {vt.name}
-                    </span>
-                    <span className="text-font-dim">
-                      {" "}
-                      ({vt.make_year}, {vt.transmission_type})
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+        <button
+          onClick={openVehicleTypeSheet}
+          disabled={!draft.brandId}
+          className={`w-full text-left flex items-center justify-between border-2 rounded-xl px-4 py-3 text-sm transition-colors ${
+            draft.vehicleTypeId
+              ? "border-brand-yellow bg-brand-yellow/5 font-medium"
+              : "border-gray-300 text-font-dim"
+          } disabled:opacity-40 disabled:cursor-not-allowed`}
+        >
+          {draft.vehicleTypeLabel ||
+            (draft.brandId ? "Select a vehicle type" : "Select a brand first")}
+          <ChevronIcon />
+        </button>
       </div>
 
       <div>
         <label className="block text-sm font-semibold mb-2">City</label>
-        {draft.cityId ? (
-          <div className="flex items-center justify-between border-2 border-brand-yellow rounded-xl px-4 py-3 bg-brand-yellow/5">
-            <span className="font-medium text-sm">{draft.cityName}</span>
-            <button
-              onClick={() => {
-                update({
-                  cityId: null,
-                  cityName: "",
-                  pickupLocationId: null,
-                  pickupLocationName: "",
-                  pickupPointId: null,
-                  pickupPointLabel: "",
-                });
-                setCityQuery("");
-              }}
-              className="text-xs font-semibold text-red-500"
-            >
-              Change
-            </button>
-          </div>
-        ) : (
-          <>
-            <input
-              type="text"
-              value={cityQuery}
-              onChange={(e) => setCityQuery(e.target.value)}
-              placeholder="Search for a city..."
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-yellow"
-            />
-            {cityLoading && (
-              <p className="text-xs text-font-dim mt-2">Searching...</p>
-            )}
-            {cityResults.length > 0 && (
-              <div className="mt-2 border border-gray-100 rounded-xl divide-y divide-gray-100 max-h-56 overflow-y-auto">
-                {cityResults.map((city) => (
-                  <button
-                    key={city.id}
-                    onClick={() => selectCity(city)}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50"
-                  >
-                    {city.name},{" "}
-                    <span className="text-font-dim">{city.state_name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+        <button
+          onClick={openCitySheet}
+          className={`w-full text-left flex items-center justify-between border-2 rounded-xl px-4 py-3 text-sm ${
+            draft.cityId
+              ? "border-brand-yellow bg-brand-yellow/5 font-medium"
+              : "border-gray-300 text-font-dim"
+          }`}
+        >
+          {draft.cityName || "Search for a city"}
+          <ChevronIcon />
+        </button>
       </div>
 
       {draft.cityId && (
@@ -634,7 +575,108 @@ function StepVehicleLocation({
           )}
         </div>
       )}
+
+      {activeSheet === "brand" && (
+        <SearchPickerSheet
+          title="Select brand"
+          placeholder="Search brands..."
+          items={brandItems}
+          loading={brandLoading}
+          getKey={(b) => b.id}
+          renderItem={(b) => <span className="font-medium">{b.name}</span>}
+          onQueryChange={fetchBrands}
+          onSelect={(b) => {
+            update({
+              brandId: b.id,
+              brandName: b.name,
+              vehicleTypeId: null,
+              vehicleTypeLabel: "",
+            });
+            setActiveSheet(null);
+          }}
+          onClose={() => setActiveSheet(null)}
+          showAllByDefault
+          emptyLabel="No brands found."
+        />
+      )}
+
+      {activeSheet === "vehicleType" && (
+        <SearchPickerSheet
+          title="Select vehicle type"
+          placeholder="Search by model..."
+          items={vehicleTypeItems}
+          loading={vehicleTypeLoading}
+          getKey={(v) => v.id}
+          renderItem={(v) => (
+            <>
+              <span className="font-medium">{v.name}</span>
+              <span className="text-font-dim">
+                {" "}
+                ({v.make_year}, {v.transmission_type})
+              </span>
+            </>
+          )}
+          onQueryChange={fetchVehicleTypes}
+          onSelect={(v) => {
+            update({
+              vehicleTypeId: v.id,
+              vehicleTypeLabel: `${v.brand} ${v.name} (${v.make_year})`,
+            });
+            setActiveSheet(null);
+          }}
+          onClose={() => setActiveSheet(null)}
+          showAllByDefault
+          emptyLabel="No vehicle types found for this brand."
+        />
+      )}
+
+      {activeSheet === "city" && (
+        <SearchPickerSheet
+          title="Select city"
+          placeholder="Search for a city..."
+          items={cityItems}
+          loading={cityLoading}
+          getKey={(c) => c.id}
+          renderItem={(c) => (
+            <>
+              {c.name}, <span className="text-font-dim">{c.state_name}</span>
+            </>
+          )}
+          onQueryChange={fetchCities}
+          onSelect={(c) => {
+            update({
+              cityId: c.id,
+              cityName: c.name,
+              pickupLocationId: null,
+              pickupLocationName: "",
+              pickupPointId: null,
+              pickupPointLabel: "",
+            });
+            setActiveSheet(null);
+          }}
+          onClose={() => setActiveSheet(null)}
+          emptyLabel="Type to search for a city."
+        />
+      )}
     </div>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg
+      className="w-5 h-5 text-gray-300 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 5l7 7-7 7"
+      />
+    </svg>
   );
 }
 
@@ -771,7 +813,6 @@ function StepPricing({
           packageTypeId: null,
           price: "",
           payAtPickupEnabled: false,
-          partialPaymentPercentage: "",
           kmLimit: "",
         },
       ],
@@ -874,25 +915,6 @@ function StepPricing({
               />
               Allow pay at pickup
             </label>
-            {pkg.payAtPickupEnabled && (
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Partial payment upfront (%)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={pkg.partialPaymentPercentage}
-                  onChange={(e) =>
-                    updatePackage(i, {
-                      partialPaymentPercentage: e.target.value,
-                    })
-                  }
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
-                />
-              </div>
-            )}
           </div>
         );
       })}
@@ -973,24 +995,6 @@ function StepPolicies({
         />
         Offer doorstep delivery
       </label>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Display hours start (optional)">
-          <input
-            type="time"
-            value={draft.operatingHoursStart}
-            onChange={(e) => update({ operatingHoursStart: e.target.value })}
-            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
-          />
-        </Field>
-        <Field label="Display hours end (optional)">
-          <input
-            type="time"
-            value={draft.operatingHoursEnd}
-            onChange={(e) => update({ operatingHoursEnd: e.target.value })}
-            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
-          />
-        </Field>
-      </div>
     </div>
   );
 }

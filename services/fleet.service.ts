@@ -1,6 +1,9 @@
 import { api } from "@/lib/api";
 import type { ListingDetailResponse } from "@/types/listing-detail.types";
-import type { ListingUpdatePayload } from "@/types/listing-create.types";
+import type {
+  BrandOptionsResponse,
+  ListingUpdatePayload,
+} from "@/types/listing-create.types";
 
 export interface FleetListing {
   id: number;
@@ -60,14 +63,26 @@ import type {
   ListingCreatePayload,
 } from "@/types/listing-create.types";
 
+export async function getBrandsApi(token: string, search?: string) {
+  const params = search ? `?search=${encodeURIComponent(search)}` : "";
+  return api.get<BrandOptionsResponse>(
+    `/api/vehicles/vendor/brands/${params}`,
+    { token },
+  );
+}
+
 export async function getVehicleTypesApi(
   search: string,
-  accessToken: string,
-): Promise<VehicleTypeOptionsResponse> {
-  const params = search ? `?search=${encodeURIComponent(search)}` : "";
+  token: string,
+  brandId?: number,
+) {
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+  if (brandId) params.set("brand_id", String(brandId));
+  const qs = params.toString();
   return api.get<VehicleTypeOptionsResponse>(
-    `/api/vehicles/vendor/vehicle-types/${params}`,
-    { token: accessToken },
+    `/api/vehicles/vendor/vehicle-types/${qs ? `?${qs}` : ""}`,
+    { token },
   );
 }
 
@@ -135,6 +150,12 @@ export async function uploadListingImagesApi(
       body: formData,
     },
   );
+
+  if (res.status === 401) {
+    const { triggerUnauthorized } = await import("@/lib/authEvents");
+    triggerUnauthorized();
+  }
+
   if (!res.ok) {
     let message = `Upload failed: ${res.status}`;
     try {
@@ -247,11 +268,12 @@ export async function createPickupPointApi(
   payload: PickupPointPayload,
   token: string,
 ) {
-  return api.post<{ success: boolean; message: string; data?: PickupPoint }>(
-    "/api/vehicles/vendor/pickup-points/",
-    payload,
-    { token },
-  );
+  return api.post<{
+    success: boolean;
+    message: string;
+    data?: PickupPoint;
+    errors?: Record<string, string[]>;
+  }>("/api/vehicles/vendor/pickup-points/", payload, { token });
 }
 
 export async function updatePickupPointApi(
@@ -259,11 +281,12 @@ export async function updatePickupPointApi(
   payload: PickupPointPayload,
   token: string,
 ) {
-  return api.patch<{ success: boolean; message: string; data?: PickupPoint }>(
-    `/api/vehicles/vendor/pickup-points/${id}/`,
-    payload,
-    { token },
-  );
+  return api.patch<{
+    success: boolean;
+    message: string;
+    data?: PickupPoint;
+    errors?: Record<string, string[]>;
+  }>(`/api/vehicles/vendor/pickup-points/${id}/`, payload, { token });
 }
 
 export async function deletePickupPointApi(id: number, token: string) {

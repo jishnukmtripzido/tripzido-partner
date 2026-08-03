@@ -8,13 +8,14 @@ export interface Vehicle {
   imageUrl?: string | null;
   locationName?: string;
   pickupPointLabel?: string;
+  status?: string;
 }
 
 export interface BlockEntry {
   id: string;
   blockId: string;
   vehicleName: string;
-  startLabel: string; // e.g. "31 Jan 2023 at 2:00 PM"
+  startLabel: string;
   endLabel: string;
   quantity: number;
   availableCount: number;

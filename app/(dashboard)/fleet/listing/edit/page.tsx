@@ -39,7 +39,6 @@ interface PricingPackageDraft {
   packageTypeId: number | null;
   price: string;
   payAtPickupEnabled: boolean;
-  partialPaymentPercentage: string;
   kmLimit: string;
 }
 
@@ -59,8 +58,6 @@ interface EditFormState {
   excessChargePerKm: string;
   lateReturnPenaltyPerHour: string;
   doorstepDeliveryEnabled: boolean;
-  operatingHoursStart: string;
-  operatingHoursEnd: string;
 }
 
 function detailToFormState(detail: ListingDetail): EditFormState {
@@ -78,7 +75,6 @@ function detailToFormState(detail: ListingDetail): EditFormState {
       packageTypeId: pkg.package_type_id,
       price: pkg.price,
       payAtPickupEnabled: pkg.pay_at_pickup_enabled,
-      partialPaymentPercentage: pkg.partial_payment_percentage ?? "",
       kmLimit: pkg.km_limit != null ? String(pkg.km_limit) : "",
     })),
     availableCount: String(detail.available_count),
@@ -96,8 +92,6 @@ function detailToFormState(detail: ListingDetail): EditFormState {
         ? String(detail.policies.late_return_penalty_per_hour)
         : "",
     doorstepDeliveryEnabled: detail.policies.doorstep_delivery_enabled,
-    operatingHoursStart: detail.policies.operating_hours_start ?? "",
-    operatingHoursEnd: detail.policies.operating_hours_end ?? "",
   };
 }
 
@@ -197,15 +191,13 @@ export default function EditListingPage() {
         excess_charge_per_km: form.excessChargePerKm || null,
         late_return_penalty_per_hour: form.lateReturnPenaltyPerHour || null,
         doorstep_delivery_enabled: form.doorstepDeliveryEnabled,
-        operating_hours_start: form.operatingHoursStart || null,
-        operating_hours_end: form.operatingHoursEnd || null,
+        operating_hours_start: null,
+        operating_hours_end: null,
         pricing_packages: form.pricingPackages.map((p) => ({
           package_type_id: p.packageTypeId!,
           price: p.price,
           pay_at_pickup_enabled: p.payAtPickupEnabled,
-          partial_payment_percentage: p.payAtPickupEnabled
-            ? p.partialPaymentPercentage || null
-            : null,
+          partial_payment_percentage: null,
           km_limit: p.kmLimit ? Number(p.kmLimit) : null,
         })),
       };
@@ -749,7 +741,6 @@ function PricingEditor({
           packageTypeId: null,
           price: "",
           payAtPickupEnabled: false,
-          partialPaymentPercentage: "",
           kmLimit: "",
         },
       ],
@@ -852,25 +843,6 @@ function PricingEditor({
               />
               Allow pay at pickup
             </label>
-            {pkg.payAtPickupEnabled && (
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Partial payment upfront (%)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={pkg.partialPaymentPercentage}
-                  onChange={(e) =>
-                    updatePackage(i, {
-                      partialPaymentPercentage: e.target.value,
-                    })
-                  }
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
-                />
-              </div>
-            )}
           </div>
         );
       })}
@@ -951,24 +923,6 @@ function PoliciesEditor({
         />
         Offer doorstep delivery
       </label>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Display hours start (optional)">
-          <input
-            type="time"
-            value={form.operatingHoursStart}
-            onChange={(e) => update({ operatingHoursStart: e.target.value })}
-            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
-          />
-        </Field>
-        <Field label="Display hours end (optional)">
-          <input
-            type="time"
-            value={form.operatingHoursEnd}
-            onChange={(e) => update({ operatingHoursEnd: e.target.value })}
-            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
-          />
-        </Field>
-      </div>
     </div>
   );
 }

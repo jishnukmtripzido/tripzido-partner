@@ -16,6 +16,13 @@ import type {
   PickupPointPayload,
 } from "@/types/listing-create.types";
 
+function formatFieldErrors(errors?: Record<string, string[]>): string {
+  if (!errors) return "";
+  return Object.entries(errors)
+    .map(([field, msgs]) => `${field}: ${msgs.join(" ")}`)
+    .join(" | ");
+}
+
 export default function EditPickupPointPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -60,7 +67,9 @@ export default function EditPickupPointPage() {
     try {
       const res = await updatePickupPointApi(Number(pointId), data, token);
       if (!res.success) {
-        setError(res.message || "Failed to save");
+        setError(
+          formatFieldErrors(res.errors) || res.message || "Failed to save",
+        );
         return;
       }
       router.push("/settings/pickup-points" as Route);

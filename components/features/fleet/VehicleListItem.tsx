@@ -1,6 +1,10 @@
 "use client";
 
 import type { Vehicle } from "@/types/fleet.types";
+import {
+  LISTING_STATUS_STYLES,
+  LISTING_STATUS_LABELS,
+} from "@/lib/listingStatus";
 
 const MOTORCYCLE_ICON = (
   <>
@@ -36,23 +40,32 @@ interface VehicleListItemProps {
 }
 
 export function VehicleListItem({ vehicle, onClick }: VehicleListItemProps) {
+  const statusStyle = vehicle.status
+    ? (LISTING_STATUS_STYLES[vehicle.status] ?? "bg-gray-100 text-gray-600")
+    : null;
+  const statusLabel = vehicle.status
+    ? (LISTING_STATUS_LABELS[vehicle.status] ?? vehicle.status)
+    : null;
+
+  const inStock = vehicle.quantity > 0;
+
   return (
     <button
       onClick={onClick}
-      className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between hover:border-brand-yellow transition-colors group text-left"
+      className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:border-brand-yellow hover:shadow-md transition-all group text-left"
     >
-      <div className="flex items-center gap-4">
-        <div className="w-16 h-12 bg-gray-50 rounded-lg flex items-center justify-center p-2 border border-gray-100 overflow-hidden">
+      <div className="flex items-start gap-3">
+        <div className="w-16 h-16 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
           {vehicle.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={vehicle.imageUrl}
               alt={vehicle.name}
-              className="w-full h-full object-cover rounded-lg"
+              className="w-full h-full object-cover"
             />
           ) : (
             <svg
-              className="w-8 h-8 text-gray-400"
+              className="w-7 h-7 text-gray-400"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -60,18 +73,35 @@ export function VehicleListItem({ vehicle, onClick }: VehicleListItemProps) {
             </svg>
           )}
         </div>
-        <div>
-          <h3 className="font-heading font-bold text-font-main-sub text-base">
-            {vehicle.name}
-          </h3>
-          <p className="text-xs text-font-dim font-medium mt-0.5">
-            Quantity:{" "}
-            <span className="text-brand-secondary font-bold">
-              {vehicle.quantity}
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-heading font-bold text-font-main-sub text-base leading-tight truncate">
+              {vehicle.name}
+            </h3>
+            {statusLabel && (
+              <span
+                className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${statusStyle}`}
+              >
+                {statusLabel}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 mt-1.5">
+            <span
+              className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full ${
+                inStock
+                  ? "bg-brand-yellow/15 text-brand-secondary"
+                  : "bg-gray-100 text-gray-500"
+              }`}
+            >
+              {vehicle.quantity} {vehicle.quantity === 1 ? "unit" : "units"}
             </span>
-          </p>
+          </div>
+
           {vehicle.locationName && (
-            <p className="text-xs text-font-dim font-medium mt-0.5 flex items-center gap-1">
+            <p className="text-xs text-font-dim font-medium mt-1.5 flex items-center gap-1 truncate">
               <svg
                 className="w-3 h-3 shrink-0"
                 fill="none"
@@ -80,20 +110,21 @@ export function VehicleListItem({ vehicle, onClick }: VehicleListItemProps) {
               >
                 {LOCATION_ICON}
               </svg>
-              {vehicle.locationName}
-              {vehicle.pickupPointLabel && (
-                <span className="text-gray-400">
-                  {" "}
-                  • {vehicle.pickupPointLabel}
-                </span>
-              )}
+              <span className="truncate">
+                {vehicle.locationName}
+                {vehicle.pickupPointLabel && (
+                  <span className="text-gray-400">
+                    {" "}
+                    • {vehicle.pickupPointLabel}
+                  </span>
+                )}
+              </span>
             </p>
           )}
         </div>
-      </div>
-      <div className="text-gray-300 group-hover:text-brand-yellow transition-colors">
+
         <svg
-          className="w-5 h-5"
+          className="w-5 h-5 text-gray-300 group-hover:text-brand-yellow transition-colors shrink-0 mt-1"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

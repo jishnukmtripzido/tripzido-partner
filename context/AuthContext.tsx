@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import { useRouter } from "next/navigation";
+import { setUnauthorizedHandler } from "@/lib/authEvents";
 
 interface PartnerUser {
   phone_number: string;
@@ -24,17 +32,10 @@ const STORAGE_KEY = "tripzido_partner_auth";
 interface StoredAuth {
   user: PartnerUser;
   token: string;
-  refreshToken?: string; // optional — sessions logged in before this
-  // field existed won't have it; treated as null below, not an error.
+  refreshToken?: string;
 }
 
 function readStoredAuth(): StoredAuth | null {
-  // Runs during the component's first render. In the browser (including
-  // the hydration render, which is what actually matters for a
-  // client-only export like this) `window` is defined, so this reads
-  // real auth state with no flash-of-wrong-content and no effect needed.
-  // During the one-time static export build, `window` is undefined and
-  // this just returns null — that's fine, no one sees that render.
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -45,12 +46,9 @@ function readStoredAuth(): StoredAuth | null {
   }
 }
 
-// NOTE: this uses localStorage for now, which is fine in a Capacitor
-// webview. If you want data to survive app reinstalls / sync across
-// devices, swap this for the Capacitor Preferences plugin later —
-// readStoredAuth() and the two calls below are the only places that
-// would need to change.
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+
   const [user, setUser] = useState<PartnerUser | null>(
     () => readStoredAuth()?.user ?? null,
   );
@@ -77,6 +75,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setRefreshToken(null);
   }
+
+  // Runs once — AuthProvider sits at the root, so this is the single
+  // place that bridges lib/api.ts's plain-module 401 detection back
+  // into real logout()/navigation. Any API call anywhere in the app
+  // that gets a 401 ends up here automatically.
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      logout();
+      router.replace("/login");
+    });
+    return () => setUnauthorizedHandler(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <AuthContext.Provider

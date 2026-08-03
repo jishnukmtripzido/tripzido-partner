@@ -25,6 +25,7 @@ function toVehicle(listing: FleetListing): Vehicle {
     imageUrl: listing.primary_image,
     locationName: listing.location_name,
     pickupPointLabel: listing.pickup_point_label ?? undefined,
+    status: listing.status, // NEW
   };
 }
 

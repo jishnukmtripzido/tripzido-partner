@@ -2,6 +2,7 @@ export interface VehicleTypeOption {
   id: number;
   name: string;
   brand: string;
+  brand_id: number;
   make_year: number;
   transmission_type: string;
   fuel_type: string;
@@ -137,4 +138,15 @@ export interface PickupPointPayload {
   latitude: number | null;
   longitude: number | null;
   google_maps_link: string;
+}
+
+export interface BrandOption {
+  id: number;
+  name: string;
+}
+
+export interface BrandOptionsResponse {
+  success: boolean;
+  message: string;
+  data?: BrandOption[];
 }
