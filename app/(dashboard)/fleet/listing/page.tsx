@@ -13,14 +13,13 @@ import type {
   ListingScheduleDay,
 } from "@/types/listing-detail.types";
 import type { Route } from "next";
-import { saveReturnTo } from "@/lib/listingDraft";
 
 const STATUS_STYLES: Record<string, string> = {
-  APPROVED: "bg-green-100 text-green-700",
-  PENDING: "bg-yellow-100 text-yellow-700",
+  APPROVED: "bg-[#F0FDF4] text-[#22C55E]",
+  PENDING: "bg-[#FFF6E0] text-[#D4A33B]",
   PAUSED: "bg-gray-100 text-gray-600",
-  SUSPENDED: "bg-red-100 text-red-700",
-  REJECTED: "bg-red-100 text-red-700",
+  SUSPENDED: "bg-red-50 text-red-600",
+  REJECTED: "bg-red-50 text-red-600",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -73,9 +72,9 @@ export default function ListingDetailPage() {
   }, [token, listingId]);
 
   return (
-    <>
+    <div className="bg-[#F4F2EE] min-h-screen flex flex-col">
       <Header
-        title={listing ? listing.vehicle_type.name : "Listing"}
+        title={listing ? listing.vehicle_type.name : "Listing Details"}
         onBack={() => router.back()}
         rightSlot={
           listing && (
@@ -83,44 +82,57 @@ export default function ListingDetailPage() {
               onClick={() =>
                 router.push(`/fleet/listing/edit?id=${listing.id}` as Route)
               }
-              className="text-sm font-bold text-brand-secondary bg-brand-yellow px-3 py-1.5 rounded-lg hover:bg-brand-yellow-lg transition-colors shrink-0"
+              className="flex items-center gap-1.5 bg-[#FFD166] text-[#242A38] px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm hover:bg-[#ffc63b] transition-colors shrink-0"
             >
-              Edit
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
+              EDIT
             </button>
           )
         }
       />
 
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6">
+      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-8">
         {isLoading && <PageLoader />}
 
         {error && !isLoading && (
-          <div className="text-center mt-10">
-            <p className="text-sm text-red-500 font-medium">{error}</p>
-          </div>
+          <p className="text-[13px] text-red-500 font-semibold text-center mt-10 bg-red-50 py-3 rounded-xl mx-4">
+            {error}
+          </p>
         )}
 
         {listing && !isLoading && (
-          <div className="space-y-5">
+          <div className="space-y-4">
             <VehicleTypeHeroImage listing={listing} />
 
-            <div>
+            <div className="flex flex-col items-center mb-2">
               <span
-                className={`inline-block text-xs font-bold px-2.5 py-1 rounded-full ${
+                className={`inline-block text-[11px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg shadow-sm ${
                   STATUS_STYLES[listing.status] ?? "bg-gray-100 text-gray-600"
                 }`}
               >
                 {STATUS_LABELS[listing.status] ?? listing.status}
               </span>
               {listing.status === "REJECTED" && listing.rejection_reason && (
-                <p className="text-sm text-red-600 mt-2">
+                <p className="text-[12px] font-medium text-red-500 mt-3 bg-red-50 px-4 py-2 rounded-lg text-center w-full">
                   {listing.rejection_reason}
                 </p>
               )}
             </div>
 
             <Section title="Vehicle Details">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-y-4 gap-x-3">
                 <Spec label="Brand" value={listing.vehicle_type.brand} />
                 <Spec
                   label="Year"
@@ -162,10 +174,10 @@ export default function ListingDetailPage() {
             </Section>
 
             <Section title="Pickup Location">
-              <p className="font-semibold text-font-main-sub">
+              <p className="font-bold text-gray-900 text-[14px]">
                 {listing.pickup_location.name}
               </p>
-              <p className="text-sm text-font-dim mt-1">
+              <p className="text-[13px] font-medium text-gray-500 mt-1">
                 {listing.pickup_location.address ||
                   listing.pickup_location.city_name}
               </p>
@@ -182,26 +194,26 @@ export default function ListingDetailPage() {
                 {listing.pricing_packages.map((pkg: ListingPackage) => (
                   <div
                     key={pkg.id}
-                    className="border border-gray-100 rounded-xl p-3 flex items-center justify-between"
+                    className="bg-gray-50/50 border border-gray-100 rounded-[1rem] p-4 flex items-center justify-between transition-colors hover:border-[#FFD166]/50"
                   >
                     <div>
-                      <p className="font-semibold text-sm text-font-main-sub">
+                      <p className="font-bold text-[14px] text-gray-900">
                         {pkg.name}
                       </p>
-                      <p className="text-xs text-font-dim mt-0.5">
+                      <p className="text-[12px] font-medium text-gray-500 mt-1">
                         {pkg.category} • {pkg.duration_hours}h
                         {pkg.km_limit
                           ? ` • ${pkg.km_limit} km limit`
                           : " • No km limit"}
                       </p>
                     </div>
-                    <p className="font-bold text-brand-secondary">
+                    <p className="font-bold text-[14px] text-[#D4A33B] bg-[#FFF6E0] px-3 py-1.5 rounded-lg">
                       ₹{pkg.price}
                     </p>
                   </div>
                 ))}
                 {listing.pricing_packages.length === 0 && (
-                  <p className="text-sm text-font-dim">
+                  <p className="text-[13px] font-medium text-gray-500">
                     No pricing packages set up yet.
                   </p>
                 )}
@@ -210,34 +222,36 @@ export default function ListingDetailPage() {
 
             <Section title="Weekly Schedule">
               {listing.schedule.has_schedule ? (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {listing.schedule.days.map((day: ListingScheduleDay) => (
                     <div
                       key={day.day_of_week}
-                      className="flex justify-between text-sm py-1"
+                      className="flex justify-between items-center text-[13px] py-1.5 border-b border-gray-50 last:border-0 last:pb-0"
                     >
-                      <span className="text-font-main-sub font-medium">
+                      <span className="text-gray-900 font-bold">
                         {day.day_name}
                       </span>
                       <span
-                        className={
-                          day.is_closed ? "text-red-500" : "text-font-dim"
-                        }
+                        className={`font-semibold ${
+                          day.is_closed
+                            ? "text-red-500 bg-red-50 px-2.5 py-1 rounded-md text-[11px] uppercase tracking-wide"
+                            : "text-gray-500"
+                        }`}
                       >
-                        {day.timing}
+                        {day.is_closed ? "Closed" : day.timing}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-font-dim">
+                <p className="text-[13px] font-medium text-gray-500">
                   No schedule assigned yet.
                 </p>
               )}
             </Section>
 
             <Section title="Policies">
-              <div className="space-y-2 text-sm">
+              <div className="space-y-3">
                 <PolicyRow
                   label="Security Deposit"
                   value={`₹${listing.policies.security_deposit_amount}`}
@@ -273,22 +287,25 @@ export default function ListingDetailPage() {
               </div>
             </Section>
 
-            <div className="text-xs text-font-dim text-center pt-2">
-              Fleet quantity at this location: {listing.available_count}
+            <div className="text-[12px] font-bold text-gray-400 text-center pt-4 pb-2">
+              Fleet quantity at this location:{" "}
+              <span className="text-gray-600">{listing.available_count}</span>
             </div>
           </div>
         )}
       </main>
-    </>
+    </div>
   );
 }
+
+// --- Helper Components ---
 
 function VehicleTypeHeroImage({ listing }: { listing: ListingDetail }) {
   if (!listing.vehicle_type.primary_image) {
     return (
-      <div className="w-full h-48 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center">
+      <div className="w-full h-56 bg-white rounded-[1.25rem] shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-gray-50 flex items-center justify-center mb-4">
         <svg
-          className="w-10 h-10 text-gray-300"
+          className="w-12 h-12 text-gray-300"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -305,12 +322,12 @@ function VehicleTypeHeroImage({ listing }: { listing: ListingDetail }) {
   }
 
   return (
-    <div className="w-full h-56 bg-gray-50 rounded-2xl border border-gray-100 p-3">
+    <div className="w-full h-64 bg-white rounded-[1.25rem] shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-gray-50 p-4 mb-4 flex items-center justify-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={listing.vehicle_type.primary_image}
         alt={listing.vehicle_type.name}
-        className="w-full h-full object-contain"
+        className="w-full h-full object-contain mix-blend-multiply"
       />
     </div>
   );
@@ -321,21 +338,21 @@ function VendorUploadedPhotos({ listing }: { listing: ListingDetail }) {
 
   if (images.length === 0) {
     return (
-      <p className="text-sm text-font-dim">
+      <p className="text-[13px] font-medium text-gray-500">
         No photos uploaded for this listing yet.
       </p>
     );
   }
 
   return (
-    <div className="flex gap-2 overflow-x-auto hide-scrollbar -mx-1 px-1">
+    <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-2 px-2 pb-1">
       {images.map((img: ListingImage) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           key={img.id}
           src={img.image_url ?? undefined}
           alt={listing.vehicle_type.name}
-          className="h-28 w-28 rounded-xl object-cover shrink-0 border border-gray-100"
+          className="h-32 w-32 rounded-2xl object-cover shrink-0 border border-gray-100 shadow-sm"
         />
       ))}
     </div>
@@ -347,7 +364,7 @@ function ExactPickupAddress({ listing }: { listing: ListingDetail }) {
 
   if (pickupPoint === null || pickupPoint === undefined) {
     return (
-      <p className="text-sm text-font-dim">
+      <p className="text-[13px] font-medium text-gray-500">
         No exact pickup point set for this listing yet, add one from Edit.
       </p>
     );
@@ -367,23 +384,27 @@ function ExactPickupAddress({ listing }: { listing: ListingDetail }) {
     pickupPoint.label.length > 0 ? pickupPoint.label : "Pickup point";
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div>
-        <p className="font-semibold text-font-main-sub">{labelText}</p>
-        <p className="text-sm text-font-dim mt-1">{pickupPoint.address}</p>
+        <p className="font-bold text-[14px] text-gray-900">{labelText}</p>
+        <p className="text-[13px] font-medium text-gray-500 mt-1">
+          {pickupPoint.address}
+        </p>
       </div>
 
       {pickupPoint.contact_numbers.length > 0 && (
         <div>
-          <p className="text-xs text-font-dim mb-1">Contact numbers</p>
-          <div className="flex flex-wrap gap-2">
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">
+            Contact numbers
+          </p>
+          <div className="flex flex-wrap gap-2.5">
             {pickupPoint.contact_numbers.map(function renderContact(num) {
               const telHref = "tel:" + num;
               return (
                 <a
                   key={num}
                   href={telHref}
-                  className="text-sm font-semibold text-brand-secondary bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5"
+                  className="text-[13px] font-bold text-gray-700 bg-gray-50 border border-gray-100 rounded-xl px-4 py-2 hover:border-[#FFD166] transition-colors"
                 >
                   {num}
                 </a>
@@ -398,8 +419,21 @@ function ExactPickupAddress({ listing }: { listing: ListingDetail }) {
           href={mapHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-yellow-lg"
+          className="inline-flex items-center gap-1.5 text-[13px] font-bold text-[#D4A33B] hover:text-[#242A38] transition-colors mt-1"
         >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+            />
+          </svg>
           Open in Maps
         </a>
       )}
@@ -415,8 +449,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-white rounded-2xl border border-gray-100 p-4">
-      <h2 className="font-heading font-bold text-sm text-font-main-sub mb-3">
+    <section className="bg-white rounded-[1.25rem] p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-gray-50">
+      <h2 className="font-heading font-bold text-[15px] text-gray-900 mb-4 pb-3 border-b border-gray-50">
         {title}
       </h2>
       {children}
@@ -427,17 +461,17 @@ function Section({
 function Spec({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs text-font-dim">{label}</p>
-      <p className="text-sm font-semibold text-font-main-sub mt-0.5">{value}</p>
+      <p className="text-[12px] font-medium text-gray-500">{label}</p>
+      <p className="text-[14px] font-bold text-gray-900 mt-0.5">{value}</p>
     </div>
   );
 }
 
 function PolicyRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between">
-      <span className="text-font-dim">{label}</span>
-      <span className="font-medium text-font-main-sub">{value}</span>
+    <div className="flex justify-between items-center text-[13px]">
+      <span className="font-medium text-gray-500">{label}</span>
+      <span className="font-bold text-gray-900">{value}</span>
     </div>
   );
 }

@@ -126,14 +126,14 @@ export default function BlockBikesPage() {
   const isInitialLoad = isLoading && blocks.length === 0 && !error;
 
   return (
-    <>
+    <div className="bg-[#F4F2EE] min-h-screen flex flex-col">
       <Header
         title="Block Bikes"
         onMenuClick={openSidebar}
         rightSlot={
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1 bg-brand-yellow text-brand-secondary px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-brand-yellow-lg transition-colors"
+            className="flex items-center gap-1.5 bg-[#FFD166] text-[#242A38] px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-[#ffc63b] transition-colors"
           >
             <svg
               className="w-4 h-4"
@@ -169,17 +169,17 @@ export default function BlockBikesPage() {
           </div>
 
           {blocks.length === 0 && !isLoading && !error && (
-            <p className="text-sm text-font-dim text-center mt-10">
+            <p className="text-sm text-gray-400 font-medium text-center mt-10">
               No blocks yet.
             </p>
           )}
 
           {error && (
-            <div className="text-center mt-4">
+            <div className="text-center mt-6">
               <p className="text-sm text-red-500 font-medium">{error}</p>
               <button
                 onClick={handleRetry}
-                className="mt-2 text-sm font-semibold text-brand-yellow-lg"
+                className="mt-2 text-sm font-bold text-[#D4A33B] hover:text-[#242A38] transition-colors"
               >
                 Retry
               </button>
@@ -187,7 +187,7 @@ export default function BlockBikesPage() {
           )}
           {isLoading && !error && <InlineLoader />}
           {!hasNext && !error && blocks.length > 0 && (
-            <p className="text-xs text-font-dim text-center mt-4">
+            <p className="text-xs text-gray-400 font-semibold text-center mt-6">
               {blocks.length} block(s)
             </p>
           )}
@@ -203,6 +203,6 @@ export default function BlockBikesPage() {
           onCreated={handleBlockCreated}
         />
       )}
-    </>
+    </div>
   );
 }
