@@ -116,7 +116,7 @@ export function BottomNav() {
             className={`flex flex-col items-center p-2 transition-colors ${
               active
                 ? "text-brand-yellow-lg"
-                : "text-gray-400 hover:text-gray-600"
+                : "text-gray-600 hover:text-gray-600"
             }`}
           >
             {item.icon(active)}

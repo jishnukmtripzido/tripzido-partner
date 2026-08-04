@@ -37,7 +37,7 @@ interface BalanceCardProps {
 
 export function BalanceCard({ balance, onWithdraw }: BalanceCardProps) {
   return (
-    <div className="bg-[#242A38] text-white rounded-[1.5rem] p-6 shadow-md relative overflow-hidden">
+    <div className="bg-[#242A38] text-white rounded-[1.5rem] p-6 shadow-md relative overflow-hidden ">
       {/* Subtle background glow effect */}
       <div className="absolute -right-10 -top-10 w-32 h-32 bg-yellow-400/10 rounded-full blur-2xl" />
 

@@ -173,7 +173,7 @@ export default function DashboardPage() {
           </p>
         </main>
       ) : (
-        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-6 pb-6 space-y-5">
+        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-6 pb-6 space-y-5 bg-gray-100">
           {banner && (
             <div
               className={`border rounded-xl px-4 py-3 text-sm font-medium ${banner.style}`}
@@ -193,7 +193,7 @@ export default function DashboardPage() {
 
           {hasNeedsAttention && (
             <div className="space-y-3">
-              <h3 className="font-heading font-bold text-base text-font-main-sub">
+              <h3 className="font-heading font-bold text-base text-font-main-sub ">
                 Needs attention
               </h3>
 
@@ -305,7 +305,7 @@ export default function DashboardPage() {
             rangeLabel={data.range_label}
           />
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <div className="bg-white rounded-[1.25rem] p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-gray-50">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-heading font-bold text-lg">Your fleet</h3>
               <button
