@@ -103,7 +103,6 @@ export function SearchPickerSheet<T>({
             </svg>
             <input
               type="text"
-              autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={placeholder}
