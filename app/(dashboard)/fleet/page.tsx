@@ -107,7 +107,7 @@ export default function FleetPage() {
         rightSlot={
           <button
             onClick={() => router.push("/fleet/listing/new" as Route)}
-            className="flex items-center gap-1 bg-brand-yellow text-brand-secondary px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-brand-yellow-lg transition-colors"
+            className="flex items-center gap-1.5 bg-[#FFD166] text-[#242A38] px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-[#ffc63b] transition-colors"
           >
             <svg
               className="w-4 h-4"
@@ -130,7 +130,7 @@ export default function FleetPage() {
       {isInitialLoad ? (
         <PageLoader />
       ) : (
-        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6">
+        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg">
           <div className="space-y-3">
             {vehicles.map((vehicle) => (
               <VehicleListItem

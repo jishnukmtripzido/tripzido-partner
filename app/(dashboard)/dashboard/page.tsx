@@ -173,7 +173,7 @@ export default function DashboardPage() {
           </p>
         </main>
       ) : (
-        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-6 pb-6 space-y-5 bg-[#F4F2EE]">
+        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-6 pb-6 space-y-5 bg-brand-bg">
           {banner && (
             <div
               className={`border rounded-xl px-4 py-3 text-sm font-medium ${banner.style}`}
