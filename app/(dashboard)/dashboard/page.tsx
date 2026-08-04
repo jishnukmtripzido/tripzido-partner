@@ -199,9 +199,9 @@ export default function DashboardPage() {
 
               {data.bookings_to_start.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-font-dim uppercase tracking-wide">
+                  {/* <p className="text-xs font-semibold text-font-dim uppercase tracking-wide">
                     Ready to start
-                  </p>
+                  </p> */}
                   {data.bookings_to_start.map((booking) => (
                     <BookingListItem
                       key={booking.id}
