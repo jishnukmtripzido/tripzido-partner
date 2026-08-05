@@ -205,7 +205,7 @@ export function BookingListItem({
       </button>
 
       {booking.available_next_statuses.length > 0 && (
-        <div className="flex gap-3 mt-4 pt-4 border-t border-gray-50">
+        <div className="flex gap-3 mt-2 pt-2 border-t border-gray-50">
           {booking.available_next_statuses.map((target) => {
             const config = STATUS_ACTION_CONFIG[target];
             if (!config) return null;
