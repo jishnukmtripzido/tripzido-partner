@@ -11,7 +11,7 @@
 //       <div className="absolute -right-6 -top-6 w-24 h-24 bg-brand-yellow/10 rounded-full blur-xl" />
 
 //       <p className="text-gray-400 font-medium text-sm mb-1">Current balance</p>
-//       <h2 className="text-4xl font-heading font-extrabold text-white mb-4">
+//       <h2 className="text-4xl  font-extrabold text-white mb-4">
 //         ₹ {balance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
 //       </h2>
 
@@ -48,7 +48,7 @@ export function BalanceCard({ balance, onWithdraw }: BalanceCardProps) {
         <div className="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center text-[#242A38] font-bold text-sm shadow-sm">
           ₹
         </div>
-        <h2 className="text-4xl font-heading font-extrabold text-white">
+        <h2 className="text-4xl  font-extrabold text-white">
           {balance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
         </h2>
       </div>

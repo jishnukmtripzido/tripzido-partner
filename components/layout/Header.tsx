@@ -66,9 +66,7 @@ export function Header({ title, onMenuClick, onBack, rightSlot }: HeaderProps) {
             </svg>
           </button>
         )}
-        <h1 className="font-heading font-bold text-xl tracking-tight truncate">
-          {title}
-        </h1>
+        <h1 className=" font-bold text-xl tracking-tight truncate">{title}</h1>
       </div>
 
       {rightSlot}

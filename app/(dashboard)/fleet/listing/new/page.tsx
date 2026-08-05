@@ -2247,7 +2247,7 @@ function PhotoUploadPanel({
 // }) {
 //   return (
 //     <div className="space-y-4">
-//       <h3 className="font-heading font-bold text-[16px] text-gray-900 border-b border-gray-100 pb-3 mb-2">
+//       <h3 className=" font-bold text-[16px] text-gray-900 border-b border-gray-100 pb-3 mb-2">
 //         Listing Summary
 //       </h3>
 //       <ReviewRow label="Vehicle" value={draft.vehicleTypeLabel} />
@@ -2351,7 +2351,7 @@ function PhotoUploadPanel({
 //             />
 //           </svg>
 //         </div>
-//         <h3 className="font-heading font-bold text-[18px] text-gray-900 mb-1">
+//         <h3 className=" font-bold text-[18px] text-gray-900 mb-1">
 //           Listing Created!
 //         </h3>
 //         <p className="text-[13px] font-medium text-gray-500">

@@ -22,7 +22,7 @@ export function AuthTabs() {
               />
             </svg>
           </div>
-          <h1 className="font-extrabold text-2xl font-heading tracking-tight">
+          <h1 className="font-extrabold text-2xl  tracking-tight">
             tripzido{" "}
             <span className="font-semibold text-font-dim text-sm tracking-normal">
               partner

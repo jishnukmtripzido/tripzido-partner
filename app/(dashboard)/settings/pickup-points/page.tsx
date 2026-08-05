@@ -104,7 +104,7 @@ export default function PickupPointsPage() {
             className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
           >
             <div className="flex items-center justify-between">
-              <h3 className="font-heading font-bold text-font-main-sub text-base">
+              <h3 className=" font-bold text-font-main-sub text-base">
                 {p.label || p.pickup_location_name || "Pickup point"}
               </h3>
               <div className="flex items-center gap-3">

@@ -70,7 +70,7 @@ export default function LedgerDetailPage() {
               >
                 {payout.status_label}
               </span>
-              <p className="text-3xl font-heading font-extrabold text-font-main-sub mt-3">
+              <p className="text-3xl  font-extrabold text-font-main-sub mt-3">
                 ₹
                 {Number(payout.total_amount).toLocaleString("en-IN", {
                   minimumFractionDigits: 2,
@@ -164,9 +164,7 @@ function Section({
 }) {
   return (
     <section className="bg-white rounded-2xl border border-gray-100 p-4">
-      <h2 className="font-heading font-bold text-sm text-font-main-sub mb-3">
-        {title}
-      </h2>
+      <h2 className=" font-bold text-sm text-font-main-sub mb-3">{title}</h2>
       <div className="space-y-2">{children}</div>
     </section>
   );

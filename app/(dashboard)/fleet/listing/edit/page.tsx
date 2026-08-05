@@ -332,9 +332,7 @@ function Section({
 }) {
   return (
     <section className="bg-white rounded-2xl border border-gray-100 p-4">
-      <h2 className="font-heading font-bold text-sm text-font-main-sub mb-3">
-        {title}
-      </h2>
+      <h2 className=" font-bold text-sm text-font-main-sub mb-3">{title}</h2>
       {children}
     </section>
   );

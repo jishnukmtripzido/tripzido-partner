@@ -62,9 +62,7 @@ export function SearchPickerSheet<T>({
         style={{ maxHeight: "85vh" }}
       >
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
-          <h2 className="font-heading font-bold text-base text-font-main-sub">
-            {title}
-          </h2>
+          <h2 className=" font-bold text-base text-font-main-sub">{title}</h2>
           <button
             onClick={dismiss}
             aria-label="Close"

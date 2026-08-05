@@ -108,7 +108,7 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
       <div
         className={`modal-panel modal-panel-${phase} relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-5 pb-safe max-h-[90vh] overflow-y-auto`}
       >
-        <h3 className="font-heading font-bold text-base text-font-main-sub mb-4">
+        <h3 className=" font-bold text-base text-font-main-sub mb-4">
           Block bikes
         </h3>
 

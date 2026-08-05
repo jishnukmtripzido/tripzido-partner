@@ -77,7 +77,7 @@ export function VehicleListItem({ vehicle, onClick }: VehicleListItemProps) {
       {/* 2. Content Container (Middle) */}
       <div className="flex-1 min-w-0 py-0.5 flex flex-col justify-center">
         {/* Name on Top */}
-        <h3 className="font-heading font-bold text-gray-900 text-[16px] leading-tight truncate mb-1.5">
+        <h3 className=" font-bold text-gray-900 text-[16px] leading-tight truncate mb-1.5">
           {vehicle.name}
         </h3>
 

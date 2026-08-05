@@ -162,7 +162,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   />
                 </svg>
               </div>
-              <h2 className="font-heading font-extrabold text-lg tracking-tight">
+              <h2 className=" font-extrabold text-lg tracking-tight">
                 tripzido{" "}
                 <span className="font-semibold text-font-dim text-xs tracking-normal align-middle">
                   partner
@@ -191,7 +191,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-brand-yellow/20 text-brand-secondary flex items-center justify-center font-heading font-bold">
+            <div className="w-11 h-11 rounded-full bg-brand-yellow/20 text-brand-secondary flex items-center justify-center  font-bold">
               {user?.first_name?.[0]?.toUpperCase() ?? "P"}
             </div>
             <div>

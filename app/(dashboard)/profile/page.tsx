@@ -15,12 +15,14 @@ export default function ProfilePage() {
       <Header title="Profile" onMenuClick={openSidebar} />
       <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6">
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 mb-4">
-          <div className="w-14 h-14 rounded-full bg-brand-yellow/20 text-brand-secondary flex items-center justify-center font-heading font-bold text-xl">
+          <div className="w-14 h-14 rounded-full bg-brand-yellow/20 text-brand-secondary flex items-center justify-center  font-bold text-xl">
             {user?.first_name?.[0]?.toUpperCase() ?? "P"}
           </div>
           <div>
-            <p className="font-heading font-bold text-base">
-              {user ? `${user.first_name} ${user.last_name ?? ""}`.trim() : "Partner"}
+            <p className=" font-bold text-base">
+              {user
+                ? `${user.first_name} ${user.last_name ?? ""}`.trim()
+                : "Partner"}
             </p>
             <p className="text-xs text-font-dim">{user?.phone_number}</p>
           </div>

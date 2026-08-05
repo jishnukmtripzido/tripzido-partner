@@ -25,8 +25,11 @@ export function DesktopBlocker() {
           </svg>
         </div>
 
-        <h1 className="font-heading font-extrabold text-2xl text-white mb-2">
-          tripzido <span className="font-semibold text-gray-400 text-sm align-middle">partner</span>
+        <h1 className=" font-extrabold text-2xl text-white mb-2">
+          tripzido{" "}
+          <span className="font-semibold text-gray-400 text-sm align-middle">
+            partner
+          </span>
         </h1>
 
         <p className="text-gray-400 font-medium text-sm mb-8">

@@ -50,7 +50,7 @@
 
 //         <div className="flex-1 min-w-0">
 //           <div className="flex items-start justify-between gap-2 mb-1">
-//             <h3 className="font-heading font-bold text-[15px] text-gray-900 truncate">
+//             <h3 className=" font-bold text-[15px] text-gray-900 truncate">
 //               {booking.vehicle_name}
 //             </h3>
 //             <span
@@ -163,7 +163,7 @@ export function BookingListItem({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-2">
-            <h3 className="font-heading font-bold text-[15px] text-gray-900 truncate">
+            <h3 className=" font-bold text-[15px] text-gray-900 truncate">
               {booking.vehicle_name}
             </h3>
             <span

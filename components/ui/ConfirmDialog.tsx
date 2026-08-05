@@ -40,7 +40,7 @@ export function ConfirmDialog({
       <div
         className={`modal-panel modal-panel-${phase} relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-5 pb-safe`}
       >
-        <h3 className="font-heading font-bold text-base text-font-main-sub mb-2">
+        <h3 className=" font-bold text-base text-font-main-sub mb-2">
           {title}
         </h3>
         <p className="text-sm text-font-dim mb-4">{message}</p>

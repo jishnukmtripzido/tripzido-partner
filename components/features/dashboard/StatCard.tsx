@@ -41,7 +41,7 @@
 //             {trendPct}%
 //           </div>
 //         </div>
-//         <h3 className="text-2xl font-heading font-extrabold text-font-main-sub mb-3">{value}</h3>
+//         <h3 className="text-2xl  font-extrabold text-font-main-sub mb-3">{value}</h3>
 
 //         <div className="border-t border-gray-100 pt-3 flex justify-between items-center">
 //           <p className="text-xs text-gray-400 font-medium">{lastLabel}</p>
@@ -106,7 +106,7 @@ export function StatCard({
             {trendPct}%
           </div>
         </div>
-        <h3 className="text-2xl font-heading font-extrabold text-[#242A38] mb-4">
+        <h3 className="text-2xl  font-extrabold text-[#242A38] mb-4">
           {value}
         </h3>
 

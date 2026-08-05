@@ -24,7 +24,10 @@
     "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
 
-  --animate-dropdown-in: dropdown-in 0.15s ease-out forwards;
+  --font-test: "Segoe UI";
+  --font-mono:
+    "Fira Code", "Fira Mono", Menlo,
+    --animate-dropdown-in: dropdown-in 0.15s ease-out forwards;
   --animate-fade-in: fade-in 0.2s ease-out forwards;
   --animate-slide-up: slide-up 0.25s ease-out forwards;
   --animate-scale-in: scale-in 0.2s ease-out forwards;

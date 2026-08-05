@@ -129,7 +129,7 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
         <div className="text-xs text-gray-400 font-medium mb-3 border-b border-gray-50 pb-2">
           Editing Block #{block.id}
         </div>
-        <h3 className="font-heading font-bold text-font-main-sub text-base mb-3">
+        <h3 className=" font-bold text-font-main-sub text-base mb-3">
           {block.vehicle_name}
         </h3>
 
@@ -261,7 +261,7 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
 
         <div className="flex justify-between items-start gap-2">
           <div className="flex-1">
-            <h3 className="font-heading font-bold text-font-main-sub text-base mb-1 leading-tight pr-2">
+            <h3 className=" font-bold text-font-main-sub text-base mb-1 leading-tight pr-2">
               {block.vehicle_name}
             </h3>
             <p className="text-xs text-font-dim mb-2">{block.location_name}</p>

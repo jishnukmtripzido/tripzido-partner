@@ -24,7 +24,7 @@
 //   return (
 //     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
 //       <div className="flex justify-between items-center mb-6">
-//         <h3 className="font-heading font-bold text-lg">Orders Overview</h3>
+//         <h3 className=" font-bold text-lg">Orders Overview</h3>
 //         <select
 //           value={range}
 //           onChange={(e) =>
@@ -86,9 +86,7 @@ export function OrdersOverviewChart({
   return (
     <div className="bg-white rounded-[1.25rem] p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-gray-50">
       <div className="flex justify-between items-center mb-5">
-        <h3 className="font-heading font-bold text-lg text-[#242A38]">
-          Orders Overview
-        </h3>
+        <h3 className=" font-bold text-lg text-[#242A38]">Orders Overview</h3>
         <select
           value={range}
           onChange={(e) =>

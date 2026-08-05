@@ -94,9 +94,7 @@ function SettingsCard({
         </svg>
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className="font-heading font-bold text-gray-900 text-[15px]">
-          {title}
-        </h3>
+        <h3 className=" font-bold text-gray-900 text-[15px]">{title}</h3>
         <p className="text-[12px] font-medium text-gray-500 mt-0.5">
           {subtitle}
         </p>

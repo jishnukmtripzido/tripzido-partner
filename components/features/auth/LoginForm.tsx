@@ -121,7 +121,7 @@ export function LoginForm() {
 
   return (
     <div className="pt-4">
-      <h2 className="text-[32px] leading-tight font-heading font-extrabold mb-2 text-brand-secondary">
+      <h2 className="text-[32px] leading-tight  font-extrabold mb-2 text-brand-secondary">
         Welcome back
       </h2>
       <p className="text-font-dim mb-8 text-sm font-medium">
