@@ -344,7 +344,7 @@ export default function DashboardPage() {
               </h3>
               <button
                 onClick={() => router.push("/bookings" as Route)}
-                className="text-xs font-semibold text-brand-yellow-lg"
+                className="text-xs font-bold text-brand-yellow-lg"
               >
                 See all
               </button>
