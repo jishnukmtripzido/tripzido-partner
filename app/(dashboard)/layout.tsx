@@ -31,7 +31,7 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
     <MobileShell>
       <Sidebar open={open} onClose={closeSidebar} />
       <div
-        className={`flex-1 flex flex-col min-h-0 ${showBottomNav ? "pb-20" : ""}`}
+        className={` flex-1 flex flex-col min-h-0 ${showBottomNav ? "pb-20" : ""}`}
       >
         {children}
       </div>
