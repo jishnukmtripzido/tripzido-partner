@@ -31,8 +31,12 @@ export function PickupPointForm({
   const [contacts, setContacts] = useState<string[]>(
     initial?.contact_numbers?.length ? initial.contact_numbers : [""],
   );
-  const [lat, setLat] = useState<number | null>(initial?.latitude ?? null);
-  const [lng, setLng] = useState<number | null>(initial?.longitude ?? null);
+  const [lat, setLat] = useState<number | null>(
+    initial?.latitude != null ? Number(initial.latitude) : null,
+  );
+  const [lng, setLng] = useState<number | null>(
+    initial?.longitude != null ? Number(initial.longitude) : null,
+  );
   const [mapsLink, setMapsLink] = useState(initial?.google_maps_link ?? "");
 
   function updateContact(i: number, v: string) {
@@ -136,12 +140,32 @@ export function PickupPointForm({
         <label className="block text-xs font-semibold text-gray-600 mb-1">
           Exact location on map
         </label>
-        <GoogleMapPicker
+        {/* <GoogleMapPicker
           latitude={lat}
           longitude={lng}
           onChange={(la, lo) => {
             setLat(Math.round(la * 1e6) / 1e6);
             setLng(Math.round(lo * 1e6) / 1e6);
+          }}
+        /> */}
+        <GoogleMapPicker
+          latitude={lat}
+          longitude={lng}
+          onChange={(la, lo) => {
+            const roundedLat = Math.round(la * 1e6) / 1e6;
+            const roundedLng = Math.round(lo * 1e6) / 1e6;
+            setLat(roundedLat);
+            setLng(roundedLng);
+            // Auto-fill the link field from the pin the moment it's set, so
+            // it doesn't sit visibly empty — vendor can still overwrite this
+            // with a real pasted share-link afterward if they have one; this
+            // only fills it in when it's currently blank, never overwrites a
+            // link they've already typed/pasted.
+            if (!mapsLink.trim()) {
+              setMapsLink(
+                `https://www.google.com/maps?q=${roundedLat},${roundedLng}`,
+              );
+            }
           }}
         />
         {lat != null && lng != null && (
