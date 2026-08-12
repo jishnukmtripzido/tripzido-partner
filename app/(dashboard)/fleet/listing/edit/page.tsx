@@ -25,6 +25,7 @@ import {
   saveReturnTo,
   editDraftKey,
 } from "@/lib/listingDraft";
+import { SearchPickerSheet } from "@/components/ui/SearchPickerSheet";
 import type {
   City,
   PickupLocationOption,
@@ -332,7 +333,9 @@ function Section({
 }) {
   return (
     <section className="bg-white rounded-2xl border border-gray-100 p-4">
-      <h2 className=" font-bold text-sm text-font-main-sub mb-3">{title}</h2>
+      <h2 className="font-heading font-bold text-sm text-font-main-sub mb-3">
+        {title}
+      </h2>
       {children}
     </section>
   );
@@ -351,24 +354,40 @@ function LocationPicker({
   token: string;
   onCreatePickupPoint: () => void;
 }) {
-  const [cityQuery, setCityQuery] = useState("");
-  const [cityResults, setCityResults] = useState<City[]>([]);
+  const [activeSheet, setActiveSheet] = useState<
+    "city" | "pickupLocation" | null
+  >(null);
+
+  const [cityItems, setCityItems] = useState<City[]>([]);
+  const [cityLoading, setCityLoading] = useState(false);
+
   const [locations, setLocations] = useState<PickupLocationOption[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(false);
+  const [pickupLocationSheetItems, setPickupLocationSheetItems] = useState<
+    PickupLocationOption[]
+  >([]);
+
   const [pickupPoints, setPickupPoints] = useState<PickupPoint[]>([]);
   const [pickupPointsLoading, setPickupPointsLoading] = useState(false);
 
-  useEffect(() => {
-    if (!cityQuery.trim()) {
-      setCityResults([]);
-      return;
+  async function fetchCities(query: string) {
+    setCityLoading(true);
+    try {
+      const res = await searchCitiesApi(query);
+      setCityItems(res.data?.results ?? []);
+    } finally {
+      setCityLoading(false);
     }
-    const timer = setTimeout(async () => {
-      const res = await searchCitiesApi(cityQuery);
-      setCityResults(res.data?.results ?? []);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [cityQuery]);
+  }
+
+  function filterPickupLocations(query: string) {
+    const q = query.trim().toLowerCase();
+    setPickupLocationSheetItems(
+      q
+        ? locations.filter((l) => l.location_name.toLowerCase().includes(q))
+        : locations,
+    );
+  }
 
   useEffect(() => {
     if (!form.cityId) return;
@@ -407,17 +426,14 @@ function LocationPicker({
     };
   }, [form.pickupLocationId, token]);
 
-  function selectCity(city: City) {
-    update({
-      cityId: city.id,
-      cityName: city.name,
-      pickupLocationId: null,
-      pickupLocationName: "",
-      pickupPointId: null,
-      pickupPointLabel: "",
-    });
-    setCityQuery("");
-    setCityResults([]);
+  function openCitySheet() {
+    setActiveSheet("city");
+    fetchCities("");
+  }
+  function openPickupLocationSheet() {
+    if (locationsLoading || locations.length === 0) return;
+    setActiveSheet("pickupLocation");
+    setPickupLocationSheetItems(locations);
   }
 
   return (
@@ -426,40 +442,27 @@ function LocationPicker({
         <label className="block text-xs font-semibold text-gray-600 mb-1">
           City
         </label>
-        <div className="flex items-center justify-between border border-gray-300 rounded-xl px-3 py-2.5 text-sm mb-2">
-          <span>{form.cityName}</span>
-          <button
-            onClick={() => update({ cityId: null, cityName: "" })}
-            className="text-xs font-semibold text-brand-yellow-lg"
+        <button
+          onClick={openCitySheet}
+          className={`w-full text-left flex items-center justify-between border rounded-xl px-3 py-2.5 text-sm ${
+            form.cityId ? "border-gray-300" : "border-gray-300 text-font-dim"
+          }`}
+        >
+          {form.cityName || "Select a city"}
+          <svg
+            className="w-4 h-4 text-gray-300 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            Change
-          </button>
-        </div>
-        {!form.cityId && (
-          <>
-            <input
-              type="text"
-              value={cityQuery}
-              onChange={(e) => setCityQuery(e.target.value)}
-              placeholder="Search for a city..."
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-yellow"
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
             />
-            {cityResults.length > 0 && (
-              <div className="mt-2 border border-gray-100 rounded-xl divide-y divide-gray-100 max-h-48 overflow-y-auto">
-                {cityResults.map((city) => (
-                  <button
-                    key={city.id}
-                    onClick={() => selectCity(city)}
-                    className="w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50"
-                  >
-                    {city.name},{" "}
-                    <span className="text-font-dim">{city.state_name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+          </svg>
+        </button>
       </div>
 
       {form.cityId && (
@@ -469,29 +472,34 @@ function LocationPicker({
           </label>
           {locationsLoading ? (
             <p className="text-xs text-font-dim">Loading...</p>
+          ) : locations.length === 0 ? (
+            <p className="text-xs text-red-500">
+              No pickup locations exist in this city.
+            </p>
           ) : (
-            <select
-              value={form.pickupLocationId ?? ""}
-              onChange={(e) => {
-                const loc = locations.find(
-                  (l) => l.id === Number(e.target.value),
-                );
-                update({
-                  pickupLocationId: loc?.id ?? null,
-                  pickupLocationName: loc?.location_name ?? "",
-                  pickupPointId: null,
-                  pickupPointLabel: "",
-                });
-              }}
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+            <button
+              onClick={openPickupLocationSheet}
+              className={`w-full text-left flex items-center justify-between border rounded-xl px-3 py-2.5 text-sm ${
+                form.pickupLocationId
+                  ? "border-gray-300"
+                  : "border-gray-300 text-font-dim"
+              }`}
             >
-              <option value="">Select a pickup location</option>
-              {locations.map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.location_name}
-                </option>
-              ))}
-            </select>
+              {form.pickupLocationName || "Select a pickup location"}
+              <svg
+                className="w-4 h-4 text-gray-300 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
           )}
         </div>
       )}
@@ -549,6 +557,62 @@ function LocationPicker({
             </>
           )}
         </div>
+      )}
+
+      {activeSheet === "city" && (
+        <SearchPickerSheet
+          title="Select city"
+          placeholder="Search for a city..."
+          items={cityItems}
+          loading={cityLoading}
+          getKey={(c) => c.id}
+          renderItem={(c) => (
+            <>
+              {c.name}, <span className="text-font-dim">{c.state_name}</span>
+            </>
+          )}
+          onQueryChange={fetchCities}
+          onSelect={(c) => {
+            update({
+              cityId: c.id,
+              cityName: c.name,
+              pickupLocationId: null,
+              pickupLocationName: "",
+              pickupPointId: null,
+              pickupPointLabel: "",
+            });
+            setActiveSheet(null);
+          }}
+          onClose={() => setActiveSheet(null)}
+          showAllByDefault
+          emptyLabel="No cities found."
+        />
+      )}
+
+      {activeSheet === "pickupLocation" && (
+        <SearchPickerSheet
+          title="Select pickup location"
+          placeholder="Search locations..."
+          items={pickupLocationSheetItems}
+          loading={false}
+          getKey={(l) => l.id}
+          renderItem={(l) => (
+            <span className="font-medium">{l.location_name}</span>
+          )}
+          onQueryChange={filterPickupLocations}
+          onSelect={(l) => {
+            update({
+              pickupLocationId: l.id,
+              pickupLocationName: l.location_name,
+              pickupPointId: null,
+              pickupPointLabel: "",
+            });
+            setActiveSheet(null);
+          }}
+          onClose={() => setActiveSheet(null)}
+          showAllByDefault
+          emptyLabel="No matching locations."
+        />
       )}
     </div>
   );

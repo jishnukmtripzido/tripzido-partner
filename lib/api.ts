@@ -62,6 +62,18 @@ async function request<T>(
       throw new Error(message);
     }
 
+    // 204 (No Content) and 205 (Reset Content) always have a null body
+    // per the Fetch spec — the browser strips whatever the server
+    // actually sent, so res.json() on these throws "Unexpected end of
+    // JSON input" regardless of what Django put on the wire. Every
+    // delete endpoint in this app (blocks, listing images, schedule
+    // templates, pickup points) returns 204, so this affects all of
+    // them, not just one — return a synthetic success shape instead
+    // of trying to parse a body that can never exist.
+    if (res.status === 204 || res.status === 205) {
+      return { success: true, message: "" } as T;
+    }
+
     return res.json() as Promise<T>;
   } catch (err) {
     // Give a clear error message when the timeout fires

@@ -273,7 +273,7 @@ export function VehicleListItem({ vehicle, onClick }: VehicleListItemProps) {
 
       {/* Bottom Section: Action Buttons */}
       <div className="flex gap-3">
-        <button
+        {/* <button
           onClick={(e) => {
             e.stopPropagation();
             // TODO: Hook up manage units action here
@@ -281,7 +281,7 @@ export function VehicleListItem({ vehicle, onClick }: VehicleListItemProps) {
           className="flex-1 bg-[#FFD166] text-[#242A38] text-[13px] font-bold py-2.5 rounded-full transition-colors hover:bg-[#ffc63b]"
         >
           MANAGE UNITS
-        </button>
+        </button> */}
         <button
           onClick={onClick}
           className="flex-1 bg-transparent border-2 border-[#D4A33B] text-[#A67C00] text-[13px] font-bold py-2.5 rounded-full transition-colors hover:bg-yellow-50"

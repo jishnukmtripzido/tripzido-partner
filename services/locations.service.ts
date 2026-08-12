@@ -25,11 +25,19 @@ interface PickupLocationListResponse {
 
 // GET /api/locations/cities/ is AllowAny on the backend — no token
 // needed here, unlike everything else in this app.
+// pageSize defaults to 100 (CustomPagination's own max_page_size) so
+// an empty search effectively returns the full city list in one call,
+// for the "browse everything" sheet UX.
 export async function searchCitiesApi(
   search: string,
+  pageSize: number = 100,
 ): Promise<CityListResponse> {
-  const params = search ? `?search=${encodeURIComponent(search)}` : "";
-  return api.get<CityListResponse>(`/api/locations/cities/${params}`);
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+  params.set("page_size", String(pageSize));
+  return api.get<CityListResponse>(
+    `/api/locations/cities/?${params.toString()}`,
+  );
 }
 
 export async function getPickupLocationsByCityApi(
