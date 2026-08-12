@@ -7,7 +7,11 @@ import { Header } from "@/components/layout/Header";
 import { VehicleListItem } from "@/components/features/fleet/VehicleListItem";
 import { useSidebar } from "@/context/SidebarContext";
 import { useAuth } from "@/context/AuthContext";
-import { getFleetApi, type FleetListing } from "@/services/fleet.service";
+import {
+  getFleetApi,
+  toggleListingActiveApi,
+  type FleetListing,
+} from "@/services/fleet.service";
 import type { Vehicle } from "@/types/fleet.types";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { InlineLoader } from "@/components/ui/InLineLoader";
@@ -97,6 +101,30 @@ export default function FleetPage() {
     loadNextPage();
   }
 
+  // NEW — powers the on/off switch on each VehicleListItem card.
+  // Updates just the matching vehicle's status in place on success, so
+  // the whole list doesn't need a refetch for one toggle.
+  async function handleToggleActive(vehicleId: string) {
+    if (!token) return { success: false, message: "Not signed in" };
+    try {
+      const res = await toggleListingActiveApi(vehicleId, token);
+      if (!res.success || !res.data) {
+        return { success: false, message: res.message };
+      }
+      setVehicles((prev) =>
+        prev.map((v) =>
+          v.id === vehicleId ? { ...v, status: res.data!.status } : v,
+        ),
+      );
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : "Failed to update status",
+      };
+    }
+  }
+
   const isInitialLoad = isLoading && vehicles.length === 0 && !error;
 
   return (
@@ -139,6 +167,7 @@ export default function FleetPage() {
                 onClick={() =>
                   router.push(`/fleet/listing?id=${vehicle.id}` as Route)
                 }
+                onToggleActive={handleToggleActive}
               />
             ))}
           </div>

@@ -295,3 +295,18 @@ export async function deletePickupPointApi(id: number, token: string) {
     { token },
   );
 }
+
+export async function toggleListingActiveApi(
+  listingId: number | string,
+  token: string,
+): Promise<{
+  success: boolean;
+  message: string;
+  data?: { id: number; status: string; status_label: string };
+}> {
+  return api.patch(
+    `/api/vehicles/vendor/fleet/${listingId}/toggle-active/`,
+    {},
+    { token },
+  );
+}
