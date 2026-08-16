@@ -87,7 +87,7 @@ export default function PickupPointsPage() {
           </button>
         }
       />
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 space-y-3">
+      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-start lg:content-start">
         {loading && <PageLoader />}
         {error && (
           <p className="text-sm text-red-500 text-center mt-10">{error}</p>

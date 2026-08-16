@@ -108,6 +108,19 @@ const LINKS: SidebarLink[] = [
   },
 ];
 
+// Longest-prefix match — same fix as DesktopSidebar. Prevents parent
+// and child routes (e.g. "/fleet" and "/fleet/block") from both
+// lighting up at once when the pathname is the more specific one.
+function getActiveHref(pathname: string): string | null {
+  const matches = LINKS.filter(
+    (l) => pathname === l.href || pathname.startsWith(`${l.href}/`),
+  );
+  if (matches.length === 0) return null;
+  return matches.reduce((longest, l) =>
+    l.href.length > longest.href.length ? l : longest,
+  ).href;
+}
+
 /**
  * Slide-in drawer opened from the hamburger button in Header. Uses
  * useMountTransition so it plays a real enter AND exit animation —
@@ -120,6 +133,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, token, refreshToken, logout } = useAuth();
   const { shouldRender, phase } = useMountTransition(open, 250);
+  const activeHref = getActiveHref(pathname);
 
   if (!shouldRender) return null;
 
@@ -209,7 +223,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         <nav className="flex-1 overflow-y-auto hide-scrollbar px-3 py-4 space-y-1">
           {LINKS.map((link) => {
-            const active = pathname.startsWith(link.href);
+            const active = link.href === activeHref;
             return (
               <Link
                 key={link.href}

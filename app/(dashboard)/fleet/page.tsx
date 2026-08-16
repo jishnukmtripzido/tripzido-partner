@@ -159,7 +159,7 @@ export default function FleetPage() {
         <PageLoader />
       ) : (
         <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg">
-          <div className="space-y-3">
+          <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-[repeat(auto-fit,minmax(380px,1fr))] lg:gap-4 lg:items-start lg:content-start">
             {vehicles.map((vehicle) => (
               <VehicleListItem
                 key={vehicle.id}

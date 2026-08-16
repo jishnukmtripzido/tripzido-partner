@@ -189,12 +189,12 @@
 //   const isInitialLoad = isLoading && bookings.length === 0 && !error;
 
 //   return (
-//     <>
+//     <div className="bg-brand-bg min-h-screen flex flex-col">
 //       <Header
 //         title="Bookings"
 //         onMenuClick={openSidebar}
 //         rightSlot={
-//           <button className="flex items-center gap-1 bg-brand-yellow text-brand-secondary px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-brand-yellow-lg transition-colors">
+//           <button className="flex items-center gap-1.5 bg-[#FFD166] text-[#242A38] px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-[#ffc63b] transition-colors">
 //             <svg
 //               className="w-4 h-4"
 //               fill="none"
@@ -213,15 +213,15 @@
 //         }
 //       />
 
-//       <div className="flex gap-2 overflow-x-auto hide-scrollbar px-5 pt-4 pb-2">
+//       <div className="flex gap-2.5 overflow-x-auto hide-scrollbar px-5 pt-4 pb-2">
 //         {FILTER_TABS.map((t) => (
 //           <button
 //             key={t.key}
 //             onClick={() => setTab(t.key)}
-//             className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
+//             className={`shrink-0 px-4 py-2 rounded-full text-[13px] font-bold transition-all duration-200 border ${
 //               tab === t.key
-//                 ? "bg-brand-yellow text-brand-secondary"
-//                 : "bg-gray-100 text-font-dim"
+//                 ? "bg-[#FFD166] border-[#FFD166] text-[#242A38] shadow-sm"
+//                 : "bg-white border-gray-50 text-gray-500 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] hover:border-[#FFD166]/50"
 //             }`}
 //           >
 //             {t.label}
@@ -232,8 +232,8 @@
 //       {isInitialLoad ? (
 //         <PageLoader />
 //       ) : (
-//         <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-2 pb-6">
-//           <div className="space-y-3">
+//         <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-3 pb-6">
+//           <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-4 lg:items-start lg:content-start">
 //             {bookings.map((booking) => (
 //               <BookingListItem
 //                 key={booking.id}
@@ -249,17 +249,17 @@
 //           </div>
 
 //           {bookings.length === 0 && !isLoading && !error && (
-//             <p className="text-sm text-font-dim text-center mt-10">
+//             <p className="text-sm text-gray-400 font-medium text-center mt-10">
 //               No bookings in this category yet.
 //             </p>
 //           )}
 
 //           {error && (
-//             <div className="text-center mt-4">
+//             <div className="text-center mt-6">
 //               <p className="text-sm text-red-500 font-medium">{error}</p>
 //               <button
 //                 onClick={handleRetry}
-//                 className="mt-2 text-sm font-semibold text-brand-yellow-lg"
+//                 className="mt-2 text-sm font-bold text-[#D4A33B] hover:text-[#242A38] transition-colors"
 //               >
 //                 Retry
 //               </button>
@@ -267,7 +267,7 @@
 //           )}
 //           {isLoading && !error && <InlineLoader />}
 //           {!hasNext && !error && bookings.length > 0 && (
-//             <p className="text-xs text-font-dim text-center mt-4">
+//             <p className="text-xs text-gray-400 font-semibold text-center mt-6">
 //               {bookings.length} booking(s)
 //             </p>
 //           )}
@@ -286,7 +286,7 @@
 //           onConfirm={handleConfirmAction}
 //         />
 //       )}
-//     </>
+//     </div>
 //   );
 // }
 
@@ -525,7 +525,7 @@ export default function BookingsPage() {
         <PageLoader />
       ) : (
         <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-3 pb-6">
-          <div className="space-y-3">
+          <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-[repeat(auto-fit,minmax(380px,1fr))] lg:gap-4 lg:items-start lg:content-start">
             {bookings.map((booking) => (
               <BookingListItem
                 key={booking.id}

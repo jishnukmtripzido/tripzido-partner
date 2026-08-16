@@ -49,7 +49,7 @@ export function Header({ title, onMenuClick, onBack, rightSlot }: HeaderProps) {
           <button
             onClick={onMenuClick}
             aria-label="Open menu"
-            className="text-font-main-sub hover:text-brand-yellow-lg transition-colors shrink-0"
+            className="lg:hidden text-font-main-sub hover:text-brand-yellow-lg transition-colors shrink-0"
           >
             <svg
               className="w-7 h-7"
