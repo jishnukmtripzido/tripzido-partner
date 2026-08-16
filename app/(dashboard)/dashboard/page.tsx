@@ -193,15 +193,17 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Needs Attention & Recent Bookings row */}
           {hasNeedsAttention && (
-            <div className="space-y-3 lg:col-span-1">
+            <div className="space-y-3 lg:col-span-2">
               <h3 className=" font-bold text-base text-font-main-sub ">
                 Needs attention
               </h3>
 
               {data.bookings_to_start.length > 0 && (
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {/* <p className="text-xs font-semibold text-font-dim uppercase tracking-wide lg:col-span-2">
+                    Ready to start
+                  </p> */}
                   {data.bookings_to_start.map((booking) => (
                     <BookingListItem
                       key={booking.id}
@@ -224,8 +226,8 @@ export default function DashboardPage() {
               )}
 
               {data.bookings_to_return.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-font-dim uppercase tracking-wide">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  <p className="text-xs font-semibold text-font-dim uppercase tracking-wide lg:col-span-2">
                     Ready to return
                   </p>
                   {data.bookings_to_return.map((booking) => (
@@ -250,41 +252,6 @@ export default function DashboardPage() {
               )}
             </div>
           )}
-
-          <div
-            className={`space-y-3 ${hasNeedsAttention ? "lg:col-span-1" : "lg:col-span-2"}`}
-          >
-            <div className="flex items-center justify-between">
-              <h3 className=" font-bold text-base text-font-main-sub">
-                Recent bookings
-              </h3>
-              <button
-                onClick={() => router.push("/bookings" as Route)}
-                className="text-xs font-bold text-brand-yellow-lg"
-              >
-                See all
-              </button>
-            </div>
-            {data.recent_bookings.length === 0 ? (
-              <p className="text-sm text-font-dim text-center py-6">
-                No bookings yet.
-              </p>
-            ) : (
-              data.recent_bookings.map((booking) => (
-                <BookingListItem
-                  key={booking.id}
-                  booking={booking}
-                  onClick={() =>
-                    router.push(`/bookings/detail?id=${booking.id}` as Route)
-                  }
-                  onStatusAction={(target) => {
-                    setActionTarget({ bookingId: booking.id, status: target });
-                    setActionError(null);
-                  }}
-                />
-              ))
-            )}
-          </div>
 
           <div className="lg:col-span-1">
             <StatCard
@@ -376,6 +343,44 @@ export default function DashboardPage() {
                 <p className="text-xs text-font-dim mt-0.5">Blocked now</p>
               </div>
             </div>
+          </div>
+
+          <div className="space-y-3 lg:col-span-2">
+            <div className="flex items-center justify-between">
+              <h3 className=" font-bold text-base text-font-main-sub">
+                Recent bookings
+              </h3>
+              <button
+                onClick={() => router.push("/bookings" as Route)}
+                className="text-xs font-bold text-brand-yellow-lg"
+              >
+                See all
+              </button>
+            </div>
+            {data.recent_bookings.length === 0 ? (
+              <p className="text-sm text-font-dim text-center py-6">
+                No bookings yet.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {data.recent_bookings.map((booking) => (
+                  <BookingListItem
+                    key={booking.id}
+                    booking={booking}
+                    onClick={() =>
+                      router.push(`/bookings/detail?id=${booking.id}` as Route)
+                    }
+                    onStatusAction={(target) => {
+                      setActionTarget({
+                        bookingId: booking.id,
+                        status: target,
+                      });
+                      setActionError(null);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </main>
       )}
