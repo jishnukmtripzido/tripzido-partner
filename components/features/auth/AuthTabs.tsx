@@ -4,7 +4,7 @@ import { LoginForm } from "./LoginForm";
 
 export function AuthTabs() {
   return (
-    <>
+    <div className="lg:max-w-md lg:mx-auto lg:w-full">
       <div className="px-6 pt-10 pb-4">
         <div className="flex items-center gap-2 mb-8">
           <div className="bg-brand-yellow-lg p-1.5 rounded-lg flex items-center justify-center h-8 w-8">
@@ -36,6 +36,6 @@ export function AuthTabs() {
           <LoginForm />
         </div>
       </div>
-    </>
+    </div>
   );
 }

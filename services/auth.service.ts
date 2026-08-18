@@ -44,3 +44,32 @@ export async function logoutApi(
     { token: accessToken },
   );
 }
+
+export async function passwordLoginApi(phoneNumber: string, password: string) {
+  return api.post<VerifyOtpResponse>("/api/users/vendor/login/", {
+    phone_number: phoneNumber,
+    password,
+  });
+}
+
+export async function sendForgotPasswordOtpApi(phoneNumber: string) {
+  return api.post<{ success: boolean; message: string }>(
+    "/api/users/vendor/forgot-password/send-otp/",
+    { phone_number: phoneNumber },
+  );
+}
+
+export async function resetPasswordApi(
+  phoneNumber: string,
+  otp: string,
+  newPassword: string,
+) {
+  return api.post<VerifyOtpResponse>(
+    "/api/users/vendor/forgot-password/reset/",
+    {
+      phone_number: phoneNumber,
+      otp,
+      new_password: newPassword,
+    },
+  );
+}
