@@ -9,13 +9,10 @@ import { useAuth } from "@/context/AuthContext";
 import { BalanceCard } from "@/components/features/dashboard/BalanceCard";
 import { StatCard } from "@/components/features/dashboard/StatCard";
 import { OrdersOverviewChart } from "@/components/features/dashboard/OrdersOverviewChart";
-import { BookingListItem } from "@/components/features/bookings/BookingListItem";
-import { ConfirmStatusChangeModal } from "@/components/features/bookings/ConfirmStatusChangeModal";
+import { CompactBookingCard } from "@/components/features/bookings/CompactBookingCard";
 import { getVendorDashboardApi } from "@/services/dashboard.service";
-import { updateVendorBookingStatusApi } from "@/services/booking.service";
 import { PageLoader } from "@/components/ui/PageLoader";
 import type { VendorDashboardData } from "@/types/dashboard.types";
-import type { BookingStatus } from "@/types/booking.types";
 
 const VENDOR_STATUS_BANNER: Record<
   string,
@@ -74,13 +71,6 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [actionTarget, setActionTarget] = useState<{
-    bookingId: number;
-    status: BookingStatus;
-  } | null>(null);
-  const [actionSubmitting, setActionSubmitting] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-
   const loadDashboard = useCallback(async () => {
     if (!token) return;
     setIsLoading(true);
@@ -102,34 +92,6 @@ export default function DashboardPage() {
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
-
-  async function handleConfirmAction() {
-    if (!actionTarget || !token) return;
-    setActionSubmitting(true);
-    setActionError(null);
-    try {
-      const res = await updateVendorBookingStatusApi(
-        actionTarget.bookingId,
-        actionTarget.status,
-        token,
-      );
-      if (!res.success) {
-        setActionError(res.message || "Failed to update status");
-        return;
-      }
-      setActionTarget(null);
-      // Refetch rather than patch three separate local arrays
-      // (to_start / to_return / recent) that could all reference the
-      // same booking — simpler and always correct.
-      loadDashboard();
-    } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : "Failed to update status",
-      );
-    } finally {
-      setActionSubmitting(false);
-    }
-  }
 
   const currency = (n: number) =>
     `₹ ${n.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
@@ -201,25 +163,16 @@ export default function DashboardPage() {
 
               {data.bookings_to_start.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {/* <p className="text-xs font-semibold text-font-dim uppercase tracking-wide lg:col-span-2">
-                    Ready to start
-                  </p> */}
                   {data.bookings_to_start.map((booking) => (
-                    <BookingListItem
+                    <CompactBookingCard
                       key={booking.id}
                       booking={booking}
+                      variant="compact"
                       onClick={() =>
                         router.push(
                           `/bookings/detail?id=${booking.id}` as Route,
                         )
                       }
-                      onStatusAction={(target) => {
-                        setActionTarget({
-                          bookingId: booking.id,
-                          status: target,
-                        });
-                        setActionError(null);
-                      }}
                     />
                   ))}
                 </div>
@@ -231,21 +184,15 @@ export default function DashboardPage() {
                     Ready to return
                   </p>
                   {data.bookings_to_return.map((booking) => (
-                    <BookingListItem
+                    <CompactBookingCard
                       key={booking.id}
                       booking={booking}
+                      variant="compact"
                       onClick={() =>
                         router.push(
                           `/bookings/detail?id=${booking.id}` as Route,
                         )
                       }
-                      onStatusAction={(target) => {
-                        setActionTarget({
-                          bookingId: booking.id,
-                          status: target,
-                        });
-                        setActionError(null);
-                      }}
                     />
                   ))}
                 </div>
@@ -364,35 +311,19 @@ export default function DashboardPage() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {data.recent_bookings.map((booking) => (
-                  <BookingListItem
+                  <CompactBookingCard
                     key={booking.id}
                     booking={booking}
+                    variant="compact"
                     onClick={() =>
                       router.push(`/bookings/detail?id=${booking.id}` as Route)
                     }
-                    onStatusAction={(target) => {
-                      setActionTarget({
-                        bookingId: booking.id,
-                        status: target,
-                      });
-                      setActionError(null);
-                    }}
                   />
                 ))}
               </div>
             )}
           </div>
         </main>
-      )}
-
-      {actionTarget && (
-        <ConfirmStatusChangeModal
-          targetStatus={actionTarget.status}
-          submitting={actionSubmitting}
-          error={actionError}
-          onCancel={() => setActionTarget(null)}
-          onConfirm={handleConfirmAction}
-        />
       )}
     </>
   );
