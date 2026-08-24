@@ -13,6 +13,50 @@ import { STATUS_BADGE_STYLES, STATUS_ACTION_CONFIG } from "@/lib/bookingStatus";
 import type { VendorBookingDetail, BookingStatus } from "@/types/booking.types";
 import { PageLoader } from "@/components/ui/PageLoader";
 
+// ── Icons — reusing the same vocabulary already established across the
+// New Listing wizard and Listing Details page, for consistency. ────────
+
+const CLOCK_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+  />
+);
+const DEPOSIT_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M3 10h18M3 6h18a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V7a1 1 0 011-1z"
+  />
+);
+const RECEIPT_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+  />
+);
+const ALERT_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+  />
+);
+const STOREFRONT_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+  />
+);
+
 export default function BookingDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -81,9 +125,8 @@ export default function BookingDetailPage() {
   }
 
   return (
-    <div className="bg-[#F4F2EE] min-h-screen flex flex-col">
+    <div className="bg-brand-bg min-h-screen flex flex-col">
       <Header
-        // Removed the '#' prefix as requested
         title={booking ? booking.booking_reference : "Booking Detail"}
         onBack={() => router.back()}
       />
@@ -100,7 +143,7 @@ export default function BookingDetailPage() {
         {booking && !isLoading && (
           <div className="space-y-4">
             {/* Main Vehicle Card */}
-            <div className="bg-white rounded-[1.25rem] p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-gray-50 flex items-center gap-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
               <div className="w-20 h-20 bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 shrink-0 flex items-center justify-center p-1.5">
                 {booking.vehicle_image ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -127,7 +170,7 @@ export default function BookingDetailPage() {
               </div>
 
               <div className="flex-1 min-w-0 py-1">
-                <h2 className=" font-bold text-[16px] text-gray-900 truncate mb-1">
+                <h2 className="font-heading font-bold text-[16px] text-gray-900 truncate mb-1">
                   {booking.vehicle_name}
                 </h2>
 
@@ -149,28 +192,45 @@ export default function BookingDetailPage() {
             </div>
 
             {booking.is_offline && (
-              <div className="bg-white rounded-[1.25rem] p-4 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-gray-50 flex items-center justify-between">
-                <span className="text-[13px] font-bold text-gray-700">
-                  Booking Type
-                </span>
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center shrink-0">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      {STOREFRONT_ICON}
+                    </svg>
+                  </div>
+                  <span className="text-[13px] font-bold text-gray-700">
+                    Booking Type
+                  </span>
+                </div>
                 <span className="inline-block text-[11px] font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 uppercase tracking-wide">
                   Offline
                 </span>
               </div>
             )}
 
-            <Section title="Customer">
+            <Section title="Customer" icon={null}>
               <div className="flex justify-between items-center">
-                <p className="font-bold text-gray-900 text-[14px]">
-                  {booking.customer_name}
-                </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-brand-yellow/20 text-brand-secondary flex items-center justify-center font-heading font-bold text-sm shrink-0">
+                    {booking.customer_name?.[0]?.toUpperCase() ?? "?"}
+                  </div>
+                  <p className="font-bold text-gray-900 text-[14px]">
+                    {booking.customer_name}
+                  </p>
+                </div>
                 <p className="text-[13px] font-medium text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg">
                   {booking.customer_phone}
                 </p>
               </div>
             </Section>
 
-            <Section title="Trip Details">
+            <Section title="Trip Details" icon={CLOCK_ICON}>
               <Row
                 label="Pickup"
                 value={new Date(booking.start_date).toLocaleString()}
@@ -193,7 +253,7 @@ export default function BookingDetailPage() {
               )}
             </Section>
 
-            <Section title="Payment Summary">
+            <Section title="Payment Summary" icon={DEPOSIT_ICON}>
               <Row label="Mode" value={booking.payment_mode_label} />
               <Row label="Rent amount" value={`₹${booking.listing_amount}`} />
               <Row label="Paid" value={`₹${booking.advance_amount}`} />
@@ -207,7 +267,7 @@ export default function BookingDetailPage() {
             </Section>
 
             {booking.payments.length > 0 && (
-              <Section title="Payment History">
+              <Section title="Payment History" icon={RECEIPT_ICON}>
                 <div className="space-y-3">
                   {booking.payments.map((p) => (
                     <div
@@ -222,7 +282,7 @@ export default function BookingDetailPage() {
                           ID: {p.gateway_order_id}
                         </p>
                       </div>
-                      <p className="font-bold text-[14px] text-[#D4A33B] bg-[#FFF6E0] px-3 py-1.5 rounded-lg">
+                      <p className="font-bold text-[14px] text-brand-yellow-lg bg-brand-yellow/10 px-3 py-1.5 rounded-lg">
                         ₹{p.amount}
                       </p>
                     </div>
@@ -232,7 +292,7 @@ export default function BookingDetailPage() {
             )}
 
             {booking.cancellation && (
-              <Section title="Cancellation">
+              <Section title="Cancellation" icon={ALERT_ICON} tone="red">
                 <Row label="Reason" value={booking.cancellation.reason_label} />
                 {booking.cancellation.reason_text && (
                   <Row
@@ -271,7 +331,7 @@ export default function BookingDetailPage() {
                       className={`flex-1 text-[13px] font-bold py-3.5 rounded-xl transition-all shadow-sm ${
                         config.destructive
                           ? "bg-red-50 text-red-600 hover:bg-red-100"
-                          : "bg-[#FFD166] text-[#242A38] hover:bg-[#ffc63b]"
+                          : "bg-brand-yellow text-brand-secondary hover:bg-brand-yellow-lg"
                       }`}
                     >
                       {config.label}
@@ -301,16 +361,40 @@ export default function BookingDetailPage() {
 
 function Section({
   title,
+  icon,
+  tone = "yellow",
   children,
 }: {
   title: string;
+  icon: React.ReactNode | null;
+  tone?: "yellow" | "red";
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-white rounded-[1.25rem] p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-gray-50">
-      <h2 className=" font-bold text-[15px] text-gray-900 mb-4 pb-3 border-b border-gray-50">
-        {title}
-      </h2>
+    <section className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+      <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-gray-50">
+        {icon && (
+          <div
+            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+              tone === "red"
+                ? "bg-red-50 text-red-500"
+                : "bg-brand-yellow/10 text-brand-yellow-lg"
+            }`}
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {icon}
+            </svg>
+          </div>
+        )}
+        <h2 className="font-heading font-bold text-[15px] text-gray-900">
+          {title}
+        </h2>
+      </div>
       <div className="space-y-3">{children}</div>
     </section>
   );

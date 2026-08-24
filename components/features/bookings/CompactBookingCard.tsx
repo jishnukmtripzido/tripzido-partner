@@ -22,7 +22,7 @@ export function CompactBookingCard({
   return (
     <button
       onClick={onClick}
-      className="w-full text-left bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:border-[#FFD166] hover:shadow-md transition-all duration-200"
+      className="w-full text-left bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:border-brand-yellow hover:shadow-md transition-all duration-200"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -37,8 +37,7 @@ export function CompactBookingCard({
         <div className="flex flex-col items-end gap-1 shrink-0">
           <span
             className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md ${
-              STATUS_BADGE_STYLES[booking.status] ??
-              "bg-[#F0F4FF] text-[#4A72FF]"
+              STATUS_BADGE_STYLES[booking.status] ?? "bg-gray-100 text-gray-600"
             }`}
           >
             {booking.status_label}

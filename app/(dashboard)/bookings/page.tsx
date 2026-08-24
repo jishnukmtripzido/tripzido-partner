@@ -132,7 +132,7 @@ export default function BookingsPage() {
         title="Bookings"
         onMenuClick={openSidebar}
         rightSlot={
-          <button className="flex items-center gap-1.5 bg-[#FFD166] text-[#242A38] px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-[#ffc63b] transition-colors">
+          <button className="flex items-center gap-1.5 bg-brand-yellow text-brand-secondary px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-brand-yellow-lg transition-colors">
             <svg
               className="w-4 h-4"
               fill="none"
@@ -158,8 +158,8 @@ export default function BookingsPage() {
             onClick={() => setTab(t.key)}
             className={`shrink-0 px-4 py-2 rounded-full text-[13px] font-bold transition-all duration-200 border ${
               tab === t.key
-                ? "bg-[#FFD166] border-[#FFD166] text-[#242A38] shadow-sm"
-                : "bg-white border-gray-50 text-gray-500 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] hover:border-[#FFD166]/50"
+                ? "bg-brand-yellow border-brand-yellow text-brand-secondary shadow-sm"
+                : "bg-white border-gray-100 text-gray-500 shadow-sm hover:border-brand-yellow/50"
             }`}
           >
             {t.label}
@@ -195,7 +195,7 @@ export default function BookingsPage() {
               <p className="text-sm text-red-500 font-medium">{error}</p>
               <button
                 onClick={handleRetry}
-                className="mt-2 text-sm font-bold text-[#D4A33B] hover:text-[#242A38] transition-colors"
+                className="mt-2 text-sm font-bold text-brand-yellow-lg hover:text-brand-secondary transition-colors"
               >
                 Retry
               </button>

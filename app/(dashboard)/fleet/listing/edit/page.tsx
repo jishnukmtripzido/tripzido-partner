@@ -36,6 +36,65 @@ import type {
 } from "@/types/listing-create.types";
 import type { ListingDetail, ListingImage } from "@/types/listing-detail.types";
 
+// ── Icons (same paths as the "Add a bike" wizard, for visual consistency) ──
+
+const VEHICLE_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M8 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM5 17H3v-6l2-5h9l4 5h1a2 2 0 012 2v4h-2M9 17h6"
+  />
+);
+const CALENDAR_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+  />
+);
+const PIN_ICON = (
+  <>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+    />
+  </>
+);
+const STOREFRONT_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+  />
+);
+const CAMERA_ICON = (
+  <>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 17a4 4 0 100-8 4 4 0 000 8z"
+    />
+  </>
+);
+
 interface PricingPackageDraft {
   packageTypeId: number | null;
   price: string;
@@ -249,16 +308,30 @@ export default function EditListingPage() {
   return (
     <>
       <Header title="Edit listing" onBack={() => router.back()} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 space-y-5">
-        <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
-          <p className="text-xs text-font-dim">Vehicle type</p>
-          <p className="text-sm font-semibold text-font-main-sub mt-0.5">
-            {vehicleTypeLabel}
-          </p>
-          <p className="text-xs text-font-dim mt-1">
-            Vehicle type can&apos;t be changed after creation.
-          </p>
+      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 space-y-4 bg-brand-bg">
+        <div className="flex items-center gap-3 bg-white border border-gray-100 rounded-2xl px-4 py-3.5 shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center shrink-0">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {VEHICLE_ICON}
+            </svg>
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+              Vehicle type
+            </p>
+            <p className="text-sm font-semibold text-font-main-sub mt-0.5 truncate">
+              {vehicleTypeLabel}
+            </p>
+          </div>
         </div>
+        <p className="text-xs text-font-dim px-1 -mt-2">
+          Vehicle type can&apos;t be changed after creation.
+        </p>
 
         <Section title="Pickup location">
           <LocationPicker
@@ -332,12 +405,83 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-white rounded-2xl border border-gray-100 p-4">
+    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
       <h2 className="font-heading font-bold text-sm text-font-main-sub mb-3">
         {title}
       </h2>
       {children}
     </section>
+  );
+}
+
+// ── Reusable picker field (City / Pickup location) ─────────────────────
+
+function PickerField({
+  icon,
+  label,
+  value,
+  placeholder,
+  onClick,
+  disabled,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  placeholder: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  const filled = value.length > 0;
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`w-full flex items-center gap-3 border-2 rounded-xl px-3.5 py-3 text-left transition-colors ${
+        filled ? "border-brand-yellow bg-brand-yellow/5" : "border-gray-200"
+      } disabled:opacity-40 disabled:cursor-not-allowed`}
+    >
+      <div
+        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+          filled
+            ? "bg-brand-yellow text-brand-secondary"
+            : "bg-gray-100 text-gray-400"
+        }`}
+      >
+        <svg
+          className="w-4.5 h-4.5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          {icon}
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+          {label}
+        </p>
+        <p
+          className={`text-sm truncate ${
+            filled ? "font-semibold text-gray-900" : "text-font-dim"
+          }`}
+        >
+          {value || placeholder}
+        </p>
+      </div>
+      <svg
+        className="w-5 h-5 text-gray-300 shrink-0"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9 5l7 7-7 7"
+        />
+      </svg>
+    </button>
   );
 }
 
@@ -438,89 +582,51 @@ function LocationPicker({
 
   return (
     <div className="space-y-3">
-      <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-1">
-          City
-        </label>
-        <button
-          onClick={openCitySheet}
-          className={`w-full text-left flex items-center justify-between border rounded-xl px-3 py-2.5 text-sm ${
-            form.cityId ? "border-gray-300" : "border-gray-300 text-font-dim"
-          }`}
-        >
-          {form.cityName || "Select a city"}
-          <svg
-            className="w-4 h-4 text-gray-300 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
-      </div>
+      <PickerField
+        icon={PIN_ICON}
+        label="City"
+        value={form.cityName}
+        placeholder="Select a city"
+        onClick={openCitySheet}
+      />
 
       {form.cityId && (
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
-            Pickup location
-          </label>
           {locationsLoading ? (
-            <p className="text-xs text-font-dim">Loading...</p>
+            <p className="text-xs text-font-dim px-1">Loading...</p>
           ) : locations.length === 0 ? (
-            <p className="text-xs text-red-500">
+            <p className="text-xs text-red-500 px-1">
               No pickup locations exist in this city.
             </p>
           ) : (
-            <button
+            <PickerField
+              icon={STOREFRONT_ICON}
+              label="Pickup location"
+              value={form.pickupLocationName}
+              placeholder="Select a pickup location"
               onClick={openPickupLocationSheet}
-              className={`w-full text-left flex items-center justify-between border rounded-xl px-3 py-2.5 text-sm ${
-                form.pickupLocationId
-                  ? "border-gray-300"
-                  : "border-gray-300 text-font-dim"
-              }`}
-            >
-              {form.pickupLocationName || "Select a pickup location"}
-              <svg
-                className="w-4 h-4 text-gray-300 shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
+            />
           )}
         </div>
       )}
 
       {form.pickupLocationId && (
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2 px-1">
             Exact pickup address
-          </label>
+          </p>
           {pickupPointsLoading ? (
-            <p className="text-xs text-font-dim">
+            <p className="text-xs text-font-dim px-1">
               Loading your saved addresses...
             </p>
           ) : pickupPoints.length === 0 ? (
-            <div className="text-center py-4 border border-dashed border-gray-200 rounded-xl">
+            <div className="text-center py-4 border-2 border-dashed border-gray-200 rounded-xl">
               <p className="text-xs text-font-dim mb-2">
                 No saved addresses in this area yet.
               </p>
               <button
                 onClick={onCreatePickupPoint}
-                className="text-xs font-bold text-brand-secondary bg-brand-yellow px-3 py-1.5 rounded-lg"
+                className="text-xs font-bold text-brand-secondary bg-brand-yellow px-3 py-1.5 rounded-lg hover:bg-brand-yellow-lg transition-colors"
               >
                 + Add pickup point
               </button>
@@ -528,25 +634,50 @@ function LocationPicker({
           ) : (
             <>
               <div className="space-y-2">
-                {pickupPoints.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() =>
-                      update({
-                        pickupPointId: p.id,
-                        pickupPointLabel: p.label || p.address,
-                      })
-                    }
-                    className={`w-full text-left border-2 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-                      form.pickupPointId === p.id
-                        ? "border-brand-yellow bg-brand-yellow/5"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <p className="font-medium">{p.label || "Pickup point"}</p>
-                    <p className="text-xs text-font-dim mt-0.5">{p.address}</p>
-                  </button>
-                ))}
+                {pickupPoints.map((p) => {
+                  const selected = form.pickupPointId === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() =>
+                        update({
+                          pickupPointId: p.id,
+                          pickupPointLabel: p.label || p.address,
+                        })
+                      }
+                      className={`w-full flex items-start gap-3 text-left border-2 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                        selected
+                          ? "border-brand-yellow bg-brand-yellow/5"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <div
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                          selected
+                            ? "bg-brand-yellow text-brand-secondary"
+                            : "bg-gray-100 text-gray-400"
+                        }`}
+                      >
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          {PIN_ICON}
+                        </svg>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium">
+                          {p.label || "Pickup point"}
+                        </p>
+                        <p className="text-xs text-font-dim mt-0.5">
+                          {p.address}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
               <button
                 onClick={onCreatePickupPoint}
@@ -682,7 +813,7 @@ function PhotosManager({
               <button
                 onClick={() => handleDelete(img.id)}
                 disabled={deletingId === img.id}
-                className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center disabled:opacity-50"
+                className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center disabled:opacity-50 shadow-sm"
                 aria-label="Delete photo"
               >
                 ×
@@ -691,15 +822,35 @@ function PhotosManager({
           ))}
         </div>
       )}
-      <input
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={(e) => handleFiles(e.target.files)}
-        disabled={uploading}
-        className="block w-full text-sm"
-      />
-      {uploading && <p className="text-xs text-font-dim">Uploading...</p>}
+
+      <label
+        htmlFor="edit-listing-photo-input"
+        className={`flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-4 px-4 cursor-pointer hover:border-brand-yellow transition-colors bg-gray-50/50 ${
+          uploading ? "opacity-50 pointer-events-none" : ""
+        }`}
+      >
+        <svg
+          className="w-5 h-5 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          {CAMERA_ICON}
+        </svg>
+        <span className="text-sm font-semibold text-gray-600">
+          {uploading ? "Uploading..." : "Add more photos"}
+        </span>
+        <input
+          id="edit-listing-photo-input"
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => handleFiles(e.target.files)}
+          disabled={uploading}
+          className="hidden"
+        />
+      </label>
+
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );
@@ -741,21 +892,40 @@ function SchedulePicker({
 
   return (
     <div className="space-y-2">
-      {templates.map((t) => (
-        <button
-          key={t.id}
-          onClick={() =>
-            update({ scheduleTemplateId: t.id, scheduleTemplateName: t.name })
-          }
-          className={`w-full text-left border-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
-            form.scheduleTemplateId === t.id
-              ? "border-brand-yellow bg-brand-yellow/5"
-              : "border-gray-200 hover:border-gray-300"
-          }`}
-        >
-          {t.name}
-        </button>
-      ))}
+      {templates.map((t) => {
+        const selected = form.scheduleTemplateId === t.id;
+        return (
+          <button
+            key={t.id}
+            onClick={() =>
+              update({ scheduleTemplateId: t.id, scheduleTemplateName: t.name })
+            }
+            className={`w-full flex items-center gap-3 text-left border-2 rounded-xl px-3.5 py-3 text-sm font-medium transition-colors ${
+              selected
+                ? "border-brand-yellow bg-brand-yellow/5"
+                : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <div
+              className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                selected
+                  ? "bg-brand-yellow text-brand-secondary"
+                  : "bg-gray-100 text-gray-400"
+              }`}
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                {CALENDAR_ICON}
+              </svg>
+            </div>
+            {t.name}
+          </button>
+        );
+      })}
       <button
         onClick={onCreateNew}
         className="text-sm font-semibold text-brand-yellow-lg"
@@ -840,9 +1010,14 @@ function PricingEditor({
             className="border border-gray-100 rounded-xl p-4 space-y-3"
           >
             <div className="flex justify-between items-center">
-              <label className="text-xs font-semibold text-gray-600">
-                Package type
-              </label>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-brand-yellow/15 text-brand-yellow-lg flex items-center justify-center text-[11px] font-bold shrink-0">
+                  {i + 1}
+                </div>
+                <label className="text-xs font-semibold text-gray-600">
+                  Package {i + 1}
+                </label>
+              </div>
               <button
                 onClick={() => removePackage(i)}
                 className="text-xs text-red-500 font-semibold"
@@ -869,15 +1044,22 @@ function PricingEditor({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Price (₹)
+                  Price
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={pkg.price}
-                  onChange={(e) => updatePackage(i, { price: e.target.value })}
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-400">
+                    ₹
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={pkg.price}
+                    onChange={(e) =>
+                      updatePackage(i, { price: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-xl pl-7 pr-3 py-2.5 text-sm"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
@@ -910,9 +1092,22 @@ function PricingEditor({
       })}
       <button
         onClick={addPackage}
-        className="w-full border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm font-semibold text-font-dim hover:border-brand-yellow hover:text-brand-secondary transition-colors"
+        className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm font-semibold text-font-dim hover:border-brand-yellow hover:text-brand-secondary transition-colors"
       >
-        + Add pricing package
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2.5}
+            d="M12 4v16m8-8H4"
+          />
+        </svg>
+        Add pricing package
       </button>
     </div>
   );
@@ -974,7 +1169,7 @@ function PoliciesEditor({
           className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
         />
       </Field>
-      <label className="flex items-center gap-2 text-sm">
+      <label className="flex items-center gap-2 text-sm bg-gray-50 rounded-xl px-3.5 py-3">
         <input
           type="checkbox"
           checked={form.doorstepDeliveryEnabled}

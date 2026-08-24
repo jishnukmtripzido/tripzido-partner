@@ -10,7 +10,7 @@ export default function SettingsPage() {
   const router = useRouter();
 
   return (
-    <div className="bg-[#F4F2EE] min-h-screen flex flex-col">
+    <div className="bg-brand-bg min-h-screen flex flex-col">
       <Header title="Settings" onMenuClick={openSidebar} />
       <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-8 space-y-3.5 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3.5 lg:items-start lg:content-start">
         <SettingsCard
@@ -81,11 +81,11 @@ function SettingsCard({
   return (
     <button
       onClick={onClick}
-      className="w-full text-left bg-white rounded-[1.25rem] p-4 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-gray-50 hover:border-[#FFD166]/60 hover:shadow-md transition-all duration-300 flex items-center gap-4 group"
+      className="w-full text-left bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:border-brand-yellow hover:shadow-md transition-all duration-300 flex items-center gap-4 group"
     >
-      <div className="w-12 h-12 rounded-2xl bg-[#FFF6E0] flex items-center justify-center shrink-0 transition-colors group-hover:bg-[#FFD166]/20">
+      <div className="w-12 h-12 rounded-2xl bg-brand-yellow/10 flex items-center justify-center shrink-0 transition-colors group-hover:bg-brand-yellow/20">
         <svg
-          className="w-6 h-6 text-[#D4A33B]"
+          className="w-6 h-6 text-brand-yellow-lg"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -94,7 +94,9 @@ function SettingsCard({
         </svg>
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className=" font-bold text-gray-900 text-[15px]">{title}</h3>
+        <h3 className="font-heading font-bold text-gray-900 text-[15px]">
+          {title}
+        </h3>
         <p className="text-[12px] font-medium text-gray-500 mt-0.5">
           {subtitle}
         </p>
@@ -107,7 +109,7 @@ function SettingsCard({
 function ChevronIcon() {
   return (
     <svg
-      className="w-5 h-5 text-gray-300 shrink-0 transition-colors duration-300 group-hover:text-[#FFD166]"
+      className="w-5 h-5 text-gray-300 shrink-0 transition-colors duration-300 group-hover:text-brand-yellow-lg"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"

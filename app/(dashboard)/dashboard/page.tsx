@@ -157,7 +157,7 @@ export default function DashboardPage() {
 
           {hasNeedsAttention && (
             <div className="space-y-3 lg:col-span-2">
-              <h3 className=" font-bold text-base text-font-main-sub ">
+              <h3 className="font-heading font-bold text-base text-font-main-sub">
                 Needs attention
               </h3>
 
@@ -260,9 +260,9 @@ export default function DashboardPage() {
             />
           </div>
 
-          <div className="lg:col-span-2 bg-white rounded-[1.25rem] p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-gray-50">
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h3 className=" font-bold text-lg">Your fleet</h3>
+              <h3 className="font-heading font-bold text-lg">Your fleet</h3>
               <button
                 onClick={() => router.push("/fleet" as Route)}
                 className="text-xs font-semibold text-brand-yellow-lg"
@@ -272,19 +272,19 @@ export default function DashboardPage() {
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
-                <p className="text-2xl  font-extrabold text-font-main-sub">
+                <p className="text-2xl font-heading font-extrabold text-font-main-sub">
                   {data.fleet_total_listings}
                 </p>
                 <p className="text-xs text-font-dim mt-0.5">Listings</p>
               </div>
               <div>
-                <p className="text-2xl  font-extrabold text-font-main-sub">
+                <p className="text-2xl font-heading font-extrabold text-font-main-sub">
                   {data.fleet_pending_approval}
                 </p>
                 <p className="text-xs text-font-dim mt-0.5">Pending approval</p>
               </div>
               <div>
-                <p className="text-2xl  font-extrabold text-font-main-sub">
+                <p className="text-2xl font-heading font-extrabold text-font-main-sub">
                   {data.fleet_blocked_units}
                 </p>
                 <p className="text-xs text-font-dim mt-0.5">Blocked now</p>
@@ -294,7 +294,7 @@ export default function DashboardPage() {
 
           <div className="space-y-3 lg:col-span-2">
             <div className="flex items-center justify-between">
-              <h3 className=" font-bold text-base text-font-main-sub">
+              <h3 className="font-heading font-bold text-base text-font-main-sub">
                 Recent bookings
               </h3>
               <button

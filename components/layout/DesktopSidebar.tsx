@@ -102,6 +102,20 @@
 //   },
 // ];
 
+// // Longest-prefix match — prevents "/fleet" and "/fleet/block" (or any
+// // similar parent/child pair) from both lighting up at once when the
+// // pathname is the more specific one. Only the single most specific
+// // matching link is ever marked active.
+// function getActiveHref(pathname: string): string | null {
+//   const matches = LINKS.filter(
+//     (l) => pathname === l.href || pathname.startsWith(`${l.href}/`),
+//   );
+//   if (matches.length === 0) return null;
+//   return matches.reduce((longest, l) =>
+//     l.href.length > longest.href.length ? l : longest,
+//   ).href;
+// }
+
 // /**
 //  * Persistent sidebar shown only at lg: and above (~1024px). Exists
 //  * purely alongside the mobile experience — nothing here replaces or
@@ -111,6 +125,7 @@
 // export function DesktopSidebar() {
 //   const pathname = usePathname();
 //   const { user, token, refreshToken, logout } = useAuth();
+//   const activeHref = getActiveHref(pathname);
 
 //   function handleLogout() {
 //     if (token && refreshToken) {
@@ -166,7 +181,7 @@
 
 //       <nav className="flex-1 overflow-y-auto hide-scrollbar px-3 py-4 space-y-1">
 //         {LINKS.map((link) => {
-//           const active = pathname.startsWith(link.href);
+//           const active = link.href === activeHref;
 //           return (
 //             <Link
 //               key={link.href}

@@ -31,7 +31,7 @@ export function LedgerListItem({ entry, onClick }: LedgerListItemProps) {
               />
             </svg>
           </div>
-          <span className=" font-bold text-sm text-font-main-sub">
+          <span className="font-heading font-bold text-sm text-font-main-sub">
             Payout #{entry.id}
           </span>
         </div>
@@ -44,7 +44,7 @@ export function LedgerListItem({ entry, onClick }: LedgerListItemProps) {
         </span>
       </div>
 
-      <p className="text-2xl  font-extrabold text-font-main-sub mb-3">
+      <p className="text-2xl font-heading font-extrabold text-font-main-sub mb-3">
         ₹
         {Number(entry.total_amount).toLocaleString("en-IN", {
           minimumFractionDigits: 2,
