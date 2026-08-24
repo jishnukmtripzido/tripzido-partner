@@ -21,6 +21,26 @@ const DAY_NAMES = [
   "Sunday",
 ];
 
+// ── Icons — reusing the same vocabulary established elsewhere in this
+// portal (calendar = schedule, clock = timing). ────────────────────────
+
+const CALENDAR_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+  />
+);
+const CLOCK_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+  />
+);
+
 interface DayDraft {
   day_of_week: number;
   is_closed: boolean;
@@ -138,11 +158,23 @@ export default function EditScheduleTemplatePage() {
   return (
     <>
       <Header title="Edit schedule template" onBack={() => router.back()} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 space-y-5">
-        <div>
-          <label className="block text-sm font-semibold mb-2">
-            Template name
-          </label>
+      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg space-y-4">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-brand-yellow/10 text-brand-yellow-lg flex items-center justify-center shrink-0">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                {CALENDAR_ICON}
+              </svg>
+            </div>
+            <label className="text-sm font-semibold text-font-main-sub">
+              Template name
+            </label>
+          </div>
           <input
             type="text"
             value={name}
@@ -151,48 +183,74 @@ export default function EditScheduleTemplatePage() {
           />
         </div>
 
-        <div className="space-y-3">
-          {days.map((day, i) => (
-            <div
-              key={day.day_of_week}
-              className="border border-gray-100 rounded-xl p-3"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold">{DAY_NAMES[i]}</span>
-                <label className="flex items-center gap-2 text-xs text-font-dim">
-                  <input
-                    type="checkbox"
-                    checked={day.is_closed}
-                    onChange={(e) =>
-                      updateDay(i, { is_closed: e.target.checked })
-                    }
-                    className="w-4 h-4 accent-brand-yellow"
-                  />
-                  Closed
-                </label>
-              </div>
-              {!day.is_closed && (
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="time"
-                    value={day.open_time}
-                    onChange={(e) =>
-                      updateDay(i, { open_time: e.target.value })
-                    }
-                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                  />
-                  <input
-                    type="time"
-                    value={day.close_time}
-                    onChange={(e) =>
-                      updateDay(i, { close_time: e.target.value })
-                    }
-                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                  />
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="space-y-3">
+            {days.map((day, i) => (
+              <div
+                key={day.day_of_week}
+                className={`border rounded-xl p-3 transition-colors ${
+                  day.is_closed
+                    ? "border-gray-100 bg-gray-50/50"
+                    : "border-brand-yellow/40 bg-brand-yellow/5"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                        day.is_closed
+                          ? "bg-gray-100 text-gray-400"
+                          : "bg-brand-yellow text-brand-secondary"
+                      }`}
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        {CLOCK_ICON}
+                      </svg>
+                    </div>
+                    <span className="text-sm font-semibold">
+                      {DAY_NAMES[i]}
+                    </span>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-font-dim">
+                    <input
+                      type="checkbox"
+                      checked={day.is_closed}
+                      onChange={(e) =>
+                        updateDay(i, { is_closed: e.target.checked })
+                      }
+                      className="w-4 h-4 accent-brand-yellow"
+                    />
+                    Closed
+                  </label>
                 </div>
-              )}
-            </div>
-          ))}
+                {!day.is_closed && (
+                  <div className="grid grid-cols-2 gap-2 pl-[42px]">
+                    <input
+                      type="time"
+                      value={day.open_time}
+                      onChange={(e) =>
+                        updateDay(i, { open_time: e.target.value })
+                      }
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                    <input
+                      type="time"
+                      value={day.close_time}
+                      onChange={(e) =>
+                        updateDay(i, { close_time: e.target.value })
+                      }
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
