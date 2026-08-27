@@ -32,10 +32,14 @@ export async function updateVendorBookingStatusApi(
   bookingId: number | string,
   newStatus: BookingStatus,
   accessToken: string,
+  verificationPin?: string,
 ): Promise<VendorBookingDetailResponse> {
   return api.patch<VendorBookingDetailResponse>(
     `/api/bookings/vendor/${bookingId}/status/`,
-    { status: newStatus },
+    {
+      status: newStatus,
+      ...(verificationPin ? { verification_pin: verificationPin } : {}),
+    },
     { token: accessToken },
   );
 }
