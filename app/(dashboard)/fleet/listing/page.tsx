@@ -216,7 +216,11 @@ export default function ListingDetailPage() {
       try {
         const res = await getListingReviewsApi(listingId, token ?? undefined);
         if (cancelled) return;
-        setReviews(res);
+        if (res.success && res.data) {
+          setReviews(res.data);
+        } else {
+          setReviewsError(res.message || "Failed to load reviews");
+        }
       } catch (err) {
         if (!cancelled) {
           setReviewsError(
