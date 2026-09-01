@@ -128,7 +128,7 @@ export function DesktopSidebar() {
 
   return (
     <aside className="hidden lg:flex lg:flex-col w-64 shrink-0 bg-white h-dvh relative z-10 border-r border-gray-200/80 shadow-[1px_0_3px_0_rgba(0,0,0,0.05)]">
-      <div className="px-5 pt-5 pb-5 border-b border-gray-100">
+      <div className="px-5 py-5 border-b border-gray-100">
         <div className="flex items-center gap-2 ">
           <div className="bg-brand-yellow-lg p-1.5 rounded-lg flex items-center justify-center h-8 w-8">
             <svg

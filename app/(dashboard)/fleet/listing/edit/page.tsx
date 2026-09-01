@@ -1142,7 +1142,7 @@ function PoliciesEditor({
           className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
         />
       </Field>
-      <Field label="Km limit per day (optional)">
+      {/* <Field label="Km limit per day (optional)">
         <input
           type="number"
           min="1"
@@ -1150,7 +1150,7 @@ function PoliciesEditor({
           onChange={(e) => update({ kmLimitPerDay: e.target.value })}
           className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
         />
-      </Field>
+      </Field> */}
       <Field label="Excess charge per km (optional, ₹)">
         <input
           type="number"
