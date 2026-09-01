@@ -38,3 +38,61 @@ export interface VendorDashboardResponse {
   message: string;
   data?: VendorDashboardData;
 }
+
+export interface VendorDashboardStatus {
+  vendor_status: string;
+  vendor_status_label: string;
+  vendor_rejection_reason: string;
+  current_balance: string;
+}
+export interface VendorDashboardStatusResponse {
+  success: boolean;
+  message: string;
+  data?: VendorDashboardStatus;
+}
+
+export interface VendorDashboardAttention {
+  bookings_to_start: VendorBookingListItem[];
+  bookings_to_return: VendorBookingListItem[];
+}
+export interface VendorDashboardAttentionResponse {
+  success: boolean;
+  message: string;
+  data?: VendorDashboardAttention;
+}
+
+export interface VendorDashboardStats {
+  revenue_this_month: string;
+  revenue_last_month: string;
+  revenue_trend_pct: number;
+  orders_this_month: number;
+  orders_last_month: number;
+  orders_trend_pct: number;
+  weekly_order_bars: number[];
+  range_label: string;
+}
+export interface VendorDashboardStatsResponse {
+  success: boolean;
+  message: string;
+  data?: VendorDashboardStats;
+}
+
+export interface VendorDashboardFleet {
+  fleet_total_listings: number;
+  fleet_pending_approval: number;
+  fleet_blocked_units: number;
+}
+export interface VendorDashboardFleetResponse {
+  success: boolean;
+  message: string;
+  data?: VendorDashboardFleet;
+}
+
+export interface VendorDashboardRecentBookings {
+  recent_bookings: VendorBookingListItem[];
+}
+export interface VendorDashboardRecentBookingsResponse {
+  success: boolean;
+  message: string;
+  data?: VendorDashboardRecentBookings;
+}

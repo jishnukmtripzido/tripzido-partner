@@ -2,7 +2,7 @@
 
 import { Skeleton } from "@/components/ui/Skeleton";
 
-function BalanceCardSkeleton() {
+export function BalanceCardSkeleton() {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
       <Skeleton className="h-3 w-24 mb-3" />
@@ -12,7 +12,7 @@ function BalanceCardSkeleton() {
   );
 }
 
-function StatCardSkeleton() {
+export function StatCardSkeleton() {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
       <div className="flex items-center gap-3 mb-4">
@@ -27,7 +27,7 @@ function StatCardSkeleton() {
 
 // 7 bars matching the real week-view chart, staggered heights so it
 // reads as a chart silhouette rather than a plain gray block.
-function OrdersOverviewChartSkeleton() {
+export function OrdersOverviewChartSkeleton() {
   const heights = [40, 65, 30, 80, 50, 90, 60];
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
@@ -54,7 +54,7 @@ function OrdersOverviewChartSkeleton() {
   );
 }
 
-function FleetSummarySkeleton() {
+export function FleetSummarySkeleton() {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
@@ -75,7 +75,7 @@ function FleetSummarySkeleton() {
 
 // Best-guess shape for CompactBookingCard (thumbnail + two text lines +
 // a status pill). Share that component if you want this matched exactly.
-function BookingCardSkeleton() {
+export function BookingCardSkeleton() {
   return (
     <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 p-3">
       <Skeleton className="w-14 h-14 rounded-lg shrink-0" />
