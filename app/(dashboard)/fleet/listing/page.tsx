@@ -334,6 +334,67 @@ export default function ListingDetailPage() {
                 )}
               </div>
             </Section>
+            <Section title="Policies" icon={SHIELD_ICON}>
+              <div className="space-y-3">
+                <PolicyRow
+                  icon={DEPOSIT_ICON}
+                  label="Security Deposit"
+                  value={`₹${listing.policies.security_deposit_amount}`}
+                />
+                {/* <PolicyRow
+                  icon={DISTANCE_ICON}
+                  label="Distance Limit"
+                  value={
+                    listing.policies.km_limit_per_day
+                      ? `${listing.policies.km_limit_per_day} km/day`
+                      : "No limit"
+                  }
+                /> */}
+                {/* {listing.policies.excess_charge_per_km != null && ( */}
+                <PolicyRow
+                  icon={ALERT_ICON}
+                  label="Excess Charge"
+                  value={`₹${listing.policies.excess_charge_per_km}/km`}
+                />
+                {/* )} */}
+                {/* {listing.policies.late_return_penalty_per_hour != null && ( */}
+                <PolicyRow
+                  icon={CLOCK_ICON}
+                  label="Late Return Penalty"
+                  value={`₹${listing.policies.late_return_penalty_per_hour}/hr`}
+                />
+                {/* )} */}
+                <PolicyRow
+                  icon={TRUCK_ICON}
+                  label="Doorstep Delivery"
+                  value={
+                    listing.policies.doorstep_delivery_enabled
+                      ? "Enabled"
+                      : "Not enabled"
+                  }
+                />
+              </div>
+            </Section>
+            <div className="flex items-center justify-center gap-3 bg-white border border-gray-100 rounded-2xl py-4 shadow-sm">
+              <div className="w-9 h-9 rounded-full bg-brand-yellow/15 text-brand-yellow-lg flex items-center justify-center shrink-0">
+                <svg
+                  className="w-4.5 h-4.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  {VEHICLE_ICON}
+                </svg>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                  Fleet quantity at this location
+                </p>
+                <p className="text-lg font-heading font-extrabold text-font-main-sub leading-tight">
+                  {listing.available_count}
+                </p>
+              </div>
+            </div>
 
             <Section
               title={`Photos (${listing.images.length})`}
@@ -420,48 +481,6 @@ export default function ListingDetailPage() {
               )}
             </Section>
 
-            <Section title="Policies" icon={SHIELD_ICON}>
-              <div className="space-y-3">
-                <PolicyRow
-                  icon={DEPOSIT_ICON}
-                  label="Security Deposit"
-                  value={`₹${listing.policies.security_deposit_amount}`}
-                />
-                {/* <PolicyRow
-                  icon={DISTANCE_ICON}
-                  label="Distance Limit"
-                  value={
-                    listing.policies.km_limit_per_day
-                      ? `${listing.policies.km_limit_per_day} km/day`
-                      : "No limit"
-                  }
-                /> */}
-                {/* {listing.policies.excess_charge_per_km != null && ( */}
-                <PolicyRow
-                  icon={ALERT_ICON}
-                  label="Excess Charge"
-                  value={`₹${listing.policies.excess_charge_per_km}/km`}
-                />
-                {/* )} */}
-                {/* {listing.policies.late_return_penalty_per_hour != null && ( */}
-                <PolicyRow
-                  icon={CLOCK_ICON}
-                  label="Late Return Penalty"
-                  value={`₹${listing.policies.late_return_penalty_per_hour}/hr`}
-                />
-                {/* )} */}
-                <PolicyRow
-                  icon={TRUCK_ICON}
-                  label="Doorstep Delivery"
-                  value={
-                    listing.policies.doorstep_delivery_enabled
-                      ? "Enabled"
-                      : "Not enabled"
-                  }
-                />
-              </div>
-            </Section>
-
             <Section title="Reviews & Ratings" icon={STAR_ICON}>
               <ReviewsSummary
                 reviews={reviews}
@@ -469,27 +488,6 @@ export default function ListingDetailPage() {
                 error={reviewsError}
               />
             </Section>
-
-            <div className="flex items-center justify-center gap-3 bg-white border border-gray-100 rounded-2xl py-4 shadow-sm">
-              <div className="w-9 h-9 rounded-full bg-brand-yellow/15 text-brand-yellow-lg flex items-center justify-center shrink-0">
-                <svg
-                  className="w-4.5 h-4.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  {VEHICLE_ICON}
-                </svg>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
-                  Fleet quantity at this location
-                </p>
-                <p className="text-lg font-heading font-extrabold text-font-main-sub leading-tight">
-                  {listing.available_count}
-                </p>
-              </div>
-            </div>
           </div>
         )}
       </main>
