@@ -21,6 +21,14 @@ interface AuthContextValue {
   token: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
+  // False until the initial client-side read of localStorage has run.
+  // Server-rendered HTML and the client's first paint both always see
+  // user/token/refreshToken as null, so they can never disagree — real
+  // values only ever show up after hydration, via the effect below.
+  // Anything that needs to branch on "is the vendor logged in" (e.g. a
+  // route layout deciding whether to show a loading state or redirect
+  // to /login) should wait for authReady before trusting `token`.
+  authReady: boolean;
   login: (user: PartnerUser, token: string, refreshToken: string) => void;
   logout: () => void;
 }
@@ -49,15 +57,28 @@ function readStoredAuth(): StoredAuth | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
-  const [user, setUser] = useState<PartnerUser | null>(
-    () => readStoredAuth()?.user ?? null,
-  );
-  const [token, setToken] = useState<string | null>(
-    () => readStoredAuth()?.token ?? null,
-  );
-  const [refreshToken, setRefreshToken] = useState<string | null>(
-    () => readStoredAuth()?.refreshToken ?? null,
-  );
+  // Always start null — identical on server and on the client's first
+  // render. Do NOT read localStorage in a lazy initializer here; that
+  // runs during render and is exactly what caused the hydration
+  // mismatch (server sees no window and renders null, client's first
+  // render already has window and renders the real stored value).
+  const [user, setUser] = useState<PartnerUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  // Only touches localStorage after mount — never runs during SSR, and
+  // doesn't run until after the first client render has already
+  // matched the server's output, so no mismatch is possible.
+  useEffect(() => {
+    const stored = readStoredAuth();
+    if (stored) {
+      setUser(stored.user);
+      setToken(stored.token);
+      setRefreshToken(stored.refreshToken ?? null);
+    }
+    setAuthReady(true);
+  }, []);
 
   function login(user: PartnerUser, token: string, refreshToken: string) {
     window.localStorage.setItem(
@@ -96,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         refreshToken,
         isAuthenticated: !!user,
+        authReady,
         login,
         logout,
       }}

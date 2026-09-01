@@ -8,7 +8,8 @@ import type {
 } from "@/types/listing-create.types";
 
 // ── Icons — reusing the same vocabulary established across the rest of
-// this portal, plus one new phone icon for contact numbers. ────────────
+// this portal, plus new icons for contact numbers, locating the user,
+// expanding the map, and closing the full-screen view. ─────────────────
 
 const TAG_ICON = (
   <path
@@ -50,6 +51,36 @@ const LINK_ICON = (
     d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
   />
 );
+// Crosshair / "locate me" icon.
+const CROSSHAIR_ICON = (
+  <>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 3v3m0 12v3m9-9h-3M6 12H3"
+    />
+    <circle cx="12" cy="12" r="6" strokeWidth={2} />
+    <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+  </>
+);
+// Four-corner "expand to full screen" icon.
+const EXPAND_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M4 9V4m0 0h5M4 4l6 6m10-1V4m0 0h-5m5 0l-6 6M4 15v5m0 0h5m-5 0l6-6m10 1v5m0 0h-5m5 0l-6-6"
+  />
+);
+const CLOSE_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M6 18L18 6M6 6l12 12"
+  />
+);
 
 interface PickupPointFormProps {
   initial?: Partial<PickupPoint>;
@@ -83,6 +114,14 @@ export function PickupPointForm({
   );
   const [mapsLink, setMapsLink] = useState(initial?.google_maps_link ?? "");
 
+  // Full-screen map overlay toggle.
+  const [mapFullscreen, setMapFullscreen] = useState(false);
+
+  // "Use my current location" state — shared by the inline map card and
+  // the full-screen overlay, since both call the same handler.
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
   function updateContact(i: number, v: string) {
     setContacts((prev) => prev.map((c, idx) => (idx === i ? v : c)));
   }
@@ -92,6 +131,48 @@ export function PickupPointForm({
   function removeContact(i: number) {
     if (contacts.length > 1)
       setContacts((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  // Shared by: dragging/tapping the pin on the map (inline or
+  // full-screen) and the "use my current location" button, so the
+  // rounding + maps-link auto-fill logic lives in exactly one place.
+  function applyLocation(la: number, lo: number) {
+    const roundedLat = Math.round(la * 1e6) / 1e6;
+    const roundedLng = Math.round(lo * 1e6) / 1e6;
+    setLat(roundedLat);
+    setLng(roundedLng);
+    // Auto-fill the link field from the pin the moment it's set, so it
+    // doesn't sit visibly empty — vendor can still overwrite this with a
+    // real pasted share-link afterward if they have one; this only fills
+    // it in when it's currently blank, never overwrites a link they've
+    // already typed/pasted.
+    if (!mapsLink.trim()) {
+      setMapsLink(`https://www.google.com/maps?q=${roundedLat},${roundedLng}`);
+    }
+  }
+
+  function useCurrentLocation() {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      setLocationError("Your browser doesn't support automatic location.");
+      return;
+    }
+    setLocating(true);
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        applyLocation(pos.coords.latitude, pos.coords.longitude);
+        setLocating(false);
+      },
+      (err) => {
+        setLocationError(
+          err.code === err.PERMISSION_DENIED
+            ? "Location access was denied. Enable it in your browser settings, or drop the pin manually."
+            : "Couldn't get your current location. Try dropping the pin manually.",
+        );
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
   }
 
   function handleSubmit() {
@@ -108,6 +189,33 @@ export function PickupPointForm({
 
   const canSubmit =
     address.trim().length > 0 && contacts.some((c) => c.trim().length > 0);
+
+  // Small reusable button so the inline card and the full-screen footer
+  // don't drift out of sync with each other's copy/styling.
+  function LocateMeButton({ variant }: { variant: "inline" | "fullscreen" }) {
+    return (
+      <button
+        type="button"
+        onClick={useCurrentLocation}
+        disabled={locating}
+        className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${
+          variant === "inline"
+            ? "border-2 border-dashed border-gray-200 text-font-dim hover:border-brand-yellow hover:text-brand-secondary"
+            : "border-2 border-gray-200 text-font-dim hover:border-brand-yellow hover:text-brand-secondary"
+        }`}
+      >
+        <svg
+          className={`w-4 h-4 ${locating ? "animate-pulse" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          {CROSSHAIR_ICON}
+        </svg>
+        {locating ? "Finding your location..." : "Use my current location"}
+      </button>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -242,47 +350,54 @@ export function PickupPointForm({
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-brand-yellow/10 text-brand-yellow-lg flex items-center justify-center shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-brand-yellow/10 text-brand-yellow-lg flex items-center justify-center shrink-0">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                {PIN_ICON}
+              </svg>
+            </div>
+            <h2 className="font-heading font-bold text-sm text-font-main-sub">
+              Map location
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMapFullscreen(true)}
+            aria-label="Expand map to full screen"
+            className="w-8 h-8 rounded-lg text-gray-400 hover:bg-gray-50 hover:text-brand-secondary transition-colors flex items-center justify-center shrink-0"
+          >
             <svg
               className="w-4 h-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              {PIN_ICON}
+              {EXPAND_ICON}
             </svg>
-          </div>
-          <h2 className="font-heading font-bold text-sm text-font-main-sub">
-            Map location
-          </h2>
+          </button>
         </div>
+
+        <LocateMeButton variant="inline" />
 
         <div>
           <GoogleMapPicker
             latitude={lat}
             longitude={lng}
-            onChange={(la, lo) => {
-              const roundedLat = Math.round(la * 1e6) / 1e6;
-              const roundedLng = Math.round(lo * 1e6) / 1e6;
-              setLat(roundedLat);
-              setLng(roundedLng);
-              // Auto-fill the link field from the pin the moment it's set,
-              // so it doesn't sit visibly empty — vendor can still overwrite
-              // this with a real pasted share-link afterward if they have
-              // one; this only fills it in when it's currently blank, never
-              // overwrites a link they've already typed/pasted.
-              if (!mapsLink.trim()) {
-                setMapsLink(
-                  `https://www.google.com/maps?q=${roundedLat},${roundedLng}`,
-                );
-              }
-            }}
+            onChange={applyLocation}
           />
           {lat != null && lng != null && (
             <p className="text-xs text-font-dim mt-1.5">
               Pin set: {lat.toFixed(6)}, {lng.toFixed(6)}
             </p>
+          )}
+          {locationError && (
+            <p className="text-xs text-red-500 mt-1.5">{locationError}</p>
           )}
         </div>
 
@@ -321,6 +436,67 @@ export function PickupPointForm({
       >
         {submitting ? "Saving..." : submitLabel}
       </button>
+
+      {/* Full-screen map overlay. Controlled/uncontrolled state (lat, lng,
+          mapsLink) is shared with the inline card above via applyLocation,
+          so closing this just returns to the form with the pin already
+          applied — no separate "confirm" step is strictly needed, but we
+          keep a "Use this location" button for a clear, deliberate exit. */}
+      {mapFullscreen && (
+        <div className="fixed inset-0 z-50 bg-white flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
+            <h2 className="font-heading font-bold text-sm text-font-main-sub">
+              Set pickup location
+            </h2>
+            <button
+              type="button"
+              onClick={() => setMapFullscreen(false)}
+              aria-label="Close full-screen map"
+              className="w-9 h-9 rounded-lg text-gray-400 hover:bg-gray-50 transition-colors flex items-center justify-center"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                {CLOSE_ICON}
+              </svg>
+            </button>
+          </div>
+
+          <div className="flex-1 min-h-0">
+            <GoogleMapPicker
+              latitude={lat}
+              longitude={lng}
+              onChange={applyLocation}
+              fullHeight
+            />
+          </div>
+
+          <div className="shrink-0 border-t border-gray-100 p-4 space-y-2 bg-white">
+            <LocateMeButton variant="fullscreen" />
+            {locationError && (
+              <p className="text-xs text-red-500 text-center">
+                {locationError}
+              </p>
+            )}
+            {lat != null && lng != null && (
+              <p className="text-xs text-font-dim text-center">
+                Pin set: {lat.toFixed(6)}, {lng.toFixed(6)}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => setMapFullscreen(false)}
+              disabled={lat == null || lng == null}
+              className="w-full font-bold rounded-xl py-3.5 text-center bg-brand-yellow text-brand-secondary hover:bg-brand-yellow-lg transition-colors disabled:opacity-50"
+            >
+              Use this location
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
