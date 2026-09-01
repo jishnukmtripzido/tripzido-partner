@@ -128,8 +128,8 @@ export function DesktopSidebar() {
 
   return (
     <aside className="hidden lg:flex lg:flex-col w-64 shrink-0 bg-white h-dvh relative z-10 border-r border-gray-200/80 shadow-[1px_0_3px_0_rgba(0,0,0,0.05)]">
-      <div className="px-5 pt-6 pb-5 border-b border-gray-100">
-        <div className="flex items-center gap-2 mb-5">
+      <div className="px-5 pt-5 pb-5 border-b border-gray-100">
+        <div className="flex items-center gap-2 ">
           <div className="bg-brand-yellow-lg p-1.5 rounded-lg flex items-center justify-center h-8 w-8">
             <svg
               className="w-5 h-5 text-white"
@@ -152,7 +152,7 @@ export function DesktopSidebar() {
             </span>
           </h2>
         </div>
-        <div className="flex items-center gap-3">
+        {/* <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-brand-yellow/20 text-brand-secondary flex items-center justify-center font-heading font-bold">
             {user?.first_name?.[0]?.toUpperCase() ?? "P"}
           </div>
@@ -166,7 +166,7 @@ export function DesktopSidebar() {
               {user?.phone_number ?? "Not signed in"}
             </p>
           </div>
-        </div>
+        </div> */}
       </div>
 
       <nav className="flex-1 overflow-y-auto hide-scrollbar px-3 py-4 space-y-1">
