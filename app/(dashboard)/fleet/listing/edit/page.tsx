@@ -146,11 +146,11 @@ function detailToFormState(detail: ListingDetail): EditFormState {
     excessChargePerKm:
       detail.policies.excess_charge_per_km != null
         ? String(detail.policies.excess_charge_per_km)
-        : "",
+        : "0",
     lateReturnPenaltyPerHour:
       detail.policies.late_return_penalty_per_hour != null
         ? String(detail.policies.late_return_penalty_per_hour)
-        : "",
+        : "0",
     doorstepDeliveryEnabled: detail.policies.doorstep_delivery_enabled,
   };
 }
@@ -248,8 +248,8 @@ export default function EditListingPage() {
         km_limit_per_day: form.kmLimitPerDay
           ? Number(form.kmLimitPerDay)
           : null,
-        excess_charge_per_km: form.excessChargePerKm || null,
-        late_return_penalty_per_hour: form.lateReturnPenaltyPerHour || null,
+        excess_charge_per_km: form.excessChargePerKm || "0",
+        late_return_penalty_per_hour: form.lateReturnPenaltyPerHour || "0",
         doorstep_delivery_enabled: form.doorstepDeliveryEnabled,
         operating_hours_start: null,
         operating_hours_end: null,
@@ -304,6 +304,11 @@ export default function EditListingPage() {
       </>
     );
   }
+
+  const policiesIncomplete =
+    !form.securityDepositAmount ||
+    !form.excessChargePerKm ||
+    !form.lateReturnPenaltyPerHour;
 
   return (
     <>
@@ -379,7 +384,7 @@ export default function EditListingPage() {
 
         <button
           onClick={handleSubmit}
-          disabled={submitting || !form.pickupPointId}
+          disabled={submitting || !form.pickupPointId || policiesIncomplete}
           className="w-full font-bold rounded-xl py-4 text-center bg-brand-yellow text-brand-secondary hover:bg-brand-yellow-lg transition-colors disabled:opacity-50"
         >
           {submitting ? "Saving..." : "Save changes"}
@@ -387,6 +392,12 @@ export default function EditListingPage() {
         {!form.pickupPointId && (
           <p className="text-xs text-red-500 text-center -mt-3">
             Select an exact pickup point before saving.
+          </p>
+        )}
+        {form.pickupPointId && policiesIncomplete && (
+          <p className="text-xs text-red-500 text-center -mt-3">
+            Security deposit, excess charge, and late return penalty can&apos;t
+            be blank — enter 0 if not applicable.
           </p>
         )}
         <p className="text-xs text-font-dim text-center">
@@ -972,7 +983,7 @@ function PricingEditor({
         {
           packageTypeId: null,
           price: "",
-          payAtPickupEnabled: false,
+          payAtPickupEnabled: true,
           kmLimit: "",
         },
       ],
@@ -1063,7 +1074,7 @@ function PricingEditor({
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Km limit (optional)
+                  Km limit (blank = unlimited)
                 </label>
                 <input
                   type="number"
@@ -1076,7 +1087,7 @@ function PricingEditor({
                 />
               </div>
             </div>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-sm bg-brand-yellow/10 border border-brand-yellow/30 rounded-xl px-3.5 py-3">
               <input
                 type="checkbox"
                 checked={pkg.payAtPickupEnabled}
@@ -1085,7 +1096,12 @@ function PricingEditor({
                 }
                 className="w-4 h-4 accent-brand-yellow"
               />
-              Allow pay at pickup
+              <span className="font-semibold text-font-main-sub">
+                Allow pay at pickup
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wide text-brand-yellow-lg ml-auto">
+                Recommended
+              </span>
             </label>
           </div>
         );
@@ -1151,7 +1167,7 @@ function PoliciesEditor({
           className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
         />
       </Field> */}
-      <Field label="Excess charge per km (optional, ₹)">
+      <Field label="Excess charge per km (₹)">
         <input
           type="number"
           min="0"
@@ -1160,7 +1176,7 @@ function PoliciesEditor({
           className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
         />
       </Field>
-      <Field label="Late return penalty per hour (optional, ₹)">
+      <Field label="Late return penalty per hour (₹)">
         <input
           type="number"
           min="0"
