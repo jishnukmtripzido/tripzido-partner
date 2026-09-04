@@ -16,10 +16,9 @@
   --color-banner-from: #fed250;
   --color-banner-to: #ffc107;
   --color-brand-secondary: #111111;
-  --font-sans:
+  /* --font-sans:
     "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol";
-  /* --font-heading: "Nunito", "Inter", sans-serif; */
   --font-heading:
     "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
@@ -27,7 +26,15 @@
   --font-test: "Segoe UI";
   --font-mono:
     "Fira Code", "Fira Mono", Menlo,
-    --animate-dropdown-in: dropdown-in 0.15s ease-out forwards;
+    --animate-dropdown-in: dropdown-in 0.15s ease-out forwards; */
+  --font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  /* --font-heading: "Nunito", "Inter", sans-serif; */
+  --font-heading:
+    "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+
   --animate-fade-in: fade-in 0.2s ease-out forwards;
   --animate-slide-up: slide-up 0.25s ease-out forwards;
   --animate-scale-in: scale-in 0.2s ease-out forwards;
