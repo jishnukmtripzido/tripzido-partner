@@ -1,3 +1,4 @@
+// app/(dashboard)/settings/page.tsx
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -60,6 +61,34 @@ export default function SettingsPage() {
                 d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </>
+          }
+        />
+
+        <SettingsCard
+          onClick={() => router.push("/settings/kyc-documents" as Route)}
+          title="KYC Documents"
+          subtitle="View your uploaded documents & submit new ones"
+          icon={
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-3-3v6m7 4H5a2 2 0 01-2-2V5a2 2 0 012-2h7.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          }
+        />
+
+        <SettingsCard
+          onClick={() => router.push("/settings/bank-accounts" as Route)}
+          title="Bank Account Details"
+          subtitle="View your payout account & submit new details"
+          icon={
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 21h18M4 10h16M4 10L12 3l8 7M6 10v11m4-11v11m4-11v11m4-11v11"
+            />
           }
         />
       </main>

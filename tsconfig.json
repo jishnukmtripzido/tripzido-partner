@@ -28,7 +28,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "app/(dashboard)/profile/vendor-details"
   ],
   "exclude": ["node_modules"]
 }
