@@ -469,6 +469,20 @@ const STOREFRONT_ICON = (
   />
 );
 
+// day/month/year — matches the formatting used for block dates
+// elsewhere in the vendor portal (see BlockListItem's
+// formatBlockDateTime), so trip dates read the same way everywhere.
+function formatBookingDateTime(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const datePart = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  const timePart = d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${datePart}, ${timePart}`;
+}
+
 export default function BookingDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -677,11 +691,11 @@ export default function BookingDetailPage() {
             <Section title="Trip Details" icon={CLOCK_ICON}>
               <Row
                 label="Pickup"
-                value={new Date(booking.start_date).toLocaleString()}
+                value={formatBookingDateTime(booking.start_date)}
               />
               <Row
                 label="Drop-off"
-                value={new Date(booking.end_date).toLocaleString()}
+                value={formatBookingDateTime(booking.end_date)}
               />
               <Row label="Duration" value={booking.duration} />
               <Row

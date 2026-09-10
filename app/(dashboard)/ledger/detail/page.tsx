@@ -54,6 +54,31 @@ const VEHICLE_ICON = (
   />
 );
 
+// Date+time display, matching the day/month/year style used elsewhere
+// in the vendor portal (see BlockListItem's formatBlockDateTime and
+// the booking detail page's formatBookingDateTime).
+function formatPayoutDateTime(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const datePart = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  const timePart = d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${datePart}, ${timePart}`;
+}
+
+// Date-only display (no time component) for plain "YYYY-MM-DD"
+// values like period_start/period_end and pickup_date/dropoff_date.
+// Parsed via string split rather than `new Date()` to avoid a
+// timezone-driven off-by-one day on date-only strings.
+function formatDateOnly(dateStr: string): string {
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return dateStr;
+  const [year, month, day] = parts;
+  return `${day}/${month}/${year}`;
+}
+
 export default function LedgerDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -147,14 +172,16 @@ export default function LedgerDetailPage() {
                 label="Paid on"
                 value={
                   payout.paid_at
-                    ? new Date(payout.paid_at).toLocaleString("en-IN")
+                    ? formatPayoutDateTime(payout.paid_at)
                     : "Pending"
                 }
               />
               {payout.period_start && payout.period_end && (
                 <Row
                   label="Period"
-                  value={`${payout.period_start} to ${payout.period_end}`}
+                  value={`${formatDateOnly(payout.period_start)} to ${formatDateOnly(
+                    payout.period_end,
+                  )}`}
                 />
               )}
             </Section>
@@ -205,8 +232,9 @@ export default function LedgerDetailPage() {
                         {item.vehicle_name}
                       </p>
                       <p className="text-xs text-font-dim mt-0.5">
-                        #{item.booking_reference} • {item.pickup_date} to{" "}
-                        {item.dropoff_date}
+                        #{item.booking_reference} •{" "}
+                        {formatDateOnly(item.pickup_date)} to{" "}
+                        {formatDateOnly(item.dropoff_date)}
                       </p>
                     </div>
                     <p className="font-bold text-brand-secondary shrink-0">

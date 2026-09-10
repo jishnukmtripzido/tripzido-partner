@@ -29,6 +29,21 @@ function nowLocalInputValue(): string {
   return toLocalInputValue(new Date().toISOString());
 }
 
+// Display-only formatter — day/month/year, distinct from
+// toLocalInputValue above which feeds <input type="datetime-local">
+// and must stay in that fixed YYYY-MM-DDTHH:mm shape regardless of
+// display preference.
+function formatBlockDateTime(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const datePart = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  const timePart = d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${datePart}, ${timePart}`;
+}
+
 export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftStart, setDraftStart] = useState("");
@@ -268,12 +283,12 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
             <div className="space-y-1.5 text-xs">
               <p className="text-font-dim">
                 <span className="font-semibold text-gray-700">Start:</span>{" "}
-                {new Date(block.start_datetime).toLocaleString()}
+                {formatBlockDateTime(block.start_datetime)}
               </p>
               <p className="text-font-dim">
                 <span className="font-semibold text-gray-700">End:</span>{" "}
                 {block.end_datetime
-                  ? new Date(block.end_datetime).toLocaleString()
+                  ? formatBlockDateTime(block.end_datetime)
                   : "Until further notice"}
               </p>
             </div>
