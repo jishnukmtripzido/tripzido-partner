@@ -7,6 +7,13 @@ export type BookingStatus =
   | "PAYMENT_FAILED"
   | "EXPIRED";
 
+// Mirrors BookingCancellation.VENDOR_REASON_CODES on the backend — the
+// subset of CancellationReason values the vendor-cancel endpoint accepts.
+export type VendorCancellationReasonCode =
+  | "VENDOR_BREAKDOWN"
+  | "VENDOR_EMERGENCY"
+  | "OTHER";
+
 export interface VendorBookingListItem {
   id: number;
   booking_reference: string;
