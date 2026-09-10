@@ -740,9 +740,9 @@ export default function BookingDetailPage() {
                           ID: {p.gateway_order_id}
                         </p>
                       </div>
-                      <p className="font-bold text-[14px] text-brand-yellow-lg bg-brand-yellow/10 px-3 py-1.5 rounded-lg">
+                      {/* <p className="font-bold text-[14px] text-brand-yellow-lg bg-brand-yellow/10 px-3 py-1.5 rounded-lg">
                         ₹{p.amount}
-                      </p>
+                      </p> */}
                     </div>
                   ))}
                 </div>
