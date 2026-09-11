@@ -16,6 +16,13 @@ import type { Vehicle } from "@/types/fleet.types";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { InlineLoader } from "@/components/ui/InLineLoader";
 
+const FLEET_TABS = [
+  { key: "active", label: "Active" },
+  { key: "inactive", label: "Inactive" },
+] as const;
+
+type FleetTab = (typeof FLEET_TABS)[number]["key"];
+
 function toVehicleKind(vehicleType: string): Vehicle["kind"] {
   return vehicleType === "SCOOTER" ? "scooter" : "motorcycle";
 }
@@ -29,7 +36,7 @@ function toVehicle(listing: FleetListing): Vehicle {
     imageUrl: listing.primary_image,
     locationName: listing.location_name,
     pickupPointLabel: listing.pickup_point_label ?? undefined,
-    status: listing.status, // NEW
+    status: listing.status,
   };
 }
 
@@ -38,47 +45,99 @@ export default function FleetPage() {
   const { token } = useAuth();
   const router = useRouter();
 
+  const [tab, setTab] = useState<FleetTab>("active");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [hasNext, setHasNext] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const nextPageRef = useRef(1);
-  const loadedPagesRef = useRef<Set<number>>(new Set());
+  const nextPageRef = useRef(2); // page 1 is always handled by the tab effect below
+  const loadedPagesRef = useRef<Set<string>>(new Set());
 
+  // Synchronous, non-state guard against overlapping fetches. isLoading
+  // (React state) can't be used for this: setIsLoading(true) only takes
+  // effect on the NEXT render, so any effect or callback that reads it
+  // in the same commit still sees the stale value. That's exactly what
+  // let a fresh mount (empty list -> sentinel already in view ->
+  // IntersectionObserver fires immediately) launch a page=2 request
+  // concurrently with the page=1 request the tab-change effect had
+  // just kicked off. A ref updates immediately, closing that window.
+  const isFetchingRef = useRef(false);
+
+  // Runs on every tab change (and on mount). Resets everything AND
+  // fetches page 1 directly, in one effect.
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+
+    setVehicles([]);
+    setHasNext(true);
+    setError(null);
+    nextPageRef.current = 2;
+    loadedPagesRef.current.clear();
+    loadedPagesRef.current.add(`${tab}:1`);
+    isFetchingRef.current = true; // set BEFORE any other effect can run
+
+    (async () => {
+      setIsLoading(true);
+      try {
+        const res = await getFleetApi(1, token, tab);
+        if (cancelled) return;
+        if (!res.success || !res.data) {
+          setError(res.message || "Failed to load fleet");
+          setHasNext(false);
+          return;
+        }
+        setVehicles(res.data.results.map(toVehicle));
+        setHasNext(res.data.pagination.next !== null);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load fleet");
+          setHasNext(false);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+        isFetchingRef.current = false;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, token]);
+
+  // Page 2+ only, triggered by scroll — page 1 is never reached here.
   const loadNextPage = useCallback(async () => {
-    if (!token || isLoading || !hasNext) return;
-    const pageToLoad = nextPageRef.current;
-    if (loadedPagesRef.current.has(pageToLoad)) return;
-    loadedPagesRef.current.add(pageToLoad);
+    if (!token || isFetchingRef.current || !hasNext) return;
+    const page = nextPageRef.current;
+    const key = `${tab}:${page}`;
+    if (loadedPagesRef.current.has(key)) return;
+    loadedPagesRef.current.add(key);
 
+    isFetchingRef.current = true;
     setIsLoading(true);
     setError(null);
     try {
-      const res = await getFleetApi(pageToLoad, token);
+      const res = await getFleetApi(page, token, tab);
       if (!res.success || !res.data) {
         setError(res.message || "Failed to load fleet");
         setHasNext(false);
-        loadedPagesRef.current.delete(pageToLoad);
+        loadedPagesRef.current.delete(key);
         return;
       }
       setVehicles((prev) => [...prev, ...res.data!.results.map(toVehicle)]);
       setHasNext(res.data.pagination.next !== null);
-      nextPageRef.current = pageToLoad + 1;
+      nextPageRef.current = page + 1;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load fleet");
       setHasNext(false);
-      loadedPagesRef.current.delete(pageToLoad);
+      loadedPagesRef.current.delete(key);
     } finally {
+      isFetchingRef.current = false;
       setIsLoading(false);
     }
-  }, [token, isLoading, hasNext]);
-
-  useEffect(() => {
-    if (token) loadNextPage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, hasNext, tab]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -101,9 +160,6 @@ export default function FleetPage() {
     loadNextPage();
   }
 
-  // NEW — powers the on/off switch on each VehicleListItem card.
-  // Updates just the matching vehicle's status in place on success, so
-  // the whole list doesn't need a refetch for one toggle.
   async function handleToggleActive(vehicleId: string) {
     if (!token) return { success: false, message: "Not signed in" };
     try {
@@ -111,11 +167,7 @@ export default function FleetPage() {
       if (!res.success || !res.data) {
         return { success: false, message: res.message };
       }
-      setVehicles((prev) =>
-        prev.map((v) =>
-          v.id === vehicleId ? { ...v, status: res.data!.status } : v,
-        ),
-      );
+      setVehicles((prev) => prev.filter((v) => v.id !== vehicleId));
       return { success: true };
     } catch (err) {
       return {
@@ -155,10 +207,26 @@ export default function FleetPage() {
         }
       />
 
+      <div className="flex gap-2.5 overflow-x-auto hide-scrollbar px-5 pt-4 pb-2 bg-brand-bg">
+        {FLEET_TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`shrink-0 px-4 py-2 rounded-full text-[13px] font-bold transition-all duration-200 border ${
+              tab === t.key
+                ? "bg-brand-yellow border-brand-yellow text-brand-secondary shadow-sm"
+                : "bg-white border-gray-100 text-gray-500 shadow-sm hover:border-brand-yellow/50"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {isInitialLoad ? (
         <PageLoader />
       ) : (
-        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg">
+        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-3 pb-6 bg-brand-bg">
           <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-[repeat(auto-fit,minmax(380px,1fr))] lg:gap-4 lg:items-start lg:content-start">
             {vehicles.map((vehicle) => (
               <VehicleListItem
@@ -190,10 +258,12 @@ export default function FleetPage() {
                 </svg>
               </div>
               <p className="text-sm font-semibold text-gray-500">
-                No bikes in your fleet yet
+                {tab === "active" ? "No active bikes yet" : "No inactive bikes"}
               </p>
               <p className="text-xs text-gray-400 mt-1">
-                Tap &ldquo;Add Bike&rdquo; to list your first vehicle.
+                {tab === "active"
+                  ? 'Tap "Add Bike" to list your first vehicle.'
+                  : "Bikes that are paused, pending, or rejected show up here."}
               </p>
             </div>
           )}
