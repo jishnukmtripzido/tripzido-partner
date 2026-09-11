@@ -263,30 +263,31 @@ function AttentionSection({
 
   return (
     <div className="space-y-3">
-      <h3 className="font-heading font-bold text-base text-font-main-sub">
-        Needs attention
-      </h3>
-
       {data.bookings_to_start.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {data.bookings_to_start.map((booking) => (
-            <CompactBookingCard
-              key={booking.id}
-              booking={booking}
-              variant="compact"
-              onClick={() =>
-                router.push(`/bookings/detail?id=${booking.id}` as Route)
-              }
-            />
-          ))}
+        <div className="space-y-3">
+          <h3 className="font-heading font-bold text-base text-font-main-sub">
+            Needs attention
+          </h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {data.bookings_to_start.map((booking) => (
+              <CompactBookingCard
+                key={booking.id}
+                booking={booking}
+                variant="compact"
+                onClick={() =>
+                  router.push(`/bookings/detail?id=${booking.id}` as Route)
+                }
+              />
+            ))}
+          </div>
         </div>
       )}
 
       {data.bookings_to_return.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <p className="text-xs font-semibold text-font-dim uppercase tracking-wide lg:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-5">
+          <h3 className="font-heading font-bold text-base text-font-main-sub  tracking-wide lg:col-span-2">
             Ready to return
-          </p>
+          </h3>
           {data.bookings_to_return.map((booking) => (
             <CompactBookingCard
               key={booking.id}
