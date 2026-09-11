@@ -106,7 +106,7 @@ export function BottomNav() {
   }
 
   return (
-    <nav className="bg-white border-t border-gray-200 absolute bottom-0 w-full flex justify-around items-center pb-safe pt-2 px-2 z-20">
+    <nav className="bg-white border-t border-gray-200 fixed bottom-0 w-full flex justify-around items-center pb-safe pt-2 px-2 z-20">
       {NAV_ITEMS.map((item) => {
         const active = isActive(item.href);
         return (

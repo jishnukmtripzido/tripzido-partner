@@ -3,6 +3,10 @@
 
 @import "tailwindcss";
 
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* ── Brand theme (Tailwind v4 config lives here, not in tailwind.config.ts) ── */
 @theme {
   --color-brand-yellow-lg: #ffc107;
