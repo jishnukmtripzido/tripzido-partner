@@ -19,22 +19,35 @@ export default function BookingsPage() {
   const router = useRouter();
 
   const [tab, setTab] = useState("all");
+
+  // Raw input updates instantly for a responsive box; debouncedSearch is
+  // what actually drives the fetch, so we don't fire a request on every
+  // keystroke.
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
   const [bookings, setBookings] = useState<VendorBookingListItem[]>([]);
   const [hasNext, setHasNext] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const nextPageRef = useRef(2); // page 1 is always handled by the tab effect below
+  const nextPageRef = useRef(2); // page 1 is always handled by the effect below
   const loadedPagesRef = useRef<Set<string>>(new Set());
 
-  // Runs on every tab change (and on mount). Resets everything AND
-  // fetches page 1 directly, in one effect, so there's no separate
-  // "reset" effect racing against a "fetch" effect with a stale
-  // closure over hasNext/isLoading. Also clears loadedPagesRef
-  // entirely — without this, revisiting a tab you'd already viewed
-  // once would find its "tab:1" key still marked as loaded from the
-  // earlier visit and skip fetching, which was the actual bug.
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
+
+  // Runs on tab change, search change (debounced), and mount. Resets
+  // everything AND fetches page 1 directly, in one effect, so there's no
+  // separate "reset" effect racing against a "fetch" effect with a stale
+  // closure over hasNext/isLoading. Also clears loadedPagesRef entirely —
+  // without this, revisiting a tab/search combo you'd already viewed once
+  // would find its key still marked as loaded and skip fetching.
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
@@ -44,12 +57,12 @@ export default function BookingsPage() {
     setError(null);
     nextPageRef.current = 2;
     loadedPagesRef.current.clear();
-    loadedPagesRef.current.add(`${tab}:1`);
+    loadedPagesRef.current.add(`${tab}:${debouncedSearch}:1`);
 
     (async () => {
       setIsLoading(true);
       try {
-        const res = await getVendorBookingsApi(tab, 1, token);
+        const res = await getVendorBookingsApi(tab, 1, token, debouncedSearch);
         if (cancelled) return;
         if (!res.success || !res.data) {
           setError(res.message || "Failed to load bookings");
@@ -73,20 +86,20 @@ export default function BookingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [tab, token]);
+  }, [tab, token, debouncedSearch]);
 
   // Page 2+ only, triggered by scroll — page 1 is never reached here.
   const loadNextPage = useCallback(async () => {
     if (!token || isLoading || !hasNext) return;
     const page = nextPageRef.current;
-    const key = `${tab}:${page}`;
+    const key = `${tab}:${debouncedSearch}:${page}`;
     if (loadedPagesRef.current.has(key)) return;
     loadedPagesRef.current.add(key);
 
     setIsLoading(true);
     setError(null);
     try {
-      const res = await getVendorBookingsApi(tab, page, token);
+      const res = await getVendorBookingsApi(tab, page, token, debouncedSearch);
       if (!res.success || !res.data) {
         setError(res.message || "Failed to load bookings");
         setHasNext(false);
@@ -103,7 +116,7 @@ export default function BookingsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [token, isLoading, hasNext, tab]);
+  }, [token, isLoading, hasNext, tab, debouncedSearch]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -151,7 +164,53 @@ export default function BookingsPage() {
         }
       />
 
-      <div className="flex gap-2.5 overflow-x-auto hide-scrollbar px-5 pt-4 pb-2">
+      <div className="px-5 pt-4">
+        <div className="relative">
+          <svg
+            className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search by booking ref, customer name, phone, or vehicle"
+            className="w-full bg-white border border-gray-100 rounded-xl pl-9 pr-9 py-2.5 text-sm font-medium text-gray-700 shadow-sm focus:outline-none focus:border-brand-yellow"
+          />
+          {searchInput && (
+            <button
+              onClick={() => setSearchInput("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label="Clear search"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex gap-2.5 overflow-x-auto hide-scrollbar px-5 pt-3 pb-2">
         {FILTER_TABS.map((t) => (
           <button
             key={t.key}
@@ -186,7 +245,9 @@ export default function BookingsPage() {
 
           {bookings.length === 0 && !isLoading && !error && (
             <p className="text-sm text-gray-400 font-medium text-center mt-10">
-              No bookings in this category yet.
+              {debouncedSearch
+                ? "No bookings match your search."
+                : "No bookings in this category yet."}
             </p>
           )}
 

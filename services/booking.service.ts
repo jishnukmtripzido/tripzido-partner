@@ -10,9 +10,14 @@ export async function getVendorBookingsApi(
   tab: string,
   page: number,
   accessToken: string,
+  search?: string,
 ): Promise<VendorBookingsResponse> {
+  const params = new URLSearchParams({ status: tab, page: String(page) });
+  if (search && search.trim()) {
+    params.set("search", search.trim());
+  }
   return api.get<VendorBookingsResponse>(
-    `/api/bookings/vendor/?status=${tab}&page=${page}`,
+    `/api/bookings/vendor/?${params.toString()}`,
     { token: accessToken },
   );
 }
