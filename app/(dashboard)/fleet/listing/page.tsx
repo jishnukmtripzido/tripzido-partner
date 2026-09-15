@@ -238,7 +238,7 @@ export default function ListingDetailPage() {
   }, [listingId, token]);
 
   return (
-    <div className="bg-brand-bg min-h-screen flex flex-col">
+    <div className="bg-brand-bg h-full flex flex-col">
       <Header
         title={listing ? listing.vehicle_type.name : "Listing Details"}
         onBack={() => router.back()}
@@ -269,7 +269,7 @@ export default function ListingDetailPage() {
         }
       />
 
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-8">
+      <main className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-5 pt-5 pb-8">
         {isLoading && <PageLoader />}
 
         {error && !isLoading && (

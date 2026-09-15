@@ -214,13 +214,13 @@ export default function BookingDetailPage() {
   }
 
   return (
-    <div className="bg-brand-bg min-h-screen flex flex-col">
+    <div className="bg-brand-bg h-full flex flex-col">
       <Header
         title={booking ? booking.booking_reference : "Booking Detail"}
         onBack={() => router.back()}
       />
 
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-8">
+      <main className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-5 pt-5 pb-8">
         {isLoading && <PageLoader />}
 
         {error && !isLoading && (

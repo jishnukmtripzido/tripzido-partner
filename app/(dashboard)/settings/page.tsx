@@ -11,7 +11,7 @@ export default function SettingsPage() {
   const router = useRouter();
 
   return (
-    <div className="bg-brand-bg min-h-screen flex flex-col">
+    <div className="bg-brand-bg h-full flex flex-col">
       <Header title="Settings" onMenuClick={openSidebar} />
       <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-8 space-y-3.5 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3.5 lg:items-start lg:content-start">
         <SettingsCard

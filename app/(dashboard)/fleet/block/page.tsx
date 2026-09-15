@@ -126,7 +126,7 @@ export default function BlockBikesPage() {
   const isInitialLoad = isLoading && blocks.length === 0 && !error;
 
   return (
-    <div className="bg-brand-bg min-h-screen flex flex-col">
+    <div className="bg-brand-bg h-full flex flex-col">
       <Header
         title="Block Bikes"
         onMenuClick={openSidebar}

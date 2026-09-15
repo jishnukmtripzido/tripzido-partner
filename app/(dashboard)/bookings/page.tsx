@@ -140,7 +140,7 @@ export default function BookingsPage() {
   const isInitialLoad = isLoading && bookings.length === 0 && !error;
 
   return (
-    <div className="bg-brand-bg min-h-screen flex flex-col">
+    <div className="bg-brand-bg h-full flex flex-col">
       <Header
         title="Bookings"
         onMenuClick={openSidebar}
