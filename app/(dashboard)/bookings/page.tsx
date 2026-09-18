@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import type { Route } from "next";
 import { Header } from "@/components/layout/Header";
 import { useSidebar } from "@/context/SidebarContext";
@@ -9,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { CompactBookingCard } from "@/components/features/bookings/CompactBookingCard";
 import { getVendorBookingsApi } from "@/services/booking.service";
 import { FILTER_TABS } from "@/lib/bookingStatus";
-import type { VendorBookingListItem } from "@/types/booking.types";
+import { queryKeys } from "@/lib/queryKeys";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { InlineLoader } from "@/components/ui/InLineLoader";
 
@@ -26,14 +27,7 @@ export default function BookingsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  const [bookings, setBookings] = useState<VendorBookingListItem[]>([]);
-  const [hasNext, setHasNext] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const nextPageRef = useRef(2); // page 1 is always handled by the effect below
-  const loadedPagesRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -42,100 +36,52 @@ export default function BookingsPage() {
     return () => clearTimeout(handle);
   }, [searchInput]);
 
-  // Runs on tab change, search change (debounced), and mount. Resets
-  // everything AND fetches page 1 directly, in one effect, so there's no
-  // separate "reset" effect racing against a "fetch" effect with a stale
-  // closure over hasNext/isLoading. Also clears loadedPagesRef entirely —
-  // without this, revisiting a tab/search combo you'd already viewed once
-  // would find its key still marked as loaded and skip fetching.
-  useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-
-    setBookings([]);
-    setHasNext(true);
-    setError(null);
-    nextPageRef.current = 2;
-    loadedPagesRef.current.clear();
-    loadedPagesRef.current.add(`${tab}:${debouncedSearch}:1`);
-
-    (async () => {
-      setIsLoading(true);
-      try {
-        const res = await getVendorBookingsApi(tab, 1, token, debouncedSearch);
-        if (cancelled) return;
-        if (!res.success || !res.data) {
-          setError(res.message || "Failed to load bookings");
-          setHasNext(false);
-          return;
-        }
-        setBookings(res.data.results);
-        setHasNext(res.data.pagination.next !== null);
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load bookings",
-          );
-          setHasNext(false);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [tab, token, debouncedSearch]);
-
-  // Page 2+ only, triggered by scroll — page 1 is never reached here.
-  const loadNextPage = useCallback(async () => {
-    if (!token || isLoading || !hasNext) return;
-    const page = nextPageRef.current;
-    const key = `${tab}:${debouncedSearch}:${page}`;
-    if (loadedPagesRef.current.has(key)) return;
-    loadedPagesRef.current.add(key);
-
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await getVendorBookingsApi(tab, page, token, debouncedSearch);
+  const {
+    data,
+    error,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: queryKeys.bookings.list(token, {
+      status: tab,
+      search: debouncedSearch,
+    }),
+    queryFn: async ({ pageParam }) => {
+      const res = await getVendorBookingsApi(
+        tab,
+        pageParam,
+        token as string,
+        debouncedSearch,
+      );
       if (!res.success || !res.data) {
-        setError(res.message || "Failed to load bookings");
-        setHasNext(false);
-        loadedPagesRef.current.delete(key);
-        return;
+        throw new Error(res.message || "Failed to load bookings");
       }
-      setBookings((prev) => [...prev, ...res.data!.results]);
-      setHasNext(res.data.pagination.next !== null);
-      nextPageRef.current = page + 1;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load bookings");
-      setHasNext(false);
-      loadedPagesRef.current.delete(key);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [token, isLoading, hasNext, tab, debouncedSearch]);
+      return res.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.next ? lastPage.pagination.page + 1 : undefined,
+    enabled: !!token,
+  });
+
+  const bookings = data?.pages.flatMap((page) => page.results) ?? [];
+  const hasNext = hasNextPage ?? false;
 
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) loadNextPage();
+        if (entries[0].isIntersecting) fetchNextPage();
       },
       { rootMargin: "200px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [loadNextPage]);
-
-  function handleRetry() {
-    setError(null);
-    setHasNext(true);
-    loadNextPage();
-  }
+  }, [fetchNextPage]);
 
   const isInitialLoad = isLoading && bookings.length === 0 && !error;
 
@@ -253,16 +199,18 @@ export default function BookingsPage() {
 
           {error && (
             <div className="text-center mt-6">
-              <p className="text-sm text-red-500 font-medium">{error}</p>
+              <p className="text-sm text-red-500 font-medium">
+                {error instanceof Error ? error.message : "Failed to load bookings"}
+              </p>
               <button
-                onClick={handleRetry}
+                onClick={() => refetch()}
                 className="mt-2 text-sm font-bold text-brand-yellow-lg hover:text-brand-secondary transition-colors"
               >
                 Retry
               </button>
             </div>
           )}
-          {isLoading && !error && <InlineLoader />}
+          {(isLoading || isFetchingNextPage) && !error && <InlineLoader />}
           {!hasNext && !error && bookings.length > 0 && (
             <p className="text-xs text-gray-400 font-semibold text-center mt-6">
               {bookings.length} booking(s)

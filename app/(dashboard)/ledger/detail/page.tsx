@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/context/AuthContext";
 import { getVendorPayoutDetailApi } from "@/services/payment.service";
 import { PAYOUT_STATUS_STYLES } from "@/lib/payoutStatus";
 import { PageLoader } from "@/components/ui/PageLoader";
-import type { VendorPayoutDetail } from "@/types/ledger.types";
+import { queryKeys } from "@/lib/queryKeys";
 
 // ── Icons — reusing the same vocabulary established elsewhere in this
 // portal (Booking Detail, Listing Detail), plus the clipboard icon
@@ -85,37 +85,21 @@ export default function LedgerDetailPage() {
   const { token } = useAuth();
   const payoutId = searchParams.get("id");
 
-  const [payout, setPayout] = useState<VendorPayoutDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!token || !payoutId) return;
-    let cancelled = false;
-    (async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const res = await getVendorPayoutDetailApi(payoutId, token);
-        if (cancelled) return;
-        if (!res.success || !res.data) {
-          setError(res.message || "Payout not found");
-          return;
-        }
-        setPayout(res.data);
-      } catch (err) {
-        if (!cancelled)
-          setError(
-            err instanceof Error ? err.message : "Failed to load payout",
-          );
-      } finally {
-        if (!cancelled) setIsLoading(false);
+  const {
+    data: payout,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: queryKeys.ledger.detail(token, payoutId),
+    queryFn: async () => {
+      const res = await getVendorPayoutDetailApi(payoutId as string, token as string);
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Payout not found");
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token, payoutId]);
+      return res.data;
+    },
+    enabled: !!token && !!payoutId,
+  });
 
   return (
     <>
@@ -126,7 +110,9 @@ export default function LedgerDetailPage() {
       <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg space-y-4">
         {isLoading && <PageLoader />}
         {error && !isLoading && (
-          <p className="text-sm text-red-500 text-center mt-10">{error}</p>
+          <p className="text-sm text-red-500 text-center mt-10">
+            {error instanceof Error ? error.message : "Failed to load payout"}
+          </p>
         )}
 
         {payout && !isLoading && (

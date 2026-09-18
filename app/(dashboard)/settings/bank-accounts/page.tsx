@@ -1,8 +1,9 @@
 // app/(dashboard)/settings/bank-accounts/page.tsx
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { useSidebar } from "@/context/SidebarContext";
 import { useAuth } from "@/context/AuthContext";
@@ -10,39 +11,33 @@ import {
   getVendorBankAccountsApi,
   createVendorBankAccountApi,
 } from "@/services/vendor.service";
+import { queryKeys } from "@/lib/queryKeys";
 import type { VendorBankAccount } from "@/types/settings.types";
 
 export default function BankAccountsPage() {
   const { openSidebar } = useSidebar();
   const { token } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const [accounts, setAccounts] = useState<VendorBankAccount[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const load = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await getVendorBankAccountsApi(token);
+  const queryKey = queryKeys.settings.bankAccounts(token);
+  const {
+    data: accounts = [],
+    isLoading: loading,
+    error,
+  } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const res = await getVendorBankAccountsApi(token as string);
       if (!res.success || !res.data) {
-        setError(res.message || "Failed to load bank accounts");
-        return;
+        throw new Error(res.message || "Failed to load bank accounts");
       }
-      setAccounts(res.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+      return res.data;
+    },
+    enabled: !!token,
+  });
 
   const activeAccount = accounts.find((a) => a.is_active_acc);
   const pendingAccounts = accounts.filter((a) => a.status === "PENDING");
@@ -76,7 +71,9 @@ export default function BankAccountsPage() {
         {loading ? (
           <p className="text-sm text-font-dim text-center py-10">Loading...</p>
         ) : error ? (
-          <p className="text-sm text-red-500 text-center py-10">{error}</p>
+          <p className="text-sm text-red-500 text-center py-10">
+            {error instanceof Error ? error.message : "Failed to load"}
+          </p>
         ) : (
           <div className="space-y-5">
             {/* Active account */}
@@ -210,7 +207,7 @@ export default function BankAccountsPage() {
             onClose={() => setShowAddForm(false)}
             onAdded={() => {
               setShowAddForm(false);
-              load();
+              queryClient.invalidateQueries({ queryKey });
             }}
           />
         )}
@@ -235,18 +232,14 @@ function AddBankAccountModal({
   const [accountNumber, setAccountNumber] = useState("");
   const [ifsc, setIfsc] = useState("");
   const [bankName, setBankName] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const canContinue =
     holderName.trim().length > 0 &&
     accountNumber.trim().length > 0 &&
     ifsc.trim().length > 0;
 
-  async function handleConfirm() {
-    setSubmitting(true);
-    setError(null);
-    try {
+  const submitMutation = useMutation({
+    mutationFn: async (): Promise<VendorBankAccount> => {
       const res = await createVendorBankAccountApi(
         {
           account_holder_name: holderName,
@@ -256,19 +249,18 @@ function AddBankAccountModal({
         },
         token,
       );
-      if (!res.success) {
-        setError(res.message || "Failed to submit bank account");
-        return;
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Failed to submit bank account");
       }
-      onAdded();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to submit bank account",
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
+      return res.data;
+    },
+    onSuccess: () => onAdded(),
+  });
+
+  const error =
+    submitMutation.error instanceof Error
+      ? submitMutation.error.message
+      : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -342,17 +334,17 @@ function AddBankAccountModal({
             <div className="flex gap-3">
               <button
                 onClick={() => setStep("form")}
-                disabled={submitting}
+                disabled={submitMutation.isPending}
                 className="flex-1 border-2 border-gray-200 rounded-xl py-3 text-sm font-bold text-font-dim"
               >
                 Back
               </button>
               <button
-                onClick={handleConfirm}
-                disabled={submitting}
+                onClick={() => submitMutation.mutate()}
+                disabled={submitMutation.isPending}
                 className="flex-1 rounded-xl py-3 text-sm font-bold bg-brand-yellow text-brand-secondary disabled:opacity-50"
               >
-                {submitting ? "Submitting..." : "Confirm & Submit"}
+                {submitMutation.isPending ? "Submitting..." : "Confirm & Submit"}
               </button>
             </div>
           </>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import { Header } from "@/components/layout/Header";
@@ -25,15 +26,13 @@ import {
   clearDraft,
   saveReturnTo,
 } from "@/lib/listingDraft";
+import { queryKeys } from "@/lib/queryKeys";
 import { SearchPickerSheet } from "@/components/ui/SearchPickerSheet";
 import type {
   BrandOption,
   VehicleTypeOption,
   City,
   PickupLocationOption,
-  PackageTypeOption,
-  ScheduleTemplate,
-  PickupPoint,
   ListingCreatePayload,
 } from "@/types/listing-create.types";
 
@@ -192,11 +191,10 @@ const EMPTY_DRAFT: WizardDraft = {
 export default function NewListingPage() {
   const router = useRouter();
   const { token } = useAuth();
+  const queryClient = useQueryClient();
 
   const [draft, setDraft] = useState<WizardDraft>(EMPTY_DRAFT);
   const [hydrated, setHydrated] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdListingId, setCreatedListingId] = useState<number | null>(null);
 
   // True only when we're deliberately leaving this page to continue the
@@ -266,50 +264,57 @@ export default function NewListingPage() {
     }
   })();
 
-  async function handleSubmit() {
-    if (!token) return;
-    setSubmitting(true);
-    setSubmitError(null);
-    try {
-      const payload: ListingCreatePayload = {
-        vehicle_type_id: draft.vehicleTypeId!,
-        pickup_location_id: draft.pickupLocationId!,
-        pickup_point_id: draft.pickupPointId!,
-        schedule_template_id: draft.scheduleTemplateId!,
-        available_count: Number(draft.availableCount) || 1,
-        security_deposit_amount: draft.securityDepositAmount || "0",
-        km_limit_per_day: draft.kmLimitPerDay
-          ? Number(draft.kmLimitPerDay)
-          : null,
-        excess_charge_per_km: draft.excessChargePerKm || "0",
-        late_return_penalty_per_hour: draft.lateReturnPenaltyPerHour || "0",
-        doorstep_delivery_enabled: draft.doorstepDeliveryEnabled,
-        operating_hours_start: null,
-        operating_hours_end: null,
-        pricing_packages: draft.pricingPackages.map((p) => ({
-          package_type_id: p.packageTypeId!,
-          price: p.price,
-          pay_at_pickup_enabled: p.payAtPickupEnabled,
-          partial_payment_percentage: null,
-          km_limit: p.kmLimit ? Number(p.kmLimit) : null,
-        })),
-      };
-
-      const res = await createListingApi(payload, token);
+  const createMutation = useMutation({
+    mutationFn: async (payload: ListingCreatePayload) => {
+      const res = await createListingApi(payload, token as string);
       if (!res.success || !res.data) {
-        setSubmitError(res.message || "Failed to create listing");
-        return;
+        throw new Error(res.message || "Failed to create listing");
       }
+      return res.data;
+    },
+    onSuccess: (created) => {
       clearDraft();
       setDraft(EMPTY_DRAFT);
-      setCreatedListingId(res.data.id);
-    } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : "Failed to create listing",
-      );
-    } finally {
-      setSubmitting(false);
-    }
+      setCreatedListingId(created.id);
+      // A brand-new listing shows up in the fleet list's "active" (or
+      // "inactive", if pending) tab — invalidate by the shared prefix
+      // so both tabs refresh rather than guessing which one it lands in.
+      queryClient.invalidateQueries({ queryKey: ["fleet", "list", token] });
+    },
+  });
+
+  const submitting = createMutation.isPending;
+  const submitError =
+    createMutation.error instanceof Error
+      ? createMutation.error.message
+      : null;
+
+  function handleSubmit() {
+    if (!token) return;
+    const payload: ListingCreatePayload = {
+      vehicle_type_id: draft.vehicleTypeId!,
+      pickup_location_id: draft.pickupLocationId!,
+      pickup_point_id: draft.pickupPointId!,
+      schedule_template_id: draft.scheduleTemplateId!,
+      available_count: Number(draft.availableCount) || 1,
+      security_deposit_amount: draft.securityDepositAmount || "0",
+      km_limit_per_day: draft.kmLimitPerDay
+        ? Number(draft.kmLimitPerDay)
+        : null,
+      excess_charge_per_km: draft.excessChargePerKm || "0",
+      late_return_penalty_per_hour: draft.lateReturnPenaltyPerHour || "0",
+      doorstep_delivery_enabled: draft.doorstepDeliveryEnabled,
+      operating_hours_start: null,
+      operating_hours_end: null,
+      pricing_packages: draft.pricingPackages.map((p) => ({
+        package_type_id: p.packageTypeId!,
+        price: p.price,
+        pay_at_pickup_enabled: p.payAtPickupEnabled,
+        partial_payment_percentage: null,
+        km_limit: p.kmLimit ? Number(p.kmLimit) : null,
+      })),
+    };
+    createMutation.mutate(payload);
   }
 
   function handleCreateScheduleTemplate() {
@@ -608,8 +613,21 @@ function StepVehicleLocation({
     PickupLocationOption[]
   >([]);
 
-  const [pickupPoints, setPickupPoints] = useState<PickupPoint[]>([]);
-  const [pickupPointsLoading, setPickupPointsLoading] = useState(false);
+  // Fetched unfiltered and cached under the same key the edit-listing
+  // page (and Settings > Pickup Points) use, then filtered to the
+  // selected pickup location client-side below.
+  const { data: allPickupPoints = [], isLoading: pickupPointsLoading } =
+    useQuery({
+      queryKey: queryKeys.fleet.pickupPoints(token),
+      queryFn: async () => {
+        const res = await getPickupPointsApi(token);
+        return res.success && res.data ? res.data : [];
+      },
+      enabled: !!token && !!draft.pickupLocationId,
+    });
+  const pickupPoints = allPickupPoints.filter(
+    (p) => p.pickup_location === draft.pickupLocationId,
+  );
 
   // Whether the duplicate-listing check (vendor already has this
   // vehicle type at this pickup location) is currently in flight.
@@ -657,23 +675,6 @@ function StepVehicleLocation({
         : locations,
     );
   }
-
-  useEffect(() => {
-    if (!draft.pickupLocationId) return;
-    let cancelled = false;
-    (async () => {
-      setPickupPointsLoading(true);
-      try {
-        const res = await getPickupPointsApi(token, draft.pickupLocationId!);
-        if (!cancelled && res.success && res.data) setPickupPoints(res.data);
-      } finally {
-        if (!cancelled) setPickupPointsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [draft.pickupLocationId, token]);
 
   useEffect(() => {
     if (!draft.cityId) {
@@ -1055,32 +1056,23 @@ function StepSchedule({
   token: string;
   onCreateNew: () => void;
 }) {
-  const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await getScheduleTemplatesApi(token);
-        if (!cancelled) {
-          if (res.success && res.data) setTemplates(res.data);
-          else setError(res.message || "Failed to load schedule templates");
-        }
-      } catch (err) {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : "Failed to load");
-      } finally {
-        if (!cancelled) setLoading(false);
+  const {
+    data: templates = [],
+    isLoading: loading,
+    error: templatesErrorObj,
+  } = useQuery({
+    queryKey: queryKeys.fleet.scheduleTemplates(token),
+    queryFn: async () => {
+      const res = await getScheduleTemplatesApi(token);
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Failed to load schedule templates");
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+      return res.data;
+    },
+    enabled: !!token,
+  });
+  const error =
+    templatesErrorObj instanceof Error ? templatesErrorObj.message : null;
 
   if (loading)
     return (
@@ -1178,23 +1170,14 @@ function StepPricing({
   update: (patch: Partial<WizardDraft>) => void;
   token: string;
 }) {
-  const [packageTypes, setPackageTypes] = useState<PackageTypeOption[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getPackageTypesApi(token);
-        if (!cancelled) setPackageTypes(res.data ?? []);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+  const { data: packageTypes = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.fleet.packageTypes(token),
+    queryFn: async () => {
+      const res = await getPackageTypesApi(token);
+      return res.data ?? [];
+    },
+    enabled: !!token,
+  });
 
   function addPackage() {
     update({

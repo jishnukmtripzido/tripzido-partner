@@ -1,8 +1,9 @@
 // app/(dashboard)/settings/kyc-documents/page.tsx
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { useSidebar } from "@/context/SidebarContext";
 import { useAuth } from "@/context/AuthContext";
@@ -10,6 +11,7 @@ import {
   getVendorDocumentsApi,
   uploadVendorDocumentApi,
 } from "@/services/vendor.service";
+import { queryKeys } from "@/lib/queryKeys";
 import type {
   VendorDocument,
   VendorDocumentType,
@@ -52,33 +54,26 @@ export default function KycDocumentsPage() {
   const { openSidebar } = useSidebar();
   const { token } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const [docs, setDocs] = useState<VendorDocument[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const load = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await getVendorDocumentsApi(token);
+  const queryKey = queryKeys.settings.kycDocuments(token);
+  const {
+    data: docs = [],
+    isLoading: loading,
+    error,
+  } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const res = await getVendorDocumentsApi(token as string);
       if (!res.success || !res.data) {
-        setError(res.message || "Failed to load documents");
-        return;
+        throw new Error(res.message || "Failed to load documents");
       }
-      setDocs(res.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+      return res.data;
+    },
+    enabled: !!token,
+  });
 
   return (
     <>
@@ -106,7 +101,9 @@ export default function KycDocumentsPage() {
         {loading ? (
           <p className="text-sm text-font-dim text-center py-10">Loading...</p>
         ) : error ? (
-          <p className="text-sm text-red-500 text-center py-10">{error}</p>
+          <p className="text-sm text-red-500 text-center py-10">
+            {error instanceof Error ? error.message : "Failed to load"}
+          </p>
         ) : docs.length === 0 ? (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center">
             <p className="text-sm text-font-dim">No documents submitted yet.</p>
@@ -159,7 +156,10 @@ export default function KycDocumentsPage() {
             token={token!}
             onClose={() => setShowAddForm(false)}
             onAdded={(d) => {
-              setDocs((prev) => [d, ...prev]);
+              queryClient.setQueryData<VendorDocument[]>(queryKey, (prev) => [
+                d,
+                ...(prev ?? []),
+              ]);
               setShowAddForm(false);
             }}
           />
@@ -182,31 +182,27 @@ function AddDocumentModal({
     DOC_TYPE_OPTIONS[0].value,
   );
   const [file, setFile] = useState<File | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
 
-  async function handleSubmit() {
-    if (!file) {
-      setError("Please choose a file to upload.");
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
-    try {
+  const uploadMutation = useMutation({
+    mutationFn: async (): Promise<VendorDocument> => {
+      if (!file) {
+        throw new Error("Please choose a file to upload.");
+      }
       const res = await uploadVendorDocumentApi(docType, file, token);
       if (!res.success || !res.data) {
-        setError(res.message || "Failed to submit document");
-        return;
+        throw new Error(res.message || "Failed to submit document");
       }
-      onAdded(res.data);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to submit document",
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
+      return res.data;
+    },
+    onSuccess: (d) => onAdded(d),
+  });
+
+  const error =
+    fileError ??
+    (uploadMutation.error instanceof Error
+      ? uploadMutation.error.message
+      : null);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -240,12 +236,12 @@ function AddDocumentModal({
               }
               const validationError = validateDocFile(selected);
               if (validationError) {
-                setError(validationError);
+                setFileError(validationError);
                 setFile(null);
                 e.target.value = "";
                 return;
               }
-              setError(null);
+              setFileError(null);
               setFile(selected);
             }}
             className="w-full text-sm"
@@ -256,17 +252,17 @@ function AddDocumentModal({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            disabled={submitting}
+            disabled={uploadMutation.isPending}
             className="flex-1 border-2 border-gray-200 rounded-xl py-3 text-sm font-bold text-font-dim"
           >
             Cancel
           </button>
           <button
-            onClick={handleSubmit}
-            disabled={submitting || !file}
+            onClick={() => uploadMutation.mutate()}
+            disabled={uploadMutation.isPending || !file}
             className="flex-1 rounded-xl py-3 text-sm font-bold bg-brand-yellow text-brand-secondary disabled:opacity-50"
           >
-            {submitting ? "Uploading..." : "Submit"}
+            {uploadMutation.isPending ? "Uploading..." : "Submit"}
           </button>
         </div>
       </div>

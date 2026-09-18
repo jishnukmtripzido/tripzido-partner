@@ -1,66 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
 import { Header } from "@/components/layout/Header";
 import { useSidebar } from "@/context/SidebarContext";
 import { useAuth } from "@/context/AuthContext";
 import { DashboardContent } from "@/components/features/dashboard/DashboardContent";
 import { DashboardSkeleton } from "@/components/features/dashboard/DashboardSkeleton";
-import {
-  getVendorDashboardStatusApi,
-  getVendorDashboardAttentionApi,
-  getVendorDashboardStatsApi,
-  getVendorDashboardFleetApi,
-  getVendorDashboardRecentBookingsApi,
-} from "@/services/dashboard.service";
-import type {
-  VendorDashboardStatus,
-  VendorDashboardAttention,
-  VendorDashboardStats,
-  VendorDashboardFleet,
-  VendorDashboardRecentBookings,
-} from "@/types/dashboard.types";
-
-// Unwraps the {success, message, data} envelope into a plain resolved/
-// rejected promise — use() needs a promise that resolves straight to
-// the data itself (or throws), not the envelope, so each section
-// component can destructure typed fields without re-checking
-// `.success` five separate times.
-function unwrap<T>(
-  promise: Promise<{ success: boolean; message: string; data?: T }>,
-): Promise<T> {
-  return promise.then((res) => {
-    if (!res.success || !res.data) {
-      throw new Error(res.message || "Failed to load dashboard data");
-    }
-    return res.data;
-  });
-}
 
 export default function DashboardPage() {
   const { openSidebar } = useSidebar();
   const { token } = useAuth();
-
-  // Created once per token change (useMemo, not on every render) —
-  // use() requires a stable promise identity across re-renders, or
-  // React treats each new promise as a brand-new suspend/refetch.
-  // All five requests fire in parallel here, not chained — each
-  // section's Suspense boundary resolves the moment its OWN request
-  // finishes, independent of the other four.
-  const promises = useMemo(() => {
-    if (!token) return null;
-    return {
-      status: unwrap<VendorDashboardStatus>(getVendorDashboardStatusApi(token)),
-      attention: unwrap<VendorDashboardAttention>(
-        getVendorDashboardAttentionApi(token),
-      ),
-      stats: unwrap<VendorDashboardStats>(getVendorDashboardStatsApi(token)),
-      fleet: unwrap<VendorDashboardFleet>(getVendorDashboardFleetApi(token)),
-      recentBookings: unwrap<VendorDashboardRecentBookings>(
-        getVendorDashboardRecentBookingsApi(token),
-      ),
-    };
-  }, [token]);
 
   return (
     <>
@@ -86,17 +34,7 @@ export default function DashboardPage() {
         //   </button>
         // }
       />
-      {promises ? (
-        <DashboardContent
-          statusPromise={promises.status}
-          attentionPromise={promises.attention}
-          statsPromise={promises.stats}
-          fleetPromise={promises.fleet}
-          recentBookingsPromise={promises.recentBookings}
-        />
-      ) : (
-        <DashboardSkeleton />
-      )}
+      {token ? <DashboardContent token={token} /> : <DashboardSkeleton />}
     </>
   );
 }

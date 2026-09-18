@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -9,6 +11,12 @@ import {
   saveVendorTermsApi,
 } from "@/services/settings.service";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { queryKeys } from "@/lib/queryKeys";
+import type { VendorTerms } from "@/types/settings.types";
+
+// Terms content is read-only aside from this editor and rarely
+// changes — a longer staleTime avoids refetching it on every visit.
+const TERMS_STALE_TIME_MS = 5 * 60 * 1000;
 
 // ── Icons — same mapping as Listing Detail's Policies section, for
 // consistency between the editor here and the read-only display there. ──
@@ -73,52 +81,111 @@ const CHECK_CIRCLE_ICON = (
 export default function VendorTermsPage() {
   const router = useRouter();
   const { token } = useAuth();
+  const queryClient = useQueryClient();
 
-  const [version, setVersion] = useState<number | null>(null);
-  const [termsItems, setTermsItems] = useState<string[]>([]);
-  const [securityDepositNote, setSecurityDepositNote] = useState("");
-  const [operatingHoursNote, setOperatingHoursNote] = useState("");
-  const [distanceLimitNote, setDistanceLimitNote] = useState("");
-  const [excessChargeNote, setExcessChargeNote] = useState("");
-  const [latePenaltyNote, setLatePenaltyNote] = useState("");
+  const queryKey = queryKeys.settings.terms();
+  const termsQuery = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const res = await getVendorTermsApi(token as string);
+      // No terms saved yet is a normal, non-error state (vendor hasn't
+      // submitted any) — only a thrown/network error should surface as
+      // an error state here.
+      if (res.success && res.data) return res.data;
+      return null;
+    },
+    enabled: !!token,
+    staleTime: TERMS_STALE_TIME_MS,
+  });
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  if (termsQuery.isLoading) {
+    return (
+      <>
+        <Header title="Terms & Conditions" onBack={() => router.back()} />
+        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg space-y-4">
+          <PageLoader />
+        </main>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Header title="Terms & Conditions" onBack={() => router.back()} />
+      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg space-y-4">
+        <TermsEditor
+          token={token}
+          initial={termsQuery.data ?? null}
+          queryClient={queryClient}
+          queryKey={queryKey}
+        />
+      </main>
+    </>
+  );
+}
+
+// Mounted once the terms load has settled, so its local field state is
+// seeded exactly once from `initial` (null when the vendor hasn't
+// submitted terms yet).
+function TermsEditor({
+  token,
+  initial,
+  queryClient,
+  queryKey,
+}: {
+  token: string | null;
+  initial: VendorTerms | null;
+  queryClient: QueryClient;
+  queryKey: QueryKey;
+}) {
+  const [version, setVersion] = useState<number | null>(
+    initial?.version ?? null,
+  );
+  const [termsItems, setTermsItems] = useState<string[]>(
+    initial && initial.terms_items.length > 0 ? initial.terms_items : [""],
+  );
+  const [securityDepositNote, setSecurityDepositNote] = useState(
+    initial?.security_deposit_note ?? "",
+  );
+  const [operatingHoursNote, setOperatingHoursNote] = useState(
+    initial?.operating_hours_note ?? "",
+  );
+  const [distanceLimitNote, setDistanceLimitNote] = useState(
+    initial?.distance_limit_note ?? "",
+  );
+  const [excessChargeNote, setExcessChargeNote] = useState(
+    initial?.excess_charge_note ?? "",
+  );
+  const [latePenaltyNote, setLatePenaltyNote] = useState(
+    initial?.late_penalty_note ?? "",
+  );
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await getVendorTermsApi(token);
-        if (cancelled) return;
-        if (res.success && res.data) {
-          setVersion(res.data.version);
-          setTermsItems(
-            res.data.terms_items.length > 0 ? res.data.terms_items : [""],
-          );
-          setSecurityDepositNote(res.data.security_deposit_note);
-          setOperatingHoursNote(res.data.operating_hours_note);
-          setDistanceLimitNote(res.data.distance_limit_note);
-          setExcessChargeNote(res.data.excess_charge_note);
-          setLatePenaltyNote(res.data.late_penalty_note);
-        } else {
-          setTermsItems([""]);
-        }
-      } catch (err) {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : "Failed to load terms");
-      } finally {
-        if (!cancelled) setLoading(false);
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await saveVendorTermsApi(
+        {
+          terms_items: termsItems.map((t) => t.trim()).filter(Boolean),
+          security_deposit_note: securityDepositNote,
+          operating_hours_note: operatingHoursNote,
+          distance_limit_note: distanceLimitNote,
+          excess_charge_note: excessChargeNote,
+          late_penalty_note: latePenaltyNote,
+        },
+        token as string,
+      );
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Failed to save terms");
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+      return res.data;
+    },
+    onMutate: () => setSaved(false),
+    onSuccess: (data) => {
+      setVersion(data.version);
+      setSaved(true);
+      queryClient.setQueryData(queryKey, data);
+    },
+  });
 
   function updateItem(index: number, value: string) {
     setTermsItems((prev) =>
@@ -132,181 +199,143 @@ export default function VendorTermsPage() {
     setTermsItems((prev) => prev.filter((_, i) => i !== index));
   }
 
-  async function handleSave() {
-    if (!token) return;
-    setSaving(true);
-    setError(null);
-    setSaved(false);
-    try {
-      const res = await saveVendorTermsApi(
-        {
-          terms_items: termsItems.map((t) => t.trim()).filter(Boolean),
-          security_deposit_note: securityDepositNote,
-          operating_hours_note: operatingHoursNote,
-          distance_limit_note: distanceLimitNote,
-          excess_charge_note: excessChargeNote,
-          late_penalty_note: latePenaltyNote,
-        },
-        token,
-      );
-      if (!res.success || !res.data) {
-        setError(res.message || "Failed to save terms");
-        return;
-      }
-      setVersion(res.data.version);
-      setSaved(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save terms");
-    } finally {
-      setSaving(false);
-    }
-  }
+  const error =
+    saveMutation.error instanceof Error ? saveMutation.error.message : null;
 
   return (
     <>
-      <Header title="Terms & Conditions" onBack={() => router.back()} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg space-y-4">
-        {loading ? (
-          <PageLoader />
-        ) : (
-          <>
-            {version !== null && (
-              <div className="flex justify-end">
-                <span className="text-[11px] font-bold text-gray-500 bg-white border border-gray-100 px-3 py-1 rounded-full shadow-sm">
-                  Current version: v{version}
-                </span>
-              </div>
-            )}
+      {version !== null && (
+        <div className="flex justify-end">
+          <span className="text-[11px] font-bold text-gray-500 bg-white border border-gray-100 px-3 py-1 rounded-full shadow-sm">
+            Current version: v{version}
+          </span>
+        </div>
+      )}
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-brand-yellow/10 text-brand-yellow-lg flex items-center justify-center shrink-0">
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    {TAG_ICON}
-                  </svg>
-                </div>
-                <h2 className="font-heading font-bold text-sm text-font-main-sub">
-                  Terms items
-                </h2>
-              </div>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-brand-yellow/10 text-brand-yellow-lg flex items-center justify-center shrink-0">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {TAG_ICON}
+            </svg>
+          </div>
+          <h2 className="font-heading font-bold text-sm text-font-main-sub">
+            Terms items
+          </h2>
+        </div>
 
-              <div className="space-y-2.5">
-                {termsItems.map((item, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <div className="w-6 h-6 mt-1.5 rounded-full bg-brand-yellow/15 text-brand-yellow-lg flex items-center justify-center text-[11px] font-bold shrink-0">
-                      {i + 1}
-                    </div>
-                    <textarea
-                      value={item}
-                      onChange={(e) => updateItem(i, e.target.value)}
-                      placeholder="e.g. One day is 9am to 9am"
-                      rows={2}
-                      className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm resize-y"
-                    />
-                    <button
-                      onClick={() => removeItem(i)}
-                      aria-label="Remove item"
-                      className="w-8 h-8 mt-1 shrink-0 rounded-lg text-red-500 hover:bg-red-50 transition-colors text-lg font-bold flex items-center justify-center"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+        <div className="space-y-2.5">
+          {termsItems.map((item, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <div className="w-6 h-6 mt-1.5 rounded-full bg-brand-yellow/15 text-brand-yellow-lg flex items-center justify-center text-[11px] font-bold shrink-0">
+                {i + 1}
               </div>
+              <textarea
+                value={item}
+                onChange={(e) => updateItem(i, e.target.value)}
+                placeholder="e.g. One day is 9am to 9am"
+                rows={2}
+                className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm resize-y"
+              />
               <button
-                onClick={addItem}
-                className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm font-semibold text-font-dim hover:border-brand-yellow hover:text-brand-secondary transition-colors mt-3"
+                onClick={() => removeItem(i)}
+                aria-label="Remove item"
+                className="w-8 h-8 mt-1 shrink-0 rounded-lg text-red-500 hover:bg-red-50 transition-colors text-lg font-bold flex items-center justify-center"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                Add item
+                ×
               </button>
             </div>
+          ))}
+        </div>
+        <button
+          onClick={addItem}
+          className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm font-semibold text-font-dim hover:border-brand-yellow hover:text-brand-secondary transition-colors mt-3"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.5}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          Add item
+        </button>
+      </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-              <h2 className="font-heading font-bold text-sm text-font-main-sub">
-                Policy notes
-              </h2>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+        <h2 className="font-heading font-bold text-sm text-font-main-sub">
+          Policy notes
+        </h2>
 
-              <NoteField
-                icon={DEPOSIT_ICON}
-                label="Security deposit note"
-                value={securityDepositNote}
-                onChange={setSecurityDepositNote}
-              />
-              <NoteField
-                icon={CALENDAR_ICON}
-                label="Operating hours note"
-                value={operatingHoursNote}
-                onChange={setOperatingHoursNote}
-              />
-              <NoteField
-                icon={DISTANCE_ICON}
-                label="Distance limit note"
-                value={distanceLimitNote}
-                onChange={setDistanceLimitNote}
-              />
-              <NoteField
-                icon={ALERT_ICON}
-                label="Excess charge note"
-                value={excessChargeNote}
-                onChange={setExcessChargeNote}
-              />
-              <NoteField
-                icon={CLOCK_ICON}
-                label="Late penalty note"
-                value={latePenaltyNote}
-                onChange={setLatePenaltyNote}
-              />
-            </div>
+        <NoteField
+          icon={DEPOSIT_ICON}
+          label="Security deposit note"
+          value={securityDepositNote}
+          onChange={setSecurityDepositNote}
+        />
+        <NoteField
+          icon={CALENDAR_ICON}
+          label="Operating hours note"
+          value={operatingHoursNote}
+          onChange={setOperatingHoursNote}
+        />
+        <NoteField
+          icon={DISTANCE_ICON}
+          label="Distance limit note"
+          value={distanceLimitNote}
+          onChange={setDistanceLimitNote}
+        />
+        <NoteField
+          icon={ALERT_ICON}
+          label="Excess charge note"
+          value={excessChargeNote}
+          onChange={setExcessChargeNote}
+        />
+        <NoteField
+          icon={CLOCK_ICON}
+          label="Late penalty note"
+          value={latePenaltyNote}
+          onChange={setLatePenaltyNote}
+        />
+      </div>
 
-            {error && (
-              <p className="text-sm text-red-500 font-medium">{error}</p>
-            )}
-            {saved && (
-              <div className="flex items-center gap-3 bg-brand-yellow/10 rounded-xl p-3.5">
-                <div className="w-8 h-8 rounded-full bg-brand-yellow text-brand-secondary flex items-center justify-center shrink-0">
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    {CHECK_CIRCLE_ICON}
-                  </svg>
-                </div>
-                <p className="text-sm font-semibold text-font-main-sub">
-                  Saved as a new version.
-                </p>
-              </div>
-            )}
-
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full font-bold rounded-xl py-3.5 text-center bg-brand-yellow text-brand-secondary hover:bg-brand-yellow-lg transition-colors disabled:opacity-50"
+      {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+      {saved && (
+        <div className="flex items-center gap-3 bg-brand-yellow/10 rounded-xl p-3.5">
+          <div className="w-8 h-8 rounded-full bg-brand-yellow text-brand-secondary flex items-center justify-center shrink-0">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              {saving ? "Saving..." : "Save"}
-            </button>
-          </>
-        )}
-      </main>
+              {CHECK_CIRCLE_ICON}
+            </svg>
+          </div>
+          <p className="text-sm font-semibold text-font-main-sub">
+            Saved as a new version.
+          </p>
+        </div>
+      )}
+
+      <button
+        onClick={() => saveMutation.mutate()}
+        disabled={saveMutation.isPending}
+        className="w-full font-bold rounded-xl py-3.5 text-center bg-brand-yellow text-brand-secondary hover:bg-brand-yellow-lg transition-colors disabled:opacity-50"
+      >
+        {saveMutation.isPending ? "Saving..." : "Save"}
+      </button>
     </>
   );
 }

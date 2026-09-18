@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
-import {
-  getFleetOptionsApi,
-  type FleetListing,
-} from "@/services/fleet.service";
+import { getFleetOptionsApi } from "@/services/fleet.service";
 import { createBlockApi } from "@/services/block.service";
 import type { VendorBlockedPeriod } from "@/types/block.types";
 import { useDismissTransition } from "@/hooks/useDismissTransition";
+import { queryKeys } from "@/lib/queryKeys";
 
 const REASON_OPTIONS = [
   { value: "MAINTENANCE", label: "Maintenance" },
@@ -32,8 +31,14 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
   const { token } = useAuth();
   const { phase, dismiss } = useDismissTransition(onClose);
 
-  const [listings, setListings] = useState<FleetListing[]>([]);
-  const [listingsLoading, setListingsLoading] = useState(true);
+  const { data: listings = [], isLoading: listingsLoading } = useQuery({
+    queryKey: queryKeys.fleet.options(token),
+    queryFn: async () => {
+      const res = await getFleetOptionsApi(token as string);
+      return res.data?.results ?? [];
+    },
+    enabled: !!token,
+  });
 
   const [listingId, setListingId] = useState<number | null>(null);
   const [start, setStart] = useState("");
@@ -43,59 +48,55 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
   const [reason, setReason] = useState("OTHER");
   const [note, setNote] = useState("");
 
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Client-side validation error (e.g. missing end date) — kept
+  // separate from the mutation's own error so a fixed-and-resubmitted
+  // form doesn't show a stale API error alongside it.
+  const [formError, setFormError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-    (async () => {
-      setListingsLoading(true);
-      try {
-        const res = await getFleetOptionsApi(token);
-        if (!cancelled) setListings(res.data?.results ?? []);
-      } finally {
-        if (!cancelled) setListingsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
-
-  const selectedListing = listings.find((l) => l.id === listingId);
-  const maxCount = selectedListing?.quantity ?? 1;
-
-  async function handleSubmit() {
-    if (!token || !listingId || !start) return;
-    if (!isIndefinite && !end) {
-      setError("Please set an end date, or mark this block as indefinite.");
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
-    try {
+  const createMutation = useMutation({
+    mutationFn: async () => {
       const res = await createBlockApi(
         {
-          listing_id: listingId,
+          listing_id: listingId as number,
           start_datetime: start,
           end_datetime: isIndefinite ? null : end,
           count,
           reason,
           note,
         },
-        token,
+        token as string,
       );
       if (!res.success || !res.data) {
-        setError(res.message || "Failed to create block");
-        return;
+        throw new Error(res.message || "Failed to create block");
       }
-      onCreated(res.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create block");
-    } finally {
-      setSubmitting(false);
+      return res.data;
+    },
+    onSuccess: (block) => {
+      // The parent list (fleet/block/page.tsx) owns the blocks query
+      // cache and merges the new block in via setQueryData — this just
+      // hands the created block back, same data flow as before.
+      onCreated(block);
+    },
+  });
+
+  const selectedListing = listings.find((l) => l.id === listingId);
+  const maxCount = selectedListing?.quantity ?? 1;
+
+  const submitting = createMutation.isPending;
+  const error =
+    formError ??
+    (createMutation.error instanceof Error
+      ? createMutation.error.message
+      : null);
+
+  function handleSubmit() {
+    if (!token || !listingId || !start) return;
+    if (!isIndefinite && !end) {
+      setFormError("Please set an end date, or mark this block as indefinite.");
+      return;
     }
+    setFormError(null);
+    createMutation.mutate();
   }
 
   return (

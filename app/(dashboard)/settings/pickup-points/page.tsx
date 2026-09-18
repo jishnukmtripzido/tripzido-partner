@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -12,66 +13,64 @@ import {
 import { saveReturnTo } from "@/lib/listingDraft";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { queryKeys } from "@/lib/queryKeys";
 import type { PickupPoint } from "@/types/listing-create.types";
 
 export default function PickupPointsPage() {
   const router = useRouter();
   const { token } = useAuth();
-
-  const [points, setPoints] = useState<PickupPoint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const [deleteTarget, setDeleteTarget] = useState<PickupPoint | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await getPickupPointsApi(token);
-        if (!cancelled) {
-          if (res.success && res.data) setPoints(res.data);
-          else setError(res.message || "Failed to load pickup points");
-        }
-      } catch (err) {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : "Failed to load");
-      } finally {
-        if (!cancelled) setLoading(false);
+  const queryKey = queryKeys.settings.pickupPoints(token);
+  const {
+    data: points = [],
+    isLoading: loading,
+    error,
+  } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const res = await getPickupPointsApi(token as string);
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Failed to load pickup points");
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+      return res.data;
+    },
+    enabled: !!token,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (point: PickupPoint) => {
+      const res = await deletePickupPointApi(point.id, token as string);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to delete");
+      }
+      return point;
+    },
+    onSuccess: (point) => {
+      queryClient.setQueryData<PickupPoint[]>(queryKey, (prev) =>
+        prev?.filter((p) => p.id !== point.id),
+      );
+      // Same backend resource (/api/vehicles/vendor/pickup-points/) is
+      // also read by the fleet feature's listing forms — invalidate
+      // that cache entry too so it doesn't keep showing a deleted point.
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.fleet.pickupPoints(token),
+      });
+      setDeleteTarget(null);
+    },
+  });
 
   function handleCreateNew() {
     saveReturnTo("/settings/pickup-points");
     router.push("/fleet/pickup-points/new" as Route);
   }
 
-  async function handleDelete() {
-    if (!deleteTarget || !token) return;
-    setDeleting(true);
-    setDeleteError(null);
-    try {
-      const res = await deletePickupPointApi(deleteTarget.id, token);
-      if (!res.success) {
-        setDeleteError(res.message || "Failed to delete");
-        return;
-      }
-      setPoints((prev) => prev.filter((p) => p.id !== deleteTarget.id));
-      setDeleteTarget(null);
-    } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : "Failed to delete");
-    } finally {
-      setDeleting(false);
-    }
-  }
+  const deleteError =
+    deleteMutation.error instanceof Error
+      ? deleteMutation.error.message
+      : null;
 
   return (
     <>
@@ -90,7 +89,9 @@ export default function PickupPointsPage() {
       <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-start lg:content-start">
         {loading && <PageLoader />}
         {error && (
-          <p className="text-sm text-red-500 text-center mt-10">{error}</p>
+          <p className="text-sm text-red-500 text-center mt-10">
+            {error instanceof Error ? error.message : "Failed to load"}
+          </p>
         )}
         {!loading && !error && points.length === 0 && (
           <p className="text-sm text-font-dim text-center mt-10">
@@ -120,7 +121,7 @@ export default function PickupPointsPage() {
                 </button>
                 <button
                   onClick={() => {
-                    setDeleteError(null);
+                    deleteMutation.reset();
                     setDeleteTarget(p);
                   }}
                   className="text-xs font-bold text-red-500"
@@ -143,10 +144,10 @@ export default function PickupPointsPage() {
           message="Listings using this pickup point will keep working but lose this exact-address reference. This can't be undone."
           confirmLabel="Delete"
           destructive
-          submitting={deleting}
+          submitting={deleteMutation.isPending}
           error={deleteError}
           onCancel={() => setDeleteTarget(null)}
-          onConfirm={handleDelete}
+          onConfirm={() => deleteMutation.mutate(deleteTarget)}
         />
       )}
     </>

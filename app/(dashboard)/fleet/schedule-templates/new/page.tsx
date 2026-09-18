@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/context/AuthContext";
 import { createScheduleTemplateApi } from "@/services/fleet.service";
 import { loadReturnTo, clearReturnTo } from "@/lib/listingDraft";
+import { queryKeys } from "@/lib/queryKeys";
 import type { ScheduleTemplateDay } from "@/types/listing-create.types";
 
 const DAY_NAMES = [
@@ -37,10 +39,43 @@ export default function NewScheduleTemplatePage() {
   const router = useRouter();
   const { token } = useAuth();
 
+  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [days, setDays] = useState<DayDraft[]>(DEFAULT_DAYS);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const createMutation = useMutation({
+    mutationFn: async (payload: ScheduleTemplateDay[]) => {
+      const res = await createScheduleTemplateApi(
+        name.trim(),
+        payload,
+        token as string,
+      );
+      if (!res.success) {
+        throw new Error(res.message || "Failed to create schedule template");
+      }
+      return res.data;
+    },
+    onSuccess: () => {
+      // Both the "Add a bike" wizard/edit-listing dropdown and
+      // Settings > Schedule Templates read the vendor's schedule
+      // templates — invalidate both so they pick up the new one.
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.fleet.scheduleTemplates(token),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.settings.scheduleTemplates(token),
+      });
+      const returnTo = loadReturnTo("/fleet/listing/new");
+      clearReturnTo();
+      router.push(returnTo as Route);
+    },
+  });
+
+  const submitting = createMutation.isPending;
+  const error =
+    createMutation.error instanceof Error
+      ? createMutation.error.message
+      : null;
 
   function updateDay(index: number, patch: Partial<DayDraft>) {
     setDays((prev) =>
@@ -55,34 +90,15 @@ export default function NewScheduleTemplatePage() {
     router.push(loadReturnTo("/fleet/listing/new") as Route);
   }
 
-  async function handleSubmit() {
+  function handleSubmit() {
     if (!token || !name.trim()) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const payload: ScheduleTemplateDay[] = days.map((d) => ({
-        day_of_week: d.day_of_week,
-        is_closed: d.is_closed,
-        open_time: d.is_closed ? null : d.open_time,
-        close_time: d.is_closed ? null : d.close_time,
-      }));
-      const res = await createScheduleTemplateApi(name.trim(), payload, token);
-      if (!res.success) {
-        setError(res.message || "Failed to create schedule template");
-        return;
-      }
-      const returnTo = loadReturnTo("/fleet/listing/new");
-      clearReturnTo();
-      router.push(returnTo as Route);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to create schedule template",
-      );
-    } finally {
-      setSubmitting(false);
-    }
+    const payload: ScheduleTemplateDay[] = days.map((d) => ({
+      day_of_week: d.day_of_week,
+      is_closed: d.is_closed,
+      open_time: d.is_closed ? null : d.open_time,
+      close_time: d.is_closed ? null : d.close_time,
+    }));
+    createMutation.mutate(payload);
   }
 
   return (

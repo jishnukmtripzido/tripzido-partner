@@ -157,15 +157,16 @@
 
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import type { Route } from "next";
 import { Header } from "@/components/layout/Header";
 import { useSidebar } from "@/context/SidebarContext";
 import { useAuth } from "@/context/AuthContext";
 import { LedgerListItem } from "@/components/features/ledger/LedgerListItem";
 import { getVendorPayoutsApi } from "@/services/payment.service";
-import type { VendorPayout } from "@/types/ledger.types";
+import { queryKeys } from "@/lib/queryKeys";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { InlineLoader } from "@/components/ui/InLineLoader";
 
@@ -174,66 +175,46 @@ export default function LedgerPage() {
   const { token } = useAuth();
   const router = useRouter();
 
-  const [payouts, setPayouts] = useState<VendorPayout[]>([]);
-  const [hasNext, setHasNext] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const nextPageRef = useRef(1);
-  const loadedPagesRef = useRef<Set<number>>(new Set());
 
-  const loadNextPage = useCallback(async () => {
-    if (!token || isLoading || !hasNext) return;
-    const page = nextPageRef.current;
-    if (loadedPagesRef.current.has(page)) return;
-    loadedPagesRef.current.add(page);
-
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await getVendorPayoutsApi(page, token);
+  const {
+    data,
+    error,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: queryKeys.ledger.list(token),
+    queryFn: async ({ pageParam }) => {
+      const res = await getVendorPayoutsApi(pageParam, token as string);
       if (!res.success || !res.data) {
-        setError(res.message || "Failed to load ledger");
-        setHasNext(false);
-        loadedPagesRef.current.delete(page);
-        return;
+        throw new Error(res.message || "Failed to load ledger");
       }
-      setPayouts((prev) => [...prev, ...res.data!.results]);
-      setHasNext(res.data.pagination.next !== null);
-      nextPageRef.current = page + 1;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load ledger");
-      setHasNext(false);
-      loadedPagesRef.current.delete(page);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [token, isLoading, hasNext]);
+      return res.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.next ? lastPage.pagination.page + 1 : undefined,
+    enabled: !!token,
+  });
 
-  useEffect(() => {
-    if (token) loadNextPage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  const payouts = data?.pages.flatMap((page) => page.results) ?? [];
+  const hasNext = hasNextPage ?? false;
 
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) loadNextPage();
+        if (entries[0].isIntersecting) fetchNextPage();
       },
       { rootMargin: "200px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [loadNextPage]);
-
-  function handleRetry() {
-    setError(null);
-    setHasNext(true);
-    loadNextPage();
-  }
+  }, [fetchNextPage]);
 
   const isInitialLoad = isLoading && payouts.length === 0 && !error;
 
@@ -288,16 +269,18 @@ export default function LedgerPage() {
 
           {error && (
             <div className="text-center mt-4">
-              <p className="text-sm text-red-500 font-medium">{error}</p>
+              <p className="text-sm text-red-500 font-medium">
+                {error instanceof Error ? error.message : "Failed to load ledger"}
+              </p>
               <button
-                onClick={handleRetry}
+                onClick={() => refetch()}
                 className="mt-2 text-sm font-semibold text-brand-yellow-lg"
               >
                 Retry
               </button>
             </div>
           )}
-          {isLoading && !error && <InlineLoader />}
+          {(isLoading || isFetchingNextPage) && !error && <InlineLoader />}
           {!hasNext && !error && payouts.length > 0 && (
             <p className="text-xs text-font-dim text-center mt-4">
               {payouts.length} payout(s)

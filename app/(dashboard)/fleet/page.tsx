@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import type { Route } from "next";
 import { Header } from "@/components/layout/Header";
 import { VehicleListItem } from "@/components/features/fleet/VehicleListItem";
@@ -12,6 +13,7 @@ import {
   toggleListingActiveApi,
   type FleetListing,
 } from "@/services/fleet.service";
+import { queryKeys } from "@/lib/queryKeys";
 import type { Vehicle } from "@/types/fleet.types";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { InlineLoader } from "@/components/ui/InLineLoader";
@@ -44,100 +46,39 @@ export default function FleetPage() {
   const { openSidebar } = useSidebar();
   const { token } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [tab, setTab] = useState<FleetTab>("active");
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [hasNext, setHasNext] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const nextPageRef = useRef(2); // page 1 is always handled by the tab effect below
-  const loadedPagesRef = useRef<Set<string>>(new Set());
 
-  // Synchronous, non-state guard against overlapping fetches. isLoading
-  // (React state) can't be used for this: setIsLoading(true) only takes
-  // effect on the NEXT render, so any effect or callback that reads it
-  // in the same commit still sees the stale value. That's exactly what
-  // let a fresh mount (empty list -> sentinel already in view ->
-  // IntersectionObserver fires immediately) launch a page=2 request
-  // concurrently with the page=1 request the tab-change effect had
-  // just kicked off. A ref updates immediately, closing that window.
-  const isFetchingRef = useRef(false);
+  const queryKey = queryKeys.fleet.list(token, { tab });
 
-  // Runs on every tab change (and on mount). Resets everything AND
-  // fetches page 1 directly, in one effect.
-  useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-
-    setVehicles([]);
-    setHasNext(true);
-    setError(null);
-    nextPageRef.current = 2;
-    loadedPagesRef.current.clear();
-    loadedPagesRef.current.add(`${tab}:1`);
-    isFetchingRef.current = true; // set BEFORE any other effect can run
-
-    (async () => {
-      setIsLoading(true);
-      try {
-        const res = await getFleetApi(1, token, tab);
-        if (cancelled) return;
-        if (!res.success || !res.data) {
-          setError(res.message || "Failed to load fleet");
-          setHasNext(false);
-          return;
-        }
-        setVehicles(res.data.results.map(toVehicle));
-        setHasNext(res.data.pagination.next !== null);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load fleet");
-          setHasNext(false);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-        isFetchingRef.current = false;
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [tab, token]);
-
-  // Page 2+ only, triggered by scroll — page 1 is never reached here.
-  const loadNextPage = useCallback(async () => {
-    if (!token || isFetchingRef.current || !hasNext) return;
-    const page = nextPageRef.current;
-    const key = `${tab}:${page}`;
-    if (loadedPagesRef.current.has(key)) return;
-    loadedPagesRef.current.add(key);
-
-    isFetchingRef.current = true;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await getFleetApi(page, token, tab);
+  const {
+    data,
+    error,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey,
+    queryFn: async ({ pageParam }) => {
+      const res = await getFleetApi(pageParam, token as string, tab);
       if (!res.success || !res.data) {
-        setError(res.message || "Failed to load fleet");
-        setHasNext(false);
-        loadedPagesRef.current.delete(key);
-        return;
+        throw new Error(res.message || "Failed to load fleet");
       }
-      setVehicles((prev) => [...prev, ...res.data!.results.map(toVehicle)]);
-      setHasNext(res.data.pagination.next !== null);
-      nextPageRef.current = page + 1;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load fleet");
-      setHasNext(false);
-      loadedPagesRef.current.delete(key);
-    } finally {
-      isFetchingRef.current = false;
-      setIsLoading(false);
-    }
-  }, [token, hasNext, tab]);
+      return res.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.next ? lastPage.pagination.page + 1 : undefined,
+    enabled: !!token,
+  });
+
+  const vehicles = data?.pages.flatMap((page) => page.results.map(toVehicle)) ?? [];
+  const hasNext = hasNextPage ?? false;
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -145,20 +86,14 @@ export default function FleetPage() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) loadNextPage();
+        if (entries[0].isIntersecting) fetchNextPage();
       },
       { rootMargin: "200px" },
     );
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [loadNextPage]);
-
-  function handleRetry() {
-    setError(null);
-    setHasNext(true);
-    loadNextPage();
-  }
+  }, [fetchNextPage]);
 
   async function handleToggleActive(vehicleId: string) {
     if (!token) return { success: false, message: "Not signed in" };
@@ -167,7 +102,19 @@ export default function FleetPage() {
       if (!res.success || !res.data) {
         return { success: false, message: res.message };
       }
-      setVehicles((prev) => prev.filter((v) => v.id !== vehicleId));
+      queryClient.setQueryData(
+        queryKey,
+        (prev: typeof data) =>
+          prev && {
+            ...prev,
+            pages: prev.pages.map((page) => ({
+              ...page,
+              results: page.results.filter(
+                (v) => String(v.id) !== vehicleId,
+              ),
+            })),
+          },
+      );
       return { success: true };
     } catch (err) {
       return {
@@ -270,16 +217,18 @@ export default function FleetPage() {
 
           {error && (
             <div className="text-center mt-4">
-              <p className="text-sm text-red-500 font-medium">{error}</p>
+              <p className="text-sm text-red-500 font-medium">
+                {error instanceof Error ? error.message : "Failed to load fleet"}
+              </p>
               <button
-                onClick={handleRetry}
+                onClick={() => refetch()}
                 className="mt-2 text-sm font-semibold text-brand-yellow-lg"
               >
                 Retry
               </button>
             </div>
           )}
-          {isLoading && !error && <InlineLoader />}
+          {(isLoading || isFetchingNextPage) && !error && <InlineLoader />}
           {!hasNext && !error && vehicles.length > 0 && (
             <p className="text-xs text-font-dim text-center mt-4">
               {vehicles.length} of {vehicles.length} bikes

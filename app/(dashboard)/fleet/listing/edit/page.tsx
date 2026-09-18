@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Route } from "next";
 import { Header } from "@/components/layout/Header";
@@ -25,13 +26,11 @@ import {
   saveReturnTo,
   editDraftKey,
 } from "@/lib/listingDraft";
+import { queryKeys } from "@/lib/queryKeys";
 import { SearchPickerSheet } from "@/components/ui/SearchPickerSheet";
 import type {
   City,
   PickupLocationOption,
-  PackageTypeOption,
-  ScheduleTemplate,
-  PickupPoint,
   ListingUpdatePayload,
 } from "@/types/listing-create.types";
 import type { ListingDetail, ListingImage } from "@/types/listing-detail.types";
@@ -159,56 +158,55 @@ export default function EditListingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token } = useAuth();
+  const queryClient = useQueryClient();
   const listingId = searchParams.get("id");
 
   const [form, setForm] = useState<EditFormState | null>(null);
   const [vehicleTypeLabel, setVehicleTypeLabel] = useState("");
   const [images, setImages] = useState<ListingImage[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  // Which listing's data `form`/`images`/`vehicleTypeLabel` were last
+  // seeded from — null or a stale id means they need (re)seeding below.
+  // Adjusted during render rather than in an effect (React's documented
+  // pattern for "adjusting state when a prop changes"; see
+  // https://react.dev/learn/you-might-not-need-an-effect), so a
+  // background refetch of the query never clobbers in-progress edits
+  // and switching listingId resets the form in the same render.
+  const [seededListingId, setSeededListingId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const draftKey = listingId ? editDraftKey(listingId) : "";
 
-  useEffect(() => {
-    if (!token || !listingId) return;
-    let cancelled = false;
-
-    (async () => {
-      const restored = loadDraft<EditFormState>(draftKey);
-      if (restored && !cancelled) setForm(restored);
-
-      setLoading(true);
-      setLoadError(null);
-      try {
-        const res = await getListingDetailApi(listingId, token);
-        if (cancelled) return;
-        if (!res.success || !res.data) {
-          setLoadError(res.message || "Listing not found");
-          return;
-        }
-        setVehicleTypeLabel(
-          `${res.data.vehicle_type.brand} ${res.data.vehicle_type.name} (${res.data.vehicle_type.make_year})`,
-        );
-        setImages(res.data.images);
-        if (!restored) setForm(detailToFormState(res.data));
-      } catch (err) {
-        if (!cancelled) {
-          setLoadError(
-            err instanceof Error ? err.message : "Failed to load listing",
-          );
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+  const {
+    data: listingDetail,
+    error: loadErrorObj,
+    isLoading: loading,
+  } = useQuery({
+    queryKey: queryKeys.fleet.listing(token, listingId),
+    queryFn: async () => {
+      const res = await getListingDetailApi(listingId as string, token as string);
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Listing not found");
       }
-    })();
+      return res.data;
+    },
+    enabled: !!token && !!listingId,
+  });
+  const loadError = loadErrorObj
+    ? loadErrorObj instanceof Error
+      ? loadErrorObj.message
+      : "Listing not found"
+    : null;
+  const formInitialized = seededListingId === listingId && seededListingId !== null;
 
-    return () => {
-      cancelled = true;
-    };
-  }, [token, listingId, draftKey]);
+  if (listingDetail && listingId && seededListingId !== listingId) {
+    const restored = loadDraft<EditFormState>(draftKey);
+    setVehicleTypeLabel(
+      `${listingDetail.vehicle_type.brand} ${listingDetail.vehicle_type.name} (${listingDetail.vehicle_type.make_year})`,
+    );
+    setImages(listingDetail.images);
+    setForm(restored ?? detailToFormState(listingDetail));
+    setSeededListingId(listingId);
+  }
 
   useEffect(() => {
     if (form && draftKey) saveDraft(form, draftKey);
@@ -234,54 +232,72 @@ export default function EditListingPage() {
     router.push(`/fleet/pickup-points/new?${params.toString()}` as Route);
   }
 
-  async function handleSubmit() {
-    if (!token || !form || !listingId) return;
-    setSubmitting(true);
-    setSubmitError(null);
-    try {
-      const payload: ListingUpdatePayload = {
-        pickup_location_id: form.pickupLocationId!,
-        pickup_point_id: form.pickupPointId!,
-        schedule_template_id: form.scheduleTemplateId!,
-        available_count: Number(form.availableCount) || 1,
-        security_deposit_amount: form.securityDepositAmount || "0",
-        km_limit_per_day: form.kmLimitPerDay
-          ? Number(form.kmLimitPerDay)
-          : null,
-        excess_charge_per_km: form.excessChargePerKm || "0",
-        late_return_penalty_per_hour: form.lateReturnPenaltyPerHour || "0",
-        doorstep_delivery_enabled: form.doorstepDeliveryEnabled,
-        operating_hours_start: null,
-        operating_hours_end: null,
-        pricing_packages: form.pricingPackages.map((p) => ({
-          package_type_id: p.packageTypeId!,
-          price: p.price,
-          pay_at_pickup_enabled: p.payAtPickupEnabled,
-          partial_payment_percentage: null,
-          km_limit: p.kmLimit ? Number(p.kmLimit) : null,
-        })),
-      };
-      const res = await updateListingApi(listingId, payload, token);
+  const updateMutation = useMutation({
+    mutationFn: async (payload: ListingUpdatePayload) => {
+      const res = await updateListingApi(listingId as string, payload, token as string);
       if (!res.success || !res.data) {
-        setSubmitError(res.message || "Failed to save changes");
-        return;
+        throw new Error(res.message || "Failed to save changes");
       }
+      return res.data;
+    },
+    onSuccess: (updated) => {
       clearDraft(draftKey);
+      queryClient.setQueryData(
+        queryKeys.fleet.listing(token, listingId),
+        updated,
+      );
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.fleet.listing(token, listingId),
+      });
+      // fleet.list is keyed per-tab (active/inactive) — invalidate by
+      // the shared prefix so both tabs' cached summaries refresh
+      // rather than guessing which tab this listing currently sits in.
+      queryClient.invalidateQueries({ queryKey: ["fleet", "list", token] });
       setSaved(true);
       setTimeout(
         () => router.push(`/fleet/listing?id=${listingId}` as Route),
         900,
       );
-    } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : "Failed to save changes",
-      );
-    } finally {
-      setSubmitting(false);
-    }
+    },
+  });
+
+  const submitting = updateMutation.isPending;
+  const submitError =
+    updateMutation.error instanceof Error
+      ? updateMutation.error.message
+      : null;
+
+  function handleSubmit() {
+    if (!token || !form || !listingId) return;
+    const payload: ListingUpdatePayload = {
+      pickup_location_id: form.pickupLocationId!,
+      pickup_point_id: form.pickupPointId!,
+      schedule_template_id: form.scheduleTemplateId!,
+      available_count: Number(form.availableCount) || 1,
+      security_deposit_amount: form.securityDepositAmount || "0",
+      km_limit_per_day: form.kmLimitPerDay
+        ? Number(form.kmLimitPerDay)
+        : null,
+      excess_charge_per_km: form.excessChargePerKm || "0",
+      late_return_penalty_per_hour: form.lateReturnPenaltyPerHour || "0",
+      doorstep_delivery_enabled: form.doorstepDeliveryEnabled,
+      operating_hours_start: null,
+      operating_hours_end: null,
+      pricing_packages: form.pricingPackages.map((p) => ({
+        package_type_id: p.packageTypeId!,
+        price: p.price,
+        pay_at_pickup_enabled: p.payAtPickupEnabled,
+        partial_payment_percentage: null,
+        km_limit: p.kmLimit ? Number(p.kmLimit) : null,
+      })),
+    };
+    updateMutation.mutate(payload);
   }
 
-  if (loading) {
+  // Also stay on the loading state for the one render between the
+  // listing query resolving and the seed-form effect below actually
+  // running, so this never flashes "Listing not found" first.
+  if (loading || (listingDetail && !formInitialized)) {
     return (
       <>
         <Header title="Edit listing" onBack={() => router.back()} />
@@ -522,8 +538,25 @@ function LocationPicker({
     PickupLocationOption[]
   >([]);
 
-  const [pickupPoints, setPickupPoints] = useState<PickupPoint[]>([]);
-  const [pickupPointsLoading, setPickupPointsLoading] = useState(false);
+  // Fetched unfiltered (the whole vendor's pickup points) and cached
+  // under the same key the "Add a bike" wizard and (eventually)
+  // Settings > Pickup Points use, then filtered to the selected
+  // pickup location client-side below — same approach as
+  // filterPickupLocations above, and it means switching between
+  // locations after the first fetch is instant instead of re-hitting
+  // the network each time.
+  const { data: allPickupPoints = [], isLoading: pickupPointsLoading } =
+    useQuery({
+      queryKey: queryKeys.fleet.pickupPoints(token),
+      queryFn: async () => {
+        const res = await getPickupPointsApi(token);
+        return res.success && res.data ? res.data : [];
+      },
+      enabled: !!token && !!form.pickupLocationId,
+    });
+  const pickupPoints = allPickupPoints.filter(
+    (p) => p.pickup_location === form.pickupLocationId,
+  );
 
   async function fetchCities(query: string) {
     setCityLoading(true);
@@ -560,26 +593,6 @@ function LocationPicker({
       cancelled = true;
     };
   }, [form.cityId]);
-
-  useEffect(() => {
-    if (!form.pickupLocationId) {
-      setPickupPoints([]);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      setPickupPointsLoading(true);
-      try {
-        const res = await getPickupPointsApi(token, form.pickupLocationId!);
-        if (!cancelled && res.success && res.data) setPickupPoints(res.data);
-      } finally {
-        if (!cancelled) setPickupPointsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [form.pickupLocationId, token]);
 
   function openCitySheet() {
     setActiveSheet("city");
@@ -880,23 +893,14 @@ function SchedulePicker({
   token: string;
   onCreateNew: () => void;
 }) {
-  const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getScheduleTemplatesApi(token);
-        if (!cancelled) setTemplates(res.data ?? []);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+  const { data: templates = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.fleet.scheduleTemplates(token),
+    queryFn: async () => {
+      const res = await getScheduleTemplatesApi(token);
+      return res.data ?? [];
+    },
+    enabled: !!token,
+  });
 
   if (loading)
     return <p className="text-sm text-font-dim">Loading templates...</p>;
@@ -958,23 +962,14 @@ function PricingEditor({
   update: (patch: Partial<EditFormState>) => void;
   token: string;
 }) {
-  const [packageTypes, setPackageTypes] = useState<PackageTypeOption[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getPackageTypesApi(token);
-        if (!cancelled) setPackageTypes(res.data ?? []);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+  const { data: packageTypes = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.fleet.packageTypes(token),
+    queryFn: async () => {
+      const res = await getPackageTypesApi(token);
+      return res.data ?? [];
+    },
+    enabled: !!token,
+  });
 
   function addPackage() {
     update({

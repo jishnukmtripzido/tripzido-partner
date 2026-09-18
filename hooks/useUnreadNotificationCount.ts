@@ -1,54 +1,34 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getUnreadNotificationCountApi } from "@/services/notifications.service";
+import { queryKeys } from "@/lib/queryKeys";
 
 const POLL_INTERVAL_MS = 25000;
 
 export function useUnreadNotificationCount(token: string | null) {
-  const [count, setCount] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.notifications.unreadCount(token);
 
-  const refetch = useCallback(async () => {
-    if (!token) return;
-    try {
-      const res = await getUnreadNotificationCountApi(token);
-      if (res.success && res.data) setCount(res.data.count);
-    } catch {
-      // Silent — a failed poll shouldn't surface an error to the
-      // user; it just tries again on the next interval.
-    }
-  }, [token]);
-
-  useEffect(() => {
-    if (!token) return;
-    refetch();
-
-    function startPolling() {
-      if (intervalRef.current) return;
-      intervalRef.current = setInterval(refetch, POLL_INTERVAL_MS);
-    }
-    function stopPolling() {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+  const { data } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const res = await getUnreadNotificationCountApi(token as string);
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Failed to load unread count");
       }
-    }
-    function handleVisibility() {
-      if (document.hidden) stopPolling();
-      else {
-        refetch();
-        startPolling();
-      }
-    }
+      return res.data.count;
+    },
+    enabled: !!token,
+    staleTime: POLL_INTERVAL_MS,
+    // refetchIntervalInBackground defaults to false, so this pauses
+    // while the tab is hidden and refetches on focus — same behavior
+    // the old visibilitychange listener implemented by hand.
+    refetchInterval: POLL_INTERVAL_MS,
+  });
 
-    startPolling();
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      stopPolling();
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, [token, refetch]);
-
-  return { count, refetch };
+  return {
+    count: data ?? 0,
+    refetch: () => queryClient.invalidateQueries({ queryKey }),
+  };
 }

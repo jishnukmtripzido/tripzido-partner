@@ -1,13 +1,13 @@
 // app/(dashboard)/profile/vendor-details/page.tsx
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { useSidebar } from "@/context/SidebarContext";
 import { useAuth } from "@/context/AuthContext";
 import { getVendorProfileApi } from "@/services/vendor.service";
-import type { VendorProfile } from "@/types/settings.types";
+import { queryKeys } from "@/lib/queryKeys";
 
 const STATUS_STYLES: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-700",
@@ -22,31 +22,27 @@ export default function VendorDetailsPage() {
   const { token } = useAuth();
   const router = useRouter();
 
-  const [vendor, setVendor] = useState<VendorProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await getVendorProfileApi(token);
+  const {
+    data: vendor,
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
+    queryKey: queryKeys.profile.vendorDetails(token),
+    queryFn: async () => {
+      const res = await getVendorProfileApi(token as string);
       if (!res.success || !res.data) {
-        setError(res.message || "Failed to load vendor details");
-        return;
+        throw new Error(res.message || "Failed to load vendor details");
       }
-      setVendor(res.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
+      return res.data;
+    },
+    enabled: !!token,
+  });
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const error = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : "Failed to load"
+    : null;
 
   return (
     <>

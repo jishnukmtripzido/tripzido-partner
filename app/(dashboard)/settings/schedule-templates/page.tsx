@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -13,69 +14,64 @@ import { saveReturnTo } from "@/lib/listingDraft";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { ScheduleTemplate } from "@/types/listing-create.types";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { queryKeys } from "@/lib/queryKeys";
 
 export default function ScheduleTemplatesPage() {
   const router = useRouter();
   const { token } = useAuth();
-
-  const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const [deleteTarget, setDeleteTarget] = useState<ScheduleTemplate | null>(
     null,
   );
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await getScheduleTemplatesApi(token);
-        if (!cancelled) {
-          if (res.success && res.data) setTemplates(res.data);
-          else setError(res.message || "Failed to load schedule templates");
-        }
-      } catch (err) {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : "Failed to load");
-      } finally {
-        if (!cancelled) setLoading(false);
+  const queryKey = queryKeys.settings.scheduleTemplates(token);
+  const {
+    data: templates = [],
+    isLoading: loading,
+    error,
+  } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const res = await getScheduleTemplatesApi(token as string);
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Failed to load schedule templates");
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+      return res.data;
+    },
+    enabled: !!token,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (template: ScheduleTemplate) => {
+      const res = await deleteScheduleTemplateApi(template.id, token as string);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to delete template");
+      }
+      return template;
+    },
+    onSuccess: (template) => {
+      queryClient.setQueryData<ScheduleTemplate[]>(queryKey, (prev) =>
+        prev?.filter((t) => t.id !== template.id),
+      );
+      // Same backend resource is also read by the fleet feature's
+      // listing forms — invalidate that cache entry too.
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.fleet.scheduleTemplates(token),
+      });
+      setDeleteTarget(null);
+    },
+  });
 
   function handleCreateNew() {
     saveReturnTo("/settings/schedule-templates");
     router.push("/fleet/schedule-templates/new" as Route);
   }
 
-  async function handleDelete() {
-    if (!deleteTarget || !token) return;
-    setDeleting(true);
-    setDeleteError(null);
-    try {
-      const res = await deleteScheduleTemplateApi(deleteTarget.id, token);
-      if (!res.success) {
-        setDeleteError(res.message || "Failed to delete template");
-        return;
-      }
-      setTemplates((prev) => prev.filter((t) => t.id !== deleteTarget.id));
-      setDeleteTarget(null);
-    } catch (err) {
-      setDeleteError(
-        err instanceof Error ? err.message : "Failed to delete template",
-      );
-    } finally {
-      setDeleting(false);
-    }
-  }
+  const deleteError =
+    deleteMutation.error instanceof Error
+      ? deleteMutation.error.message
+      : null;
 
   return (
     <>
@@ -94,7 +90,9 @@ export default function ScheduleTemplatesPage() {
       <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-start lg:content-start">
         {loading && <PageLoader />}
         {error && (
-          <p className="text-sm text-red-500 text-center mt-10">{error}</p>
+          <p className="text-sm text-red-500 text-center mt-10">
+            {error instanceof Error ? error.message : "Failed to load"}
+          </p>
         )}
         {!loading && !error && templates.length === 0 && (
           <p className="text-sm text-font-dim text-center mt-10">
@@ -126,7 +124,7 @@ export default function ScheduleTemplatesPage() {
                   </button>
                   <button
                     onClick={() => {
-                      setDeleteError(null);
+                      deleteMutation.reset();
                       setDeleteTarget(t);
                     }}
                     className="text-xs font-bold text-red-500"
@@ -156,10 +154,10 @@ export default function ScheduleTemplatesPage() {
           }
           confirmLabel="Delete template"
           destructive
-          submitting={deleting}
+          submitting={deleteMutation.isPending}
           error={deleteError}
           onCancel={() => setDeleteTarget(null)}
-          onConfirm={handleDelete}
+          onConfirm={() => deleteMutation.mutate(deleteTarget)}
         />
       )}
     </>

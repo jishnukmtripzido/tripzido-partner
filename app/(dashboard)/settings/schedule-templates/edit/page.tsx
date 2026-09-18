@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Route } from "next";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -10,6 +11,8 @@ import {
   updateScheduleTemplateApi,
 } from "@/services/fleet.service";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { queryKeys } from "@/lib/queryKeys";
+import type { ScheduleTemplate } from "@/types/listing-create.types";
 
 const DAY_NAMES = [
   "Monday",
@@ -52,64 +55,27 @@ export default function EditScheduleTemplatePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token } = useAuth();
+  const queryClient = useQueryClient();
   const templateId = searchParams.get("id");
 
-  const [name, setName] = useState("");
-  const [days, setDays] = useState<DayDraft[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!token || !templateId) return;
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setLoadError(null);
-      try {
-        const res = await getScheduleTemplateDetailApi(
-          Number(templateId),
-          token,
-        );
-        if (cancelled) return;
-        if (!res.success || !res.data) {
-          setLoadError(res.message || "Template not found");
-          return;
-        }
-        setName(res.data.name);
-        setDays(
-          res.data.days.map((d) => ({
-            day_of_week: d.day_of_week,
-            is_closed: d.is_closed,
-            open_time: d.open_time ?? "07:00",
-            close_time: d.close_time ?? "19:00",
-          })),
-        );
-      } catch (err) {
-        if (!cancelled)
-          setLoadError(err instanceof Error ? err.message : "Failed to load");
-      } finally {
-        if (!cancelled) setLoading(false);
+  const detailQuery = useQuery({
+    queryKey: queryKeys.settings.scheduleTemplateDetail(token, templateId),
+    queryFn: async () => {
+      const res = await getScheduleTemplateDetailApi(
+        Number(templateId),
+        token as string,
+      );
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Template not found");
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token, templateId]);
+      return res.data;
+    },
+    enabled: !!token && !!templateId,
+  });
 
-  function updateDay(index: number, patch: Partial<DayDraft>) {
-    setDays((prev) =>
-      prev.map((d, i) => (i === index ? { ...d, ...patch } : d)),
-    );
-  }
-
-  async function handleSubmit() {
-    if (!token || !templateId || !name.trim()) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const payload = days.map((d) => ({
+  const updateMutation = useMutation({
+    mutationFn: async (payload: { name: string; days: DayDraft[] }) => {
+      const dayPayload = payload.days.map((d) => ({
         day_of_week: d.day_of_week,
         is_closed: d.is_closed,
         open_time: d.is_closed ? null : d.open_time,
@@ -117,23 +83,32 @@ export default function EditScheduleTemplatePage() {
       }));
       const res = await updateScheduleTemplateApi(
         Number(templateId),
-        name.trim(),
-        payload,
-        token,
+        payload.name,
+        dayPayload,
+        token as string,
       );
       if (!res.success) {
-        setError(res.message || "Failed to save changes");
-        return;
+        throw new Error(res.message || "Failed to save changes");
       }
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.settings.scheduleTemplates(token),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.settings.scheduleTemplateDetail(token, templateId),
+      });
+      // Same backend resource is also read by the fleet feature's
+      // listing forms — keep that cache entry in sync too.
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.fleet.scheduleTemplates(token),
+      });
       router.push("/settings/schedule-templates" as Route);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save changes");
-    } finally {
-      setSubmitting(false);
-    }
-  }
+    },
+  });
 
-  if (loading) {
+  if (detailQuery.isLoading) {
     return (
       <>
         <Header title="Edit schedule" onBack={() => router.back()} />
@@ -144,20 +119,76 @@ export default function EditScheduleTemplatePage() {
     );
   }
 
-  if (loadError) {
+  if (detailQuery.error || !detailQuery.data) {
     return (
       <>
         <Header title="Edit schedule" onBack={() => router.back()} />
         <main className="flex-1 px-5 pt-10">
-          <p className="text-sm text-red-500 text-center">{loadError}</p>
+          <p className="text-sm text-red-500 text-center">
+            {detailQuery.error instanceof Error
+              ? detailQuery.error.message
+              : "Template not found"}
+          </p>
         </main>
       </>
     );
   }
 
   return (
+    <ScheduleTemplateEditor
+      initial={detailQuery.data}
+      submitting={updateMutation.isPending}
+      error={
+        updateMutation.error instanceof Error
+          ? updateMutation.error.message
+          : null
+      }
+      onSubmit={(payload) => updateMutation.mutate(payload)}
+      onBack={() => router.back()}
+    />
+  );
+}
+
+// Mounted only once the template detail has loaded, so its local
+// name/days state is seeded exactly once from `initial` — mirroring
+// how the pickup-points edit page hands loaded data to PickupPointForm.
+function ScheduleTemplateEditor({
+  initial,
+  submitting,
+  error,
+  onSubmit,
+  onBack,
+}: {
+  initial: ScheduleTemplate;
+  submitting: boolean;
+  error: string | null;
+  onSubmit: (payload: { name: string; days: DayDraft[] }) => void;
+  onBack: () => void;
+}) {
+  const [name, setName] = useState(initial.name);
+  const [days, setDays] = useState<DayDraft[]>(
+    initial.days.map((d) => ({
+      day_of_week: d.day_of_week,
+      is_closed: d.is_closed,
+      open_time: d.open_time ?? "07:00",
+      close_time: d.close_time ?? "19:00",
+    })),
+  );
+
+  function updateDay(index: number, patch: Partial<DayDraft>) {
+    setDays((prev) =>
+      prev.map((d, i) => (i === index ? { ...d, ...patch } : d)),
+    );
+  }
+
+  function handleSubmit() {
+    if (!name.trim()) return;
+    onSubmit({ name: name.trim(), days });
+  }
+
+  return (
     <>
-      <Header title="Edit schedule template" onBack={() => router.back()} />
+      <Header title="Edit schedule template" onBack={onBack} />
       <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg space-y-4">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center gap-2.5 mb-3">

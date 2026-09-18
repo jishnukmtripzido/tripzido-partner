@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Route } from "next";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -11,10 +11,8 @@ import {
 } from "@/services/fleet.service";
 import { PickupPointForm } from "@/components/features/fleet/PickupPointForm";
 import { PageLoader } from "@/components/ui/PageLoader";
-import type {
-  PickupPoint,
-  PickupPointPayload,
-} from "@/types/listing-create.types";
+import { queryKeys } from "@/lib/queryKeys";
+import type { PickupPointPayload } from "@/types/listing-create.types";
 
 function formatFieldErrors(errors?: Record<string, string[]>): string {
   if (!errors) return "";
@@ -27,60 +25,52 @@ export default function EditPickupPointPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token } = useAuth();
+  const queryClient = useQueryClient();
   const pointId = searchParams.get("id");
 
-  const [point, setPoint] = useState<PickupPoint | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!token || !pointId) return;
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await getPickupPointDetailApi(Number(pointId), token);
-        if (cancelled) return;
-        if (!res.success || !res.data) {
-          setLoadError(res.message || "Not found");
-          return;
-        }
-        setPoint(res.data);
-      } catch (err) {
-        if (!cancelled)
-          setLoadError(err instanceof Error ? err.message : "Failed to load");
-      } finally {
-        if (!cancelled) setLoading(false);
+  const detailQuery = useQuery({
+    queryKey: queryKeys.settings.pickupPointDetail(token, pointId),
+    queryFn: async () => {
+      const res = await getPickupPointDetailApi(Number(pointId), token as string);
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Not found");
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token, pointId]);
+      return res.data;
+    },
+    enabled: !!token && !!pointId,
+  });
 
-  async function handleSubmit(data: PickupPointPayload) {
-    if (!token || !pointId) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const res = await updatePickupPointApi(Number(pointId), data, token);
+  const updateMutation = useMutation({
+    mutationFn: async (data: PickupPointPayload) => {
+      const res = await updatePickupPointApi(
+        Number(pointId),
+        data,
+        token as string,
+      );
       if (!res.success) {
-        setError(
+        throw new Error(
           formatFieldErrors(res.errors) || res.message || "Failed to save",
         );
-        return;
       }
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.settings.pickupPoints(token),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.settings.pickupPointDetail(token, pointId),
+      });
+      // Same backend resource is also read by the fleet feature's
+      // listing forms — keep that cache entry in sync too.
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.fleet.pickupPoints(token),
+      });
       router.push("/settings/pickup-points" as Route);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save");
-    } finally {
-      setSubmitting(false);
-    }
-  }
+    },
+  });
 
-  if (loading) {
+  if (detailQuery.isLoading) {
     return (
       <>
         <Header title="Edit pickup point" onBack={() => router.back()} />
@@ -91,18 +81,22 @@ export default function EditPickupPointPage() {
     );
   }
 
-  if (loadError || !point) {
+  if (detailQuery.error || !detailQuery.data) {
     return (
       <>
         <Header title="Edit pickup point" onBack={() => router.back()} />
         <main className="flex-1 px-5 pt-10">
           <p className="text-sm text-red-500 font-semibold text-center bg-red-50 py-3 rounded-xl mx-4">
-            {loadError}
+            {detailQuery.error instanceof Error
+              ? detailQuery.error.message
+              : "Not found"}
           </p>
         </main>
       </>
     );
   }
+
+  const point = detailQuery.data;
 
   return (
     <>
@@ -112,9 +106,13 @@ export default function EditPickupPointPage() {
           initial={point}
           pickupLocationId={point.pickup_location}
           pickupLocationName={point.pickup_location_name ?? undefined}
-          submitting={submitting}
-          error={error}
-          onSubmit={handleSubmit}
+          submitting={updateMutation.isPending}
+          error={
+            updateMutation.error instanceof Error
+              ? updateMutation.error.message
+              : null
+          }
+          onSubmit={(data) => updateMutation.mutate(data)}
           submitLabel="Save changes"
         />
       </main>

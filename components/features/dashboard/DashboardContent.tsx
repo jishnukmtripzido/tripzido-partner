@@ -1,7 +1,8 @@
 "use client";
 
-import { use, Suspense } from "react";
+import { Suspense } from "react";
 import { useRouter } from "next/navigation";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import type { Route } from "next";
 import { BalanceCard } from "@/components/features/dashboard/BalanceCard";
 import { StatCard } from "@/components/features/dashboard/StatCard";
@@ -15,6 +16,14 @@ import {
   FleetSummarySkeleton,
   BookingCardSkeleton,
 } from "@/components/features/dashboard/DashboardSkeleton";
+import {
+  getVendorDashboardStatusApi,
+  getVendorDashboardAttentionApi,
+  getVendorDashboardStatsApi,
+  getVendorDashboardFleetApi,
+  getVendorDashboardRecentBookingsApi,
+} from "@/services/dashboard.service";
+import { queryKeys } from "@/lib/queryKeys";
 import type {
   VendorDashboardStatus,
   VendorDashboardAttention,
@@ -22,6 +31,17 @@ import type {
   VendorDashboardFleet,
   VendorDashboardRecentBookings,
 } from "@/types/dashboard.types";
+
+// Unwraps the {success, message, data} envelope into the plain typed
+// data (or throws) so useSuspenseQuery's returned `data` is already
+// the shape each section renders, and a failed envelope surfaces as a
+// thrown error for the nearest DashboardErrorBoundary to catch.
+function unwrap<T>(res: { success: boolean; message: string; data?: T }): T {
+  if (!res.success || !res.data) {
+    throw new Error(res.message || "Failed to load dashboard data");
+  }
+  return res.data;
+}
 
 const VENDOR_STATUS_BANNER: Record<
   string,
@@ -71,11 +91,7 @@ const currency = (n: number) =>
   `₹ ${n.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
 interface DashboardContentProps {
-  statusPromise: Promise<VendorDashboardStatus>;
-  attentionPromise: Promise<VendorDashboardAttention>;
-  statsPromise: Promise<VendorDashboardStats>;
-  fleetPromise: Promise<VendorDashboardFleet>;
-  recentBookingsPromise: Promise<VendorDashboardRecentBookings>;
+  token: string;
 }
 
 /**
@@ -91,13 +107,7 @@ interface DashboardContentProps {
  * or fail together; separate boundaries around a shared promise would
  * just be redundant, not genuinely independent.
  */
-export function DashboardContent({
-  statusPromise,
-  attentionPromise,
-  statsPromise,
-  fleetPromise,
-  recentBookingsPromise,
-}: DashboardContentProps) {
+export function DashboardContent({ token }: DashboardContentProps) {
   return (
     <main className="flex-1 overflow-y-auto hide-scrollbar px-5 lg:px-8 pt-6 lg:pt-8 pb-6 space-y-5 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-5 lg:items-start bg-brand-bg">
       <div className="lg:col-span-2">
@@ -107,7 +117,7 @@ export function DashboardContent({
           )}
         >
           <Suspense fallback={<BalanceCardSkeleton />}>
-            <StatusBalanceSection promise={statusPromise} />
+            <StatusBalanceSection token={token} />
           </Suspense>
         </DashboardErrorBoundary>
       </div>
@@ -126,7 +136,7 @@ export function DashboardContent({
               </div>
             }
           >
-            <AttentionSection promise={attentionPromise} />
+            <AttentionSection token={token} />
           </Suspense>
         </DashboardErrorBoundary>
       </div>
@@ -153,7 +163,7 @@ export function DashboardContent({
             </>
           }
         >
-          <StatsSection promise={statsPromise} />
+          <StatsSection token={token} />
         </Suspense>
       </DashboardErrorBoundary>
 
@@ -164,7 +174,7 @@ export function DashboardContent({
           )}
         >
           <Suspense fallback={<FleetSummarySkeleton />}>
-            <FleetSection promise={fleetPromise} />
+            <FleetSection token={token} />
           </Suspense>
         </DashboardErrorBoundary>
       </div>
@@ -188,7 +198,7 @@ export function DashboardContent({
               </div>
             }
           >
-            <RecentBookingsSection promise={recentBookingsPromise} />
+            <RecentBookingsSection token={token} />
           </Suspense>
         </DashboardErrorBoundary>
       </div>
@@ -218,12 +228,12 @@ function SectionError({
 
 // ── Section 1: Status banner + Balance ─────────────────────────────────
 
-function StatusBalanceSection({
-  promise,
-}: {
-  promise: Promise<VendorDashboardStatus>;
-}) {
-  const data = use(promise);
+function StatusBalanceSection({ token }: { token: string }) {
+  const { data } = useSuspenseQuery({
+    queryKey: queryKeys.dashboard.status(token),
+    queryFn: () =>
+      getVendorDashboardStatusApi(token).then(unwrap<VendorDashboardStatus>),
+  });
   const banner = VENDOR_STATUS_BANNER[data.vendor_status];
 
   return (
@@ -249,12 +259,14 @@ function StatusBalanceSection({
 
 // ── Section 2: Needs attention ──────────────────────────────────────────
 
-function AttentionSection({
-  promise,
-}: {
-  promise: Promise<VendorDashboardAttention>;
-}) {
-  const data = use(promise);
+function AttentionSection({ token }: { token: string }) {
+  const { data } = useSuspenseQuery({
+    queryKey: queryKeys.dashboard.attention(token),
+    queryFn: () =>
+      getVendorDashboardAttentionApi(token).then(
+        unwrap<VendorDashboardAttention>,
+      ),
+  });
   const router = useRouter();
   const hasNeedsAttention =
     data.bookings_to_start.length > 0 || data.bookings_to_return.length > 0;
@@ -306,8 +318,12 @@ function AttentionSection({
 
 // ── Section 3: Revenue card + Orders card + Weekly chart (one shared promise) ──
 
-function StatsSection({ promise }: { promise: Promise<VendorDashboardStats> }) {
-  const data = use(promise);
+function StatsSection({ token }: { token: string }) {
+  const { data } = useSuspenseQuery({
+    queryKey: queryKeys.dashboard.stats(token),
+    queryFn: () =>
+      getVendorDashboardStatsApi(token).then(unwrap<VendorDashboardStats>),
+  });
 
   return (
     <>
@@ -376,8 +392,12 @@ function StatsSection({ promise }: { promise: Promise<VendorDashboardStats> }) {
 
 // ── Section 4: Fleet summary ────────────────────────────────────────────
 
-function FleetSection({ promise }: { promise: Promise<VendorDashboardFleet> }) {
-  const data = use(promise);
+function FleetSection({ token }: { token: string }) {
+  const { data } = useSuspenseQuery({
+    queryKey: queryKeys.dashboard.fleet(token),
+    queryFn: () =>
+      getVendorDashboardFleetApi(token).then(unwrap<VendorDashboardFleet>),
+  });
   const router = useRouter();
 
   return (
@@ -417,12 +437,14 @@ function FleetSection({ promise }: { promise: Promise<VendorDashboardFleet> }) {
 
 // ── Section 5: Recent bookings ──────────────────────────────────────────
 
-function RecentBookingsSection({
-  promise,
-}: {
-  promise: Promise<VendorDashboardRecentBookings>;
-}) {
-  const data = use(promise);
+function RecentBookingsSection({ token }: { token: string }) {
+  const { data } = useSuspenseQuery({
+    queryKey: queryKeys.dashboard.recentBookings(token),
+    queryFn: () =>
+      getVendorDashboardRecentBookingsApi(token).then(
+        unwrap<VendorDashboardRecentBookings>,
+      ),
+  });
   const router = useRouter();
 
   return (

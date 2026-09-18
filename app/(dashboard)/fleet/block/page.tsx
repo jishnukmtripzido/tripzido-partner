@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { useSidebar } from "@/context/SidebarContext";
 import { useAuth } from "@/context/AuthContext";
@@ -11,78 +12,66 @@ import {
   updateBlockApi,
   deleteBlockApi,
 } from "@/services/block.service";
+import { queryKeys } from "@/lib/queryKeys";
 import type {
   VendorBlockedPeriod,
   BlockUpdatePayload,
+  VendorBlockedPeriodsResponse,
 } from "@/types/block.types";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { InlineLoader } from "@/components/ui/InLineLoader";
 
+type BlocksPage = NonNullable<VendorBlockedPeriodsResponse["data"]>;
+
 export default function BlockBikesPage() {
   const { openSidebar } = useSidebar();
   const { token } = useAuth();
+  const queryClient = useQueryClient();
 
-  const [blocks, setBlocks] = useState<VendorBlockedPeriod[]>([]);
-  const [hasNext, setHasNext] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const nextPageRef = useRef(1);
-  const loadedPagesRef = useRef<Set<number>>(new Set());
 
-  const loadNextPage = useCallback(async () => {
-    if (!token || isLoading || !hasNext) return;
-    const page = nextPageRef.current;
-    if (loadedPagesRef.current.has(page)) return;
-    loadedPagesRef.current.add(page);
+  const queryKey = queryKeys.fleet.blocks(token);
 
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await getVendorBlocksApi(page, token);
+  const {
+    data,
+    error,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey,
+    queryFn: async ({ pageParam }) => {
+      const res = await getVendorBlocksApi(pageParam, token as string);
       if (!res.success || !res.data) {
-        setError(res.message || "Failed to load blocks");
-        setHasNext(false);
-        loadedPagesRef.current.delete(page);
-        return;
+        throw new Error(res.message || "Failed to load blocks");
       }
-      setBlocks((prev) => [...prev, ...res.data!.results]);
-      setHasNext(res.data.pagination.next !== null);
-      nextPageRef.current = page + 1;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load blocks");
-      setHasNext(false);
-      loadedPagesRef.current.delete(page);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [token, isLoading, hasNext]);
+      return res.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.next ? lastPage.pagination.page + 1 : undefined,
+    enabled: !!token,
+  });
 
-  useEffect(() => {
-    if (token) loadNextPage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  const blocks = data?.pages.flatMap((page) => page.results) ?? [];
+  const hasNext = hasNextPage ?? false;
 
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) loadNextPage();
+        if (entries[0].isIntersecting) fetchNextPage();
       },
       { rootMargin: "200px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [loadNextPage]);
-
-  function handleRetry() {
-    setError(null);
-    setHasNext(true);
-    loadNextPage();
-  }
+  }, [fetchNextPage]);
 
   async function handleSaveBlock(blockId: number, patch: BlockUpdatePayload) {
     if (!token) return { success: false, message: "Not signed in" };
@@ -91,7 +80,20 @@ export default function BlockBikesPage() {
       if (!res.success || !res.data) {
         return { success: false, message: res.message };
       }
-      setBlocks((prev) => prev.map((b) => (b.id === blockId ? res.data! : b)));
+      const updated = res.data;
+      queryClient.setQueryData(
+        queryKey,
+        (prev: { pages: BlocksPage[]; pageParams: unknown[] } | undefined) =>
+          prev && {
+            ...prev,
+            pages: prev.pages.map((page) => ({
+              ...page,
+              results: page.results.map((b) =>
+                b.id === blockId ? updated : b,
+              ),
+            })),
+          },
+      );
       return { success: true };
     } catch (err) {
       return {
@@ -108,7 +110,17 @@ export default function BlockBikesPage() {
       if (!res.success) {
         return { success: false, message: res.message };
       }
-      setBlocks((prev) => prev.filter((b) => b.id !== blockId));
+      queryClient.setQueryData(
+        queryKey,
+        (prev: { pages: BlocksPage[]; pageParams: unknown[] } | undefined) =>
+          prev && {
+            ...prev,
+            pages: prev.pages.map((page) => ({
+              ...page,
+              results: page.results.filter((b) => b.id !== blockId),
+            })),
+          },
+      );
       return { success: true };
     } catch (err) {
       return {
@@ -119,7 +131,33 @@ export default function BlockBikesPage() {
   }
 
   function handleBlockCreated(block: VendorBlockedPeriod) {
-    setBlocks((prev) => [block, ...prev]);
+    queryClient.setQueryData(
+      queryKey,
+      (prev: { pages: BlocksPage[]; pageParams: unknown[] } | undefined) => {
+        if (!prev || prev.pages.length === 0) {
+          const page: BlocksPage = {
+            pagination: {
+              total: 1,
+              page: 1,
+              page_size: 1,
+              total_pages: 1,
+              next: null,
+              previous: null,
+            },
+            results: [block],
+          };
+          return { pages: [page], pageParams: [1] };
+        }
+        const [firstPage, ...rest] = prev.pages;
+        return {
+          ...prev,
+          pages: [
+            { ...firstPage, results: [block, ...firstPage.results] },
+            ...rest,
+          ],
+        };
+      },
+    );
     setShowAddModal(false);
   }
 
@@ -176,16 +214,18 @@ export default function BlockBikesPage() {
 
           {error && (
             <div className="text-center mt-6">
-              <p className="text-sm text-red-500 font-medium">{error}</p>
+              <p className="text-sm text-red-500 font-medium">
+                {error instanceof Error ? error.message : "Failed to load blocks"}
+              </p>
               <button
-                onClick={handleRetry}
+                onClick={() => refetch()}
                 className="mt-2 text-sm font-bold text-brand-yellow-lg hover:text-brand-secondary transition-colors"
               >
                 Retry
               </button>
             </div>
           )}
-          {isLoading && !error && <InlineLoader />}
+          {(isLoading || isFetchingNextPage) && !error && <InlineLoader />}
           {!hasNext && !error && blocks.length > 0 && (
             <p className="text-xs text-gray-400 font-semibold text-center mt-6">
               {blocks.length} block(s)

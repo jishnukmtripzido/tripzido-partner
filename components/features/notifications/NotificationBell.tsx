@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
 import {
@@ -9,6 +10,7 @@ import {
   markNotificationReadApi,
   markAllNotificationsReadApi,
 } from "@/services/notifications.service";
+import { queryKeys } from "@/lib/queryKeys";
 import type { NotificationItem } from "@/types/notification.types";
 
 function timeAgo(iso: string): string {
@@ -24,12 +26,45 @@ function timeAgo(iso: string): string {
 export function NotificationBell() {
   const { token } = useAuth();
   const router = useRouter();
-  const { count, refetch } = useUnreadNotificationCount(token);
+  const queryClient = useQueryClient();
+  const { count, refetch: refetchCount } = useUnreadNotificationCount(token);
 
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<NotificationItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const listQueryKey = queryKeys.notifications.list(token, 1);
+  const { data: items = [], isLoading: loading } = useQuery({
+    queryKey: listQueryKey,
+    queryFn: async () => {
+      const res = await getNotificationsApi(token as string, 1);
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Failed to load notifications");
+      }
+      return res.data.results;
+    },
+    enabled: open && !!token,
+    staleTime: 15000,
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: (id: number) => markNotificationReadApi(token as string, id),
+    onMutate: (id: number) => {
+      queryClient.setQueryData<NotificationItem[]>(listQueryKey, (prev) =>
+        prev?.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
+      );
+    },
+    onSettled: () => refetchCount(),
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: () => markAllNotificationsReadApi(token as string),
+    onMutate: () => {
+      queryClient.setQueryData<NotificationItem[]>(listQueryKey, (prev) =>
+        prev?.map((n) => ({ ...n, is_read: true })),
+      );
+    },
+    onSettled: () => refetchCount(),
+  });
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -44,38 +79,20 @@ export function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  async function handleOpen() {
-    const next = !open;
-    setOpen(next);
-    if (next && token) {
-      setLoading(true);
-      try {
-        const res = await getNotificationsApi(token, 1);
-        if (res.success && res.data) setItems(res.data.results);
-      } finally {
-        setLoading(false);
-      }
-    }
+  function handleOpen() {
+    setOpen((prev) => !prev);
   }
 
-  async function handleItemClick(item: NotificationItem) {
+  function handleItemClick(item: NotificationItem) {
     if (!token) return;
-    if (!item.is_read) {
-      markNotificationReadApi(token, item.id).catch(() => {});
-      setItems((prev) =>
-        prev.map((n) => (n.id === item.id ? { ...n, is_read: true } : n)),
-      );
-      refetch();
-    }
+    if (!item.is_read) markReadMutation.mutate(item.id);
     setOpen(false);
     if (item.link) router.push(item.link as never);
   }
 
-  async function handleMarkAllRead() {
+  function handleMarkAllRead() {
     if (!token) return;
-    await markAllNotificationsReadApi(token).catch(() => {});
-    setItems((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    refetch();
+    markAllReadMutation.mutate();
   }
 
   return (

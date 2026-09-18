@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Header } from "@/components/layout/Header";
 import { getListingDetailApi } from "@/services/fleet.service";
 import { getListingReviewsApi } from "@/services/reviews.service";
+import { queryKeys } from "@/lib/queryKeys";
 import { PageLoader } from "@/components/ui/PageLoader";
 import type {
   ListingDetail,
@@ -163,79 +164,50 @@ export default function ListingDetailPage() {
   const { token } = useAuth();
   const listingId = searchParams.get("id");
 
-  const [listing, setListing] = useState<ListingDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [reviews, setReviews] = useState<VehicleReviewsResponse | null>(null);
-  const [reviewsLoading, setReviewsLoading] = useState(true);
-  const [reviewsError, setReviewsError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!token || !listingId) return;
-    let cancelled = false;
-
-    (async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const res = await getListingDetailApi(listingId, token);
-        if (cancelled) return;
-        if (!res.success || !res.data) {
-          setError(res.message || "Listing not found");
-          return;
-        }
-        console.log("Listing detail response:", res.data); // Debug log
-        setListing(res.data);
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load listing",
-          );
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
+  const {
+    data: listing,
+    error: listingError,
+    isLoading,
+  } = useQuery({
+    queryKey: queryKeys.fleet.listing(token, listingId),
+    queryFn: async () => {
+      const res = await getListingDetailApi(listingId as string, token as string);
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Listing not found");
       }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token, listingId]);
+      return res.data;
+    },
+    enabled: !!token && !!listingId,
+  });
+  const error = listingError
+    ? listingError instanceof Error
+      ? listingError.message
+      : "Listing not found"
+    : null;
 
   // Runs independently of the listing fetch above — only needs
   // listingId, not the loaded listing itself, so both requests fire
   // in parallel rather than one waiting on the other.
-  useEffect(() => {
-    if (!listingId) return;
-    let cancelled = false;
-
-    (async () => {
-      setReviewsLoading(true);
-      setReviewsError(null);
-      try {
-        const res = await getListingReviewsApi(listingId, token ?? undefined);
-        if (cancelled) return;
-        if (res.success && res.data) {
-          setReviews(res.data);
-        } else {
-          setReviewsError(res.message || "Failed to load reviews");
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setReviewsError(
-            err instanceof Error ? err.message : "Failed to load reviews",
-          );
-        }
-      } finally {
-        if (!cancelled) setReviewsLoading(false);
+  const {
+    data: reviews = null,
+    error: reviewsErrorObj,
+    isLoading: reviewsLoading,
+  } = useQuery({
+    queryKey: queryKeys.reviews.listing(listingId),
+    queryFn: async () => {
+      const res = await getListingReviewsApi(listingId as string, token ?? undefined);
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Failed to load reviews");
       }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [listingId, token]);
+      return res.data;
+    },
+    enabled: !!listingId,
+  });
+  const reviewsError = reviewsErrorObj
+    ? reviewsErrorObj instanceof Error
+      ? reviewsErrorObj.message
+      : "Failed to load reviews"
+    : null;
 
   return (
     <div className="bg-brand-bg h-full flex flex-col">

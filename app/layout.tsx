@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { DesktopGate } from "@/components/layout/DesktopGate";
+import { Providers } from "./providers";
 
 // Root layout has no hooks/state of its own — it only wires up fonts
 // and global providers, so it stays a (build-time only) server
@@ -64,9 +65,11 @@ export default function RootLayout({
           async
           defer
         />
-        <AuthProvider>
-          <DesktopGate>{children}</DesktopGate>
-        </AuthProvider>
+        <Providers>
+          <AuthProvider>
+            <DesktopGate>{children}</DesktopGate>
+          </AuthProvider>
+        </Providers>
       </body>
     </html>
   );

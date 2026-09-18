@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -14,10 +15,10 @@ import { PinVerificationModal } from "@/components/features/bookings/PinVerifica
 import { VendorCancelBookingModal } from "@/components/features/bookings/VendorCancelBookingModal";
 import { STATUS_BADGE_STYLES, STATUS_ACTION_CONFIG } from "@/lib/bookingStatus";
 import type {
-  VendorBookingDetail,
   BookingStatus,
   VendorCancellationReasonCode,
 } from "@/types/booking.types";
+import { queryKeys } from "@/lib/queryKeys";
 import { PageLoader } from "@/components/ui/PageLoader";
 
 // ── Icons — reusing the same vocabulary established elsewhere in this
@@ -82,135 +83,152 @@ export default function BookingDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token } = useAuth();
+  const queryClient = useQueryClient();
   const bookingId = searchParams.get("id");
 
-  const [booking, setBooking] = useState<VendorBookingDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const [actionStatus, setActionStatus] = useState<BookingStatus | null>(null);
-  const [actionSubmitting, setActionSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!token || !bookingId) return;
-    let cancelled = false;
-    (async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const res = await getVendorBookingDetailApi(bookingId, token);
-        if (cancelled) return;
-        if (!res.success || !res.data) {
-          setError(res.message || "Booking not found");
-          return;
-        }
-        setBooking(res.data);
-      } catch (err) {
-        if (!cancelled)
-          setError(
-            err instanceof Error ? err.message : "Failed to load booking",
-          );
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token, bookingId]);
+  const detailQueryKey = queryKeys.bookings.detail(token, bookingId);
 
-  // Used for every transition EXCEPT starting a trip (needs a PIN, see
-  // handleStartTrip) and cancelling (needs a reason + the refund
-  // accounting, see handleCancelBooking) — those two get their own
-  // handlers and their own modals below.
-  async function handleConfirmAction() {
-    if (!actionStatus || !token || !bookingId) return;
-    setActionSubmitting(true);
-    setActionError(null);
-    try {
-      const res = await updateVendorBookingStatusApi(
-        bookingId,
-        actionStatus,
-        token,
-      );
+  const {
+    data: booking,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: detailQueryKey,
+    queryFn: async () => {
+      const res = await getVendorBookingDetailApi(bookingId as string, token as string);
       if (!res.success || !res.data) {
-        setActionError(res.message || "Failed to update status");
-        return;
+        throw new Error(res.message || "Booking not found");
       }
-      setBooking(res.data);
-      setActionStatus(null);
-    } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : "Failed to update status",
-      );
-    } finally {
-      setActionSubmitting(false);
-    }
-  }
+      return res.data;
+    },
+    enabled: !!token && !!bookingId,
+  });
 
-  // Starting a trip requires the customer's 4-digit verification PIN
-  // — the backend rejects the transition entirely if it's wrong, so
-  // a mismatch here just surfaces the server's error inline rather
-  // than closing the modal.
-  async function handleStartTrip(pin: string) {
-    if (!token || !bookingId) return;
-    setActionSubmitting(true);
-    setActionError(null);
-    try {
+  // Shared by every transition EXCEPT cancelling (needs a reason + the
+  // refund accounting, see cancelMutation/handleCancelBooking) — that
+  // one goes through a dedicated endpoint. Both plain status changes
+  // (handleConfirmAction) and starting a trip (handleStartTrip, which
+  // needs a PIN) hit the same status endpoint, so they share this
+  // mutation and only differ in the fallback error message.
+  const statusMutation = useMutation({
+    mutationFn: async ({
+      status,
+      pin,
+    }: {
+      status: BookingStatus;
+      pin?: string;
+    }) => {
       const res = await updateVendorBookingStatusApi(
-        bookingId,
-        "ONGOING",
-        token,
+        bookingId as string,
+        status,
+        token as string,
         pin,
       );
       if (!res.success || !res.data) {
-        setActionError(res.message || "Incorrect PIN. Please try again.");
-        return;
+        throw new Error(res.message || "");
       }
-      setBooking(res.data);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(detailQueryKey, data);
+      queryClient.invalidateQueries({ queryKey: ["bookings", "list"] });
       setActionStatus(null);
-    } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : "Failed to start trip",
-      );
-    } finally {
-      setActionSubmitting(false);
-    }
-  }
+    },
+  });
 
   // Vendor-initiated cancellation goes through the dedicated cancel
   // endpoint (CancellationService.cancel_booking_by_vendor), not the
   // generic status-update endpoint — that one only flips `status` and
   // skips the refund calc, BookingCancellation record, and staff
   // notification that this flow needs.
-  async function handleCancelBooking(
+  const cancelMutation = useMutation({
+    mutationFn: async ({
+      reasonCode,
+      reasonText,
+    }: {
+      reasonCode: VendorCancellationReasonCode;
+      reasonText: string;
+    }) => {
+      const res = await cancelVendorBookingApi(
+        bookingId as string,
+        reasonCode,
+        reasonText,
+        token as string,
+      );
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "");
+      }
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(detailQueryKey, data);
+      queryClient.invalidateQueries({ queryKey: ["bookings", "list"] });
+      setActionStatus(null);
+    },
+  });
+
+  const actionSubmitting = statusMutation.isPending || cancelMutation.isPending;
+
+  // Used for every transition EXCEPT starting a trip (needs a PIN, see
+  // handleStartTrip) and cancelling (needs a reason + the refund
+  // accounting, see handleCancelBooking) — those two get their own
+  // handlers and their own modals below.
+  function handleConfirmAction() {
+    if (!actionStatus || !token || !bookingId) return;
+    setActionError(null);
+    statusMutation.mutate(
+      { status: actionStatus },
+      {
+        onError: (err) =>
+          setActionError(
+            err instanceof Error && err.message
+              ? err.message
+              : "Failed to update status",
+          ),
+      },
+    );
+  }
+
+  // Starting a trip requires the customer's 4-digit verification PIN
+  // — the backend rejects the transition entirely if it's wrong, so
+  // a mismatch here just surfaces the server's error inline rather
+  // than closing the modal.
+  function handleStartTrip(pin: string) {
+    if (!token || !bookingId) return;
+    setActionError(null);
+    statusMutation.mutate(
+      { status: "ONGOING", pin },
+      {
+        onError: (err) =>
+          setActionError(
+            err instanceof Error && err.message
+              ? err.message
+              : "Incorrect PIN. Please try again.",
+          ),
+      },
+    );
+  }
+
+  function handleCancelBooking(
     reasonCode: VendorCancellationReasonCode,
     reasonText: string,
   ) {
     if (!token || !bookingId) return;
-    setActionSubmitting(true);
     setActionError(null);
-    try {
-      const res = await cancelVendorBookingApi(
-        bookingId,
-        reasonCode,
-        reasonText,
-        token,
-      );
-      if (!res.success || !res.data) {
-        setActionError(res.message || "Failed to cancel booking");
-        return;
-      }
-      setBooking(res.data);
-      setActionStatus(null);
-    } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : "Failed to cancel booking",
-      );
-    } finally {
-      setActionSubmitting(false);
-    }
+    cancelMutation.mutate(
+      { reasonCode, reasonText },
+      {
+        onError: (err) =>
+          setActionError(
+            err instanceof Error && err.message
+              ? err.message
+              : "Failed to cancel booking",
+          ),
+      },
+    );
   }
 
   return (
@@ -225,7 +243,7 @@ export default function BookingDetailPage() {
 
         {error && !isLoading && (
           <p className="text-[13px] text-red-500 font-semibold text-center mt-10 bg-red-50 py-3 rounded-xl mx-4">
-            {error}
+            {error instanceof Error ? error.message : "Failed to load booking"}
           </p>
         )}
 
