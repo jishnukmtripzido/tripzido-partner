@@ -149,7 +149,7 @@ export async function uploadListingImagesApi(
   files.forEach((file) => formData.append("images", file));
 
   const res = await fetch(
-    `${process.env.API_URL}/api/vehicles/vendor/fleet/${listingId}/images/`,
+    `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/vendor/fleet/${listingId}/images/`,
     {
       method: "POST",
       headers: { Authorization: `Bearer ${accessToken}` },
