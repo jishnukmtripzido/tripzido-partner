@@ -53,6 +53,11 @@ const nextConfig: NextConfig = {
         hostname: "tripzido-django.onrender.com",
         pathname: "/media/**",
       },
+       {
+        protocol: "http",
+        hostname: "159.89.173.1",
+        pathname: "/media/**",
+      },
       {
         protocol: "https",
         hostname: "tile.openstreetmap.org",
