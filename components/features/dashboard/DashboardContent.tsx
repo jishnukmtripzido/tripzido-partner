@@ -155,22 +155,35 @@ export function DashboardContent({ token }: DashboardContentProps) {
         </div>
 
         {/*
-          Phones: one column in reading order. lg+: two independent
-          columns (main | side) that stack on their own, so a short
-          card never leaves a hole beside a tall one. Quick actions
-          render in both places — inline on phones, top of the side
-          column on desktop — to keep the phone order unchanged.
+          Phones: one column in reading order. lg+: a top row where the
+          balance card stretches to match quick actions + fleet beside
+          it, then two independent columns (main | side) that stack on
+          their own, so a short card never leaves a hole beside a tall
+          one. Quick actions and fleet render in both places (phone
+          spot / desktop spot) to keep the phone order unchanged.
         */}
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_28rem]">
-          {/* Main column */}
-          <div className="space-y-5">
-            {/* Balance + status */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_28rem]">
+          {/* Row 1, main: balance + status (stretches on desktop) */}
+          <div className="flex flex-col">
             <SectionBoundary>
               <Suspense fallback={<BalanceCardSkeleton />}>
                 <StatusBalanceSection token={token} />
               </Suspense>
             </SectionBoundary>
+          </div>
 
+          {/* Row 1, side (desktop only): quick actions + fleet */}
+          <div className="hidden lg:flex lg:flex-col lg:gap-5">
+            <QuickActions className="grid" />
+            <SectionBoundary>
+              <Suspense fallback={<FleetSummarySkeleton />}>
+                <FleetSection token={token} />
+              </Suspense>
+            </SectionBoundary>
+          </div>
+
+          {/* Row 2, main */}
+          <div className="space-y-5 lg:self-start">
             <QuickActions className="grid lg:hidden" />
 
             {/* Needs attention — renders nothing when there's nothing due */}
@@ -198,15 +211,15 @@ export function DashboardContent({ token }: DashboardContentProps) {
             </SectionBoundary>
           </div>
 
-          {/* Side column */}
-          <div className="space-y-5">
-            <QuickActions className="hidden lg:grid" />
-
-            <SectionBoundary>
-              <Suspense fallback={<FleetSummarySkeleton />}>
-                <FleetSection token={token} />
-              </Suspense>
-            </SectionBoundary>
+          {/* Row 2, side */}
+          <div className="space-y-5 lg:self-start">
+            <div className="lg:hidden">
+              <SectionBoundary>
+                <Suspense fallback={<FleetSummarySkeleton />}>
+                  <FleetSection token={token} />
+                </Suspense>
+              </SectionBoundary>
+            </div>
 
             <SectionBoundary>
               <Suspense fallback={<BookingListSkeleton rows={4} />}>
@@ -343,7 +356,7 @@ function StatusBalanceSection({ token }: { token: string }) {
   const banner = VENDOR_STATUS_BANNER[data.vendor_status];
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-1 flex-col gap-3">
       {banner && (
         <div
           className={`rounded-2xl px-4 py-3 text-sm font-medium ${banner.style}`}

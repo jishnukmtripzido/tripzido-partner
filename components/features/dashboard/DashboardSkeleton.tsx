@@ -100,6 +100,22 @@ export function BookingListSkeleton({ rows = 3 }: { rows?: number }) {
   );
 }
 
+function QuickActionsSkeleton({ className }: { className: string }) {
+  return (
+    <div className={`grid-cols-3 gap-2.5 ${className}`}>
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          className="flex flex-col items-center gap-2 rounded-2xl bg-white py-3.5 shadow-sm"
+        >
+          <Skeleton className="h-10 w-10 rounded-xl" />
+          <Skeleton className="h-2.5 w-14" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function DashboardSkeleton() {
   return (
     <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8 lg:px-8 lg:py-7">
@@ -108,39 +124,24 @@ export function DashboardSkeleton() {
           <Skeleton className="h-3 w-32" />
           <Skeleton className="h-7 w-56 max-w-full" />
         </div>
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_28rem]">
-          <div className="space-y-5">
-            <BalanceCardSkeleton />
-            <div className="grid grid-cols-3 gap-2.5 lg:hidden">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="flex flex-col items-center gap-2 rounded-2xl bg-white py-3.5 shadow-sm"
-                >
-                  <Skeleton className="h-10 w-10 rounded-xl" />
-                  <Skeleton className="h-2.5 w-14" />
-                </div>
-              ))}
-            </div>
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_28rem]">
+          <BalanceCardSkeleton />
+          <div className="hidden lg:flex lg:flex-col lg:gap-5">
+            <QuickActionsSkeleton className="grid" />
+            <FleetSummarySkeleton />
+          </div>
+          <div className="space-y-5 lg:self-start">
+            <QuickActionsSkeleton className="grid lg:hidden" />
             <div className="grid grid-cols-2 gap-2.5">
               <StatCardSkeleton />
               <StatCardSkeleton />
             </div>
             <OrdersOverviewChartSkeleton />
           </div>
-          <div className="space-y-5">
-            <div className="hidden grid-cols-3 gap-2.5 lg:grid">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="flex flex-col items-center gap-2 rounded-2xl bg-white py-3.5 shadow-sm"
-                >
-                  <Skeleton className="h-10 w-10 rounded-xl" />
-                  <Skeleton className="h-2.5 w-14" />
-                </div>
-              ))}
+          <div className="space-y-5 lg:self-start">
+            <div className="lg:hidden">
+              <FleetSummarySkeleton />
             </div>
-            <FleetSummarySkeleton />
             <BookingListSkeleton rows={4} />
           </div>
         </div>

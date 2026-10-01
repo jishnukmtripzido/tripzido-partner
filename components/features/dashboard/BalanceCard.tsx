@@ -13,7 +13,7 @@ export function BalanceCard({ balance }: BalanceCardProps) {
     .split(".");
 
   return (
-    <section className="relative h-full overflow-hidden rounded-2xl bg-brand-secondary p-5 text-white shadow-md">
+    <section className="relative flex flex-1 flex-col overflow-hidden rounded-2xl bg-brand-secondary p-5 text-white shadow-md">
       <div className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-brand-yellow/15" />
       <div className="pointer-events-none absolute -bottom-16 right-6 h-36 w-36 rounded-full bg-brand-yellow/10" />
 
@@ -44,13 +44,13 @@ export function BalanceCard({ balance }: BalanceCardProps) {
         <span className="break-all text-4xl font-bold">{whole}</span>
         <span className="text-lg font-bold text-white/60">.{fraction}</span>
       </p>
-      <p className="relative mt-1 text-xs text-white/50">
+      <p className="relative mt-1 mb-5 text-xs text-white/50">
         Current partner account balance
       </p>
 
       <Link
         href="/ledger"
-        className="relative mt-5 inline-flex items-center gap-1.5 rounded-xl bg-brand-yellow px-3.5 py-2 text-sm font-semibold text-brand-secondary hover:opacity-90 active:opacity-80 transition-opacity"
+        className="relative mt-auto self-start inline-flex items-center gap-1.5 rounded-xl bg-brand-yellow px-3.5 py-2 text-sm font-semibold text-brand-secondary hover:opacity-90 active:opacity-80 transition-opacity"
       >
         View payouts
         <svg

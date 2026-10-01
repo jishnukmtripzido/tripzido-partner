@@ -35,7 +35,9 @@ export function DashboardBookingRow({
   showStatus?: boolean;
   onClick: () => void;
 }) {
-  const time = formatWhen(when === "end" ? booking.end_date : booking.start_date);
+  const time = formatWhen(
+    when === "end" ? booking.end_date : booking.start_date,
+  );
 
   return (
     <button
