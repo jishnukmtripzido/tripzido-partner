@@ -21,13 +21,24 @@ export function useVendorTerms(token: string | null) {
       const res = await getVendorTermsApi(token as string);
       // No terms saved yet is a normal, non-error state (vendor hasn't
       // submitted any) — only a thrown/network error should surface as
-      // an error state here.
-      if (res.success && res.data) return res.data;
+      // an error state here. The backend sends `data: []` (not null) in
+      // that case, and an empty array is truthy, so check for an actual
+      // terms object rather than just a truthy `data`.
+      if (res.success && isVendorTerms(res.data)) return res.data;
       return null;
     },
     enabled: !!token,
     staleTime: TERMS_STALE_TIME_MS,
   });
+}
+
+function isVendorTerms(data: unknown): data is VendorTerms {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data) &&
+    Array.isArray((data as VendorTerms).terms_items)
+  );
 }
 
 type PolicyNoteKey = keyof Pick<
