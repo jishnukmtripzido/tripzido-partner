@@ -27,6 +27,7 @@ import {
   saveReturnTo,
 } from "@/lib/listingDraft";
 import { queryKeys } from "@/lib/queryKeys";
+import { goBackOr } from "@/lib/navigation";
 import { SearchPickerSheet } from "@/components/ui/SearchPickerSheet";
 import type {
   BrandOption,
@@ -127,9 +128,42 @@ const CAMERA_ICON = (
     />
   </>
 );
+const DEPOSIT_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M3 10h18M3 6h18a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V7a1 1 0 011-1z"
+  />
+);
+const DISTANCE_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+  />
+);
+const CLOCK_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+  />
+);
+const TRUCK_ICON = (
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M3 16V6a1 1 0 011-1h8a1 1 0 011 1v10m-10 0h10m-10 0a2 2 0 104 0m6 0a2 2 0 104 0m-4 0h4m0 0V9h3l3 4v3h-2"
+  />
+);
 
 interface PricingPackageDraft {
   packageTypeId: number | null;
+  packageTypeName?: string;
   price: string;
   payAtPickupEnabled: boolean;
   kmLimit: string;
@@ -188,6 +222,71 @@ const EMPTY_DRAFT: WizardDraft = {
   doorstepDeliveryEnabled: false,
 };
 
+function isValidNonNegativeAmount(value: string): boolean {
+  const amount = Number(value);
+  return value.trim() !== "" && Number.isFinite(amount) && amount >= 0;
+}
+
+function getStepRequirement(draft: WizardDraft): string {
+  switch (draft.step) {
+    case 1:
+      if (!draft.brandId || !draft.vehicleTypeId)
+        return "Select a brand and vehicle type to continue.";
+      if (!draft.cityId || !draft.pickupLocationId)
+        return "Select a city and pickup location to continue.";
+      if (draft.pickupLocationConflict)
+        return "This vehicle already has a listing at that location. Choose another location or vehicle.";
+      if (!draft.pickupPointId)
+        return "Select an exact pickup address to continue.";
+      return "";
+    case 2:
+      return draft.scheduleTemplateId
+        ? ""
+        : "Choose a schedule template or create one to continue.";
+    case 3:
+      if (draft.pricingPackages.length === 0)
+        return "Add at least one pricing package to continue.";
+      if (draft.pricingPackages.some((pkg) => !pkg.packageTypeId))
+        return "Choose a package type for each package.";
+      if (
+        draft.pricingPackages.some((pkg) => {
+          const price = Number(pkg.price);
+          return (
+            pkg.price.trim() === "" || !Number.isFinite(price) || price <= 0
+          );
+        })
+      )
+        return "Enter a price greater than ₹0 for every package.";
+      if (
+        draft.pricingPackages.some((pkg) => {
+          if (!pkg.kmLimit.trim()) return false;
+          const limit = Number(pkg.kmLimit);
+          return !Number.isInteger(limit) || limit < 1;
+        })
+      )
+        return "Enter a whole-number kilometre limit, or leave it blank for unlimited distance.";
+      return "";
+    case 4: {
+      const quantity = Number(draft.availableCount);
+      if (
+        draft.availableCount.trim() === "" ||
+        !Number.isInteger(quantity) ||
+        quantity < 1
+      )
+        return "Fleet quantity must be a whole number of at least 1.";
+      if (!isValidNonNegativeAmount(draft.securityDepositAmount))
+        return "Enter a valid security deposit of ₹0 or more.";
+      if (!isValidNonNegativeAmount(draft.excessChargePerKm))
+        return "Enter a valid excess charge of ₹0 or more per kilometre.";
+      if (!isValidNonNegativeAmount(draft.lateReturnPenaltyPerHour))
+        return "Enter a valid late-return penalty of ₹0 or more per hour.";
+      return "";
+    }
+    default:
+      return "";
+  }
+}
+
 export default function NewListingPage() {
   const router = useRouter();
   const { token } = useAuth();
@@ -236,33 +335,8 @@ export default function NewListingPage() {
     update({ step: Math.max(draft.step - 1, 1) });
   }
 
-  const canProceed = (() => {
-    switch (draft.step) {
-      case 1:
-        return (
-          !!draft.vehicleTypeId &&
-          !!draft.pickupLocationId &&
-          !!draft.pickupPointId &&
-          !draft.pickupLocationConflict
-        );
-      case 2:
-        return !!draft.scheduleTemplateId;
-      case 3:
-        return (
-          draft.pricingPackages.length > 0 &&
-          draft.pricingPackages.every((p) => p.packageTypeId && p.price)
-        );
-      case 4:
-        return (
-          !!draft.availableCount &&
-          !!draft.securityDepositAmount &&
-          !!draft.excessChargePerKm &&
-          !!draft.lateReturnPenaltyPerHour
-        );
-      default:
-        return true;
-    }
-  })();
+  const stepRequirement = getStepRequirement(draft);
+  const canProceed = !stepRequirement;
 
   const createMutation = useMutation({
     mutationFn: async (payload: ListingCreatePayload) => {
@@ -285,9 +359,7 @@ export default function NewListingPage() {
 
   const submitting = createMutation.isPending;
   const submitError =
-    createMutation.error instanceof Error
-      ? createMutation.error.message
-      : null;
+    createMutation.error instanceof Error ? createMutation.error.message : null;
 
   function handleSubmit() {
     if (!token) return;
@@ -341,14 +413,18 @@ export default function NewListingPage() {
       <>
         <Header
           title="Add photos"
-          onBack={() => router.push("/fleet" as Route)}
+          // The listing already exists at this point — leave the
+          // wizard for wherever it was opened from (Fleet / Home).
+          onBack={() => goBackOr(router, "/fleet")}
         />
-        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6">
+        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg">
           <PhotoUploadPanel
             listingId={createdListingId}
             token={token}
+            // replace, not push: the finished wizard shouldn't sit in
+            // history under the new listing (back would reopen it).
             onDone={() =>
-              router.push(`/fleet/listing?id=${createdListingId}` as Route)
+              router.replace(`/fleet/listing?id=${createdListingId}` as Route)
             }
           />
         </main>
@@ -362,7 +438,7 @@ export default function NewListingPage() {
       <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg">
         <StepIndicator currentStep={draft.step} />
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="bg-white rounded-2xl shadow-sm p-4">
           {draft.step === 1 && (
             <StepVehicleLocation
               draft={draft}
@@ -398,7 +474,7 @@ export default function NewListingPage() {
             {draft.step > 1 && (
               <button
                 onClick={goBack}
-                className="flex-1 border-2 border-gray-200 rounded-xl py-3.5 text-sm font-bold text-font-dim"
+                className="flex-1 bg-white shadow-sm rounded-xl py-3.5 text-sm font-semibold text-font-main-sub active:bg-gray-100 transition-colors"
               >
                 Back
               </button>
@@ -406,7 +482,7 @@ export default function NewListingPage() {
             <button
               onClick={goNext}
               disabled={!canProceed}
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-3.5 text-sm font-bold bg-brand-yellow text-brand-secondary hover:bg-brand-yellow-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-3.5 text-sm font-semibold shadow-sm bg-brand-secondary text-brand-yellow active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
             >
               Next
               <svg
@@ -425,10 +501,18 @@ export default function NewListingPage() {
             </button>
           </div>
         )}
+        {draft.step < TOTAL_STEPS && stepRequirement && (
+          <p
+            role="status"
+            className="mt-3 rounded-xl bg-amber-50 px-3.5 py-3 text-sm font-medium text-amber-900"
+          >
+            {stepRequirement}
+          </p>
+        )}
         {draft.step === TOTAL_STEPS && (
           <button
             onClick={goBack}
-            className="w-full border-2 border-gray-200 rounded-xl py-3.5 text-sm font-bold text-font-dim mt-4"
+            className="w-full bg-white shadow-sm rounded-xl py-3.5 text-sm font-semibold text-font-main-sub active:bg-gray-100 transition-colors mt-4"
           >
             Back
           </button>
@@ -450,68 +534,37 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
   ];
 
   return (
-    <div className="mb-5">
-      <div className="flex items-center">
-        {steps.map((icon, i) => {
-          const stepNum = i + 1;
-          const isDone = stepNum < currentStep;
-          const isActive = stepNum === currentStep;
-          return (
-            <div
-              key={stepNum}
-              className={`flex items-center ${stepNum < steps.length ? "flex-1" : ""}`}
-            >
-              <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                  isDone
-                    ? "bg-brand-yellow text-brand-secondary"
-                    : isActive
-                      ? "bg-brand-secondary text-white"
-                      : "bg-gray-100 text-gray-400"
-                }`}
-              >
-                {isDone ? (
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    {icon}
-                  </svg>
-                )}
-              </div>
-              {stepNum < steps.length && (
-                <div
-                  className={`flex-1 h-0.5 mx-1.5 rounded-full transition-colors ${
-                    isDone ? "bg-brand-yellow" : "bg-gray-100"
-                  }`}
-                />
-              )}
-            </div>
-          );
-        })}
+    <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-yellow-lg text-brand-secondary">
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            {steps[currentStep - 1]}
+          </svg>
+        </span>
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
+            Step {currentStep} of {TOTAL_STEPS}
+          </p>
+          <p className="font-heading font-bold text-base text-font-main-sub truncate">
+            {STEP_TITLES[currentStep - 1]}
+          </p>
+        </div>
       </div>
-      <p className="text-center font-heading font-bold text-base text-font-main-sub mt-3">
-        {STEP_TITLES[currentStep - 1]}
-      </p>
-      <p className="text-center text-xs text-font-dim mt-0.5">
-        Step {currentStep} of {TOTAL_STEPS}
-      </p>
+      <div className="mt-4 flex gap-1.5" aria-hidden="true">
+        {steps.map((_, i) => (
+          <span
+            key={i}
+            className={`h-1.5 flex-1 rounded-full transition-colors ${
+              i + 1 <= currentStep ? "bg-brand-yellow-lg" : "bg-gray-200"
+            }`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -538,19 +591,19 @@ function PickerField({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`w-full flex items-center gap-3 border-2 rounded-xl px-3.5 py-3 text-left transition-colors ${
-        filled ? "border-brand-yellow bg-brand-yellow/5" : "border-gray-200"
+      className={`w-full flex items-center gap-3 rounded-2xl p-2.5 text-left transition-colors ${
+        filled ? "bg-brand-yellow/20" : "bg-brand-bg active:bg-gray-100"
       } disabled:opacity-40 disabled:cursor-not-allowed`}
     >
       <div
-        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
           filled
-            ? "bg-brand-yellow text-brand-secondary"
-            : "bg-gray-100 text-gray-400"
+            ? "bg-brand-yellow-lg text-brand-secondary"
+            : "bg-white text-font-dim"
         }`}
       >
         <svg
-          className="w-4.5 h-4.5"
+          className="w-5 h-5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -559,12 +612,12 @@ function PickerField({
         </svg>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-font-dim/70">
           {label}
         </p>
         <p
           className={`text-sm truncate ${
-            filled ? "font-semibold text-gray-900" : "text-font-dim"
+            filled ? "font-semibold text-font-main-sub" : "text-font-dim"
           }`}
         >
           {value || placeholder}
@@ -832,7 +885,7 @@ function StepVehicleLocation({
 
       {draft.pickupLocationId && !draft.pickupLocationConflict && (
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2 px-1">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-font-dim/70 mb-2 px-1">
             Exact pickup address
           </p>
           {pickupPointsLoading ? (
@@ -840,13 +893,13 @@ function StepVehicleLocation({
               Loading your saved addresses...
             </p>
           ) : pickupPoints.length === 0 ? (
-            <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-xl">
+            <div className="text-center py-6 px-4 bg-brand-bg rounded-2xl">
               <p className="text-sm text-font-dim mb-3">
                 No saved addresses in this area yet.
               </p>
               <button
                 onClick={onCreatePickupPoint}
-                className="text-sm font-bold text-brand-secondary bg-brand-yellow px-4 py-2 rounded-lg hover:bg-brand-yellow-lg transition-colors"
+                className="text-sm font-semibold text-brand-secondary bg-brand-yellow-lg px-4 py-2.5 rounded-xl active:bg-brand-yellow transition-colors"
               >
                 + Add pickup point
               </button>
@@ -865,17 +918,17 @@ function StepVehicleLocation({
                           pickupPointLabel: p.label || p.address,
                         })
                       }
-                      className={`w-full flex items-start gap-3 text-left border-2 rounded-xl px-3.5 py-3 text-sm transition-colors ${
+                      className={`w-full flex items-start gap-3 text-left rounded-2xl p-2.5 text-sm transition-colors ${
                         selected
-                          ? "border-brand-yellow bg-brand-yellow/5"
-                          : "border-gray-200 hover:border-gray-300"
+                          ? "bg-brand-yellow/25 ring-2 ring-brand-yellow-lg"
+                          : "bg-brand-bg active:bg-gray-100"
                       }`}
                     >
                       <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                           selected
-                            ? "bg-brand-yellow text-brand-secondary"
-                            : "bg-gray-100 text-gray-400"
+                            ? "bg-brand-yellow-lg text-brand-secondary"
+                            : "bg-white text-font-dim"
                         }`}
                       >
                         <svg
@@ -887,21 +940,37 @@ function StepVehicleLocation({
                           {PIN_ICON}
                         </svg>
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-gray-900">
+                      <div className="min-w-0 flex-1 self-center">
+                        <p className="font-semibold text-font-main-sub">
                           {p.label || "Pickup point"}
                         </p>
                         <p className="text-xs text-font-dim mt-0.5">
                           {p.address}
                         </p>
                       </div>
+                      {selected && (
+                        <svg
+                          className="w-5 h-5 shrink-0 text-brand-secondary"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      )}
                     </button>
                   );
                 })}
               </div>
               <button
                 onClick={onCreatePickupPoint}
-                className="text-sm font-semibold text-brand-yellow-lg mt-3"
+                className="inline-flex items-center rounded-xl bg-brand-bg px-3.5 py-2.5 text-sm font-semibold text-font-main-sub active:bg-gray-100 transition-colors mt-3"
               >
                 + Add a new pickup point
               </button>
@@ -929,6 +998,7 @@ function StepVehicleLocation({
             setActiveSheet(null);
           }}
           onClose={() => setActiveSheet(null)}
+          selectedKey={draft.brandId}
           showAllByDefault
           emptyLabel="No brands found."
         />
@@ -959,6 +1029,7 @@ function StepVehicleLocation({
             setActiveSheet(null);
           }}
           onClose={() => setActiveSheet(null)}
+          selectedKey={draft.vehicleTypeId}
           showAllByDefault
           emptyLabel="No vehicle types found for this brand."
         />
@@ -990,6 +1061,7 @@ function StepVehicleLocation({
             setActiveSheet(null);
           }}
           onClose={() => setActiveSheet(null)}
+          selectedKey={draft.cityId}
           showAllByDefault
           emptyLabel="No cities found."
         />
@@ -1017,6 +1089,7 @@ function StepVehicleLocation({
             setActiveSheet(null);
           }}
           onClose={() => setActiveSheet(null)}
+          selectedKey={draft.pickupLocationId}
           showAllByDefault
           emptyLabel="No matching locations."
         />
@@ -1028,7 +1101,7 @@ function StepVehicleLocation({
 function ChevronIcon() {
   return (
     <svg
-      className="w-5 h-5 text-gray-300 shrink-0"
+      className="w-5 h-5 text-gray-400 shrink-0"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -1059,7 +1132,8 @@ function StepSchedule({
   const {
     data: templates = [],
     isLoading: loading,
-    error: templatesErrorObj,
+    error: templatesError,
+    refetch,
   } = useQuery({
     queryKey: queryKeys.fleet.scheduleTemplates(token),
     queryFn: async () => {
@@ -1071,8 +1145,7 @@ function StepSchedule({
     },
     enabled: !!token,
   });
-  const error =
-    templatesErrorObj instanceof Error ? templatesErrorObj.message : null;
+  const error = templatesError instanceof Error ? templatesError.message : null;
 
   if (loading)
     return (
@@ -1083,12 +1156,26 @@ function StepSchedule({
 
   return (
     <div className="space-y-4">
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 rounded-xl bg-red-50 px-3.5 py-3 text-sm text-red-700"
+        >
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="shrink-0 font-bold underline"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       {templates.length === 0 ? (
-        <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-xl">
-          <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
+        <div className="text-center py-8 px-4 bg-brand-bg rounded-2xl">
+          <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center mx-auto mb-3">
             <svg
-              className="w-6 h-6 text-gray-300"
+              className="w-6 h-6 text-font-dim"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1101,7 +1188,7 @@ function StepSchedule({
           </p>
           <button
             onClick={onCreateNew}
-            className="text-sm font-bold text-brand-secondary bg-brand-yellow px-4 py-2 rounded-lg hover:bg-brand-yellow-lg transition-colors"
+            className="text-sm font-semibold text-brand-secondary bg-brand-yellow-lg px-4 py-2.5 rounded-xl active:bg-brand-yellow transition-colors"
           >
             + Create schedule template
           </button>
@@ -1120,17 +1207,17 @@ function StepSchedule({
                       scheduleTemplateName: t.name,
                     })
                   }
-                  className={`w-full flex items-center gap-3 text-left border-2 rounded-xl px-3.5 py-3 text-sm font-medium transition-colors ${
+                  className={`w-full flex items-center gap-3 text-left rounded-2xl p-2.5 text-sm transition-colors ${
                     selected
-                      ? "border-brand-yellow bg-brand-yellow/5"
-                      : "border-gray-200 hover:border-gray-300"
+                      ? "bg-brand-yellow/25 ring-2 ring-brand-yellow-lg"
+                      : "bg-brand-bg active:bg-gray-100"
                   }`}
                 >
                   <div
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                       selected
-                        ? "bg-brand-yellow text-brand-secondary"
-                        : "bg-gray-100 text-gray-400"
+                        ? "bg-brand-yellow-lg text-brand-secondary"
+                        : "bg-white text-font-dim"
                     }`}
                   >
                     <svg
@@ -1142,14 +1229,30 @@ function StepSchedule({
                       {CALENDAR_ICON}
                     </svg>
                   </div>
-                  {t.name}
+                  <span className="flex-1 font-semibold text-font-main-sub">{t.name}</span>
+                  {selected && (
+                        <svg
+                          className="w-5 h-5 shrink-0 text-brand-secondary"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                  )}
                 </button>
               );
             })}
           </div>
           <button
             onClick={onCreateNew}
-            className="text-sm font-semibold text-brand-yellow-lg"
+            className="inline-flex items-center rounded-xl bg-brand-bg px-3.5 py-2.5 text-sm font-semibold text-font-main-sub active:bg-gray-100 transition-colors"
           >
             + Create a new schedule template
           </button>
@@ -1170,11 +1273,19 @@ function StepPricing({
   update: (patch: Partial<WizardDraft>) => void;
   token: string;
 }) {
-  const { data: packageTypes = [], isLoading: loading } = useQuery({
+  const {
+    data: packageTypes = [],
+    isLoading: loading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: queryKeys.fleet.packageTypes(token),
     queryFn: async () => {
       const res = await getPackageTypesApi(token);
-      return res.data ?? [];
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Failed to load package types");
+      }
+      return res.data;
     },
     enabled: !!token,
   });
@@ -1212,6 +1323,28 @@ function StepPricing({
   if (loading)
     return <p className="text-sm text-font-dim">Loading package types...</p>;
 
+  if (error) {
+    return (
+      <div
+        role="alert"
+        className="flex items-center justify-between gap-3 rounded-xl bg-red-50 px-3.5 py-3 text-sm text-red-700"
+      >
+        <span>
+          {error instanceof Error
+            ? error.message
+            : "Failed to load package types."}
+        </span>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="shrink-0 font-bold underline"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {draft.pricingPackages.map((pkg, i) => {
@@ -1221,32 +1354,37 @@ function StepPricing({
         return (
           <div
             key={i}
-            className="border border-gray-100 rounded-xl p-4 space-y-3 relative"
+            className="rounded-2xl border-2 border-gray-100 p-3 space-y-3 relative"
           >
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-brand-yellow/15 text-brand-yellow-lg flex items-center justify-center text-[11px] font-bold shrink-0">
+                <div className="w-7 h-7 rounded-full bg-brand-secondary text-brand-yellow flex items-center justify-center text-xs font-bold shrink-0">
                   {i + 1}
                 </div>
-                <label className="text-xs font-semibold text-gray-600">
+                <p className="text-sm font-semibold text-font-main-sub">
                   Package {i + 1}
-                </label>
+                </p>
               </div>
               <button
                 onClick={() => removePackage(i)}
-                className="text-xs text-red-500 font-semibold"
+                className="rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 active:bg-red-100 transition-colors"
               >
                 Remove
               </button>
             </div>
             <select
               value={pkg.packageTypeId ?? ""}
-              onChange={(e) =>
+              onChange={(e) => {
+                const packageTypeId = Number(e.target.value) || null;
+                const selectedType = availableTypes.find(
+                  (type) => type.id === packageTypeId,
+                );
                 updatePackage(i, {
-                  packageTypeId: Number(e.target.value) || null,
-                })
-              }
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+                  packageTypeId,
+                  packageTypeName: selectedType?.name ?? "",
+                });
+              }}
+              className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
             >
               <option value="">Select a package type</option>
               {availableTypes.map((pt) => (
@@ -1255,13 +1393,13 @@ function StepPricing({
                 </option>
               ))}
             </select>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-font-dim/70 mb-1.5 px-1">
                   Price
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-400">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-font-dim">
                     ₹
                   </span>
                   <input
@@ -1271,12 +1409,12 @@ function StepPricing({
                     onChange={(e) =>
                       updatePackage(i, { price: e.target.value })
                     }
-                    className="w-full border border-gray-300 rounded-xl pl-7 pr-3 py-2.5 text-sm"
+                    className="w-full bg-brand-bg border-2 border-transparent rounded-xl pl-8 pr-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-font-dim/70 mb-1.5 px-1">
                   Km limit (blank = unlimited)
                 </label>
                 <input
@@ -1286,32 +1424,25 @@ function StepPricing({
                   onChange={(e) =>
                     updatePackage(i, { kmLimit: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+                  className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
                 />
               </div>
             </div>
-            <label className="flex items-center gap-2 text-sm bg-brand-yellow/10 border border-brand-yellow/30 rounded-xl px-3.5 py-3">
-              <input
-                type="checkbox"
-                checked={pkg.payAtPickupEnabled}
-                onChange={(e) =>
-                  updatePackage(i, { payAtPickupEnabled: e.target.checked })
-                }
-                className="w-4 h-4 accent-brand-yellow"
-              />
-              <span className="font-semibold text-font-main-sub">
-                Allow pay at pickup
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-brand-yellow-lg ml-auto">
-                Recommended
-              </span>
-            </label>
+            <ToggleRow
+              label="Allow pay at pickup"
+              badge="Recommended"
+              hint="Customers can pay the balance when they collect the bike"
+              checked={pkg.payAtPickupEnabled}
+              onChange={(checked) =>
+                updatePackage(i, { payAtPickupEnabled: checked })
+              }
+            />
           </div>
         );
       })}
       <button
         onClick={addPackage}
-        className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm font-semibold text-font-dim hover:border-brand-yellow hover:text-brand-secondary transition-colors"
+        className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-2xl py-3.5 text-sm font-semibold text-font-main-sub active:bg-gray-50 transition-colors"
       >
         <svg
           className="w-4 h-4"
@@ -1349,7 +1480,7 @@ function StepPolicies({
           min="1"
           value={draft.availableCount}
           onChange={(e) => update({ availableCount: e.target.value })}
-          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+          className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
         />
       </Field>
       <Field label="Security deposit (₹)">
@@ -1358,7 +1489,7 @@ function StepPolicies({
           min="0"
           value={draft.securityDepositAmount}
           onChange={(e) => update({ securityDepositAmount: e.target.value })}
-          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+          className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
         />
       </Field>
       {/* <Field label="Km limit per day (optional)">
@@ -1367,7 +1498,7 @@ function StepPolicies({
           min="1"
           value={draft.kmLimitPerDay}
           onChange={(e) => update({ kmLimitPerDay: e.target.value })}
-          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+          className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
         />
       </Field> */}
       <Field label="Excess charge per km (₹)">
@@ -1376,7 +1507,7 @@ function StepPolicies({
           min="0"
           value={draft.excessChargePerKm}
           onChange={(e) => update({ excessChargePerKm: e.target.value })}
-          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+          className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
         />
       </Field>
       <Field label="Late return penalty per hour (₹)">
@@ -1385,20 +1516,15 @@ function StepPolicies({
           min="0"
           value={draft.lateReturnPenaltyPerHour}
           onChange={(e) => update({ lateReturnPenaltyPerHour: e.target.value })}
-          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+          className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
         />
       </Field>
-      <label className="flex items-center gap-2 text-sm bg-gray-50 rounded-xl px-3.5 py-3">
-        <input
-          type="checkbox"
-          checked={draft.doorstepDeliveryEnabled}
-          onChange={(e) =>
-            update({ doorstepDeliveryEnabled: e.target.checked })
-          }
-          className="w-4 h-4 accent-brand-yellow"
-        />
-        Offer doorstep delivery
-      </label>
+      <ToggleRow
+        label="Offer doorstep delivery"
+        hint="Deliver the bike to the customer's address"
+        checked={draft.doorstepDeliveryEnabled}
+        onChange={(checked) => update({ doorstepDeliveryEnabled: checked })}
+      />
     </div>
   );
 }
@@ -1412,7 +1538,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1">
+      <label className="block text-[11px] font-bold uppercase tracking-wider text-font-dim/70 mb-1.5 px-1">
         {label}
       </label>
       {children}
@@ -1434,9 +1560,9 @@ function StepReview({
   error: string | null;
 }) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 bg-brand-yellow/10 rounded-xl p-3.5 mb-1">
-        <div className="w-9 h-9 rounded-full bg-brand-yellow text-brand-secondary flex items-center justify-center shrink-0">
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 bg-brand-yellow/25 rounded-xl p-3 mb-1">
+        <div className="w-10 h-10 rounded-xl bg-brand-yellow-lg text-brand-secondary flex items-center justify-center shrink-0">
           <svg
             className="w-5 h-5"
             fill="none"
@@ -1476,18 +1602,63 @@ function StepReview({
         label="Pricing packages"
         value={`${draft.pricingPackages.length} package(s)`}
       />
+      <div className="space-y-2 pl-[3.25rem]">
+        {draft.pricingPackages.map((pkg, index) => (
+          <div
+            key={`${pkg.packageTypeId ?? "package"}-${index}`}
+            className="flex items-start justify-between gap-3 rounded-xl bg-brand-bg px-3 py-2.5"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-xs font-bold text-font-main-sub">
+                {pkg.packageTypeName || `Package ${index + 1}`}
+              </p>
+              <p className="mt-0.5 text-[11px] text-font-dim">
+                {pkg.kmLimit ? `${pkg.kmLimit} km limit` : "Unlimited distance"}
+                {pkg.payAtPickupEnabled ? " · Pay at pickup" : " · Prepaid"}
+              </p>
+            </div>
+            <p className="shrink-0 rounded-lg bg-brand-yellow/30 px-2 py-0.5 text-sm font-bold tabular-nums text-brand-secondary">
+              ₹{pkg.price || "0"}
+            </p>
+          </div>
+        ))}
+      </div>
       <ReviewRow
         icon={SHIELD_ICON}
         label="Fleet quantity"
         value={draft.availableCount}
       />
+      <ReviewRow
+        icon={DEPOSIT_ICON}
+        label="Security deposit"
+        value={`₹${draft.securityDepositAmount}`}
+      />
+      <ReviewRow
+        icon={DISTANCE_ICON}
+        label="Excess charge"
+        value={`₹${draft.excessChargePerKm}/km`}
+      />
+      <ReviewRow
+        icon={CLOCK_ICON}
+        label="Late return"
+        value={`₹${draft.lateReturnPenaltyPerHour}/hour`}
+      />
+      <ReviewRow
+        icon={TRUCK_ICON}
+        label="Doorstep delivery"
+        value={draft.doorstepDeliveryEnabled ? "Offered" : "Not offered"}
+      />
 
-      {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+      {error && (
+        <p className="rounded-xl bg-red-50 px-3.5 py-3 text-sm font-medium text-red-700">
+          {error}
+        </p>
+      )}
 
       <button
         onClick={onSubmit}
         disabled={submitting}
-        className="w-full font-bold rounded-xl py-4 text-center bg-brand-yellow text-brand-secondary hover:bg-brand-yellow-lg transition-colors disabled:opacity-50"
+        className="w-full font-semibold rounded-xl py-4 text-center bg-brand-secondary text-brand-yellow active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
       >
         {submitting ? "Creating listing..." : "Create listing"}
       </button>
@@ -1505,8 +1676,8 @@ function ReviewRow({
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
-      <div className="w-8 h-8 rounded-lg bg-gray-50 text-gray-400 flex items-center justify-center shrink-0">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl bg-gray-100 text-font-dim flex items-center justify-center shrink-0">
         <svg
           className="w-4 h-4"
           fill="none"
@@ -1517,8 +1688,8 @@ function ReviewRow({
         </svg>
       </div>
       <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
-        <span className="text-sm text-font-dim">{label}</span>
-        <span className="font-semibold text-font-main-sub text-right truncate">
+        <span className="text-sm text-font-dim shrink-0">{label}</span>
+        <span className="text-sm font-semibold text-font-main-sub text-right truncate">
           {value}
         </span>
       </div>
@@ -1570,8 +1741,8 @@ function PhotoUploadPanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 bg-brand-yellow/10 rounded-xl p-3.5">
-        <div className="w-9 h-9 rounded-full bg-brand-yellow text-brand-secondary flex items-center justify-center shrink-0">
+      <div className="flex items-center gap-3 bg-white shadow-sm rounded-2xl p-3">
+        <div className="w-10 h-10 rounded-xl bg-brand-yellow-lg text-brand-secondary flex items-center justify-center shrink-0">
           <svg
             className="w-5 h-5"
             fill="none"
@@ -1588,11 +1759,11 @@ function PhotoUploadPanel({
 
       <label
         htmlFor="listing-photo-input"
-        className="flex flex-col items-center justify-center text-center border-2 border-dashed border-gray-200 rounded-2xl py-8 px-4 cursor-pointer hover:border-brand-yellow transition-colors bg-white"
+        className="flex flex-col items-center justify-center text-center border-2 border-dashed border-gray-200 rounded-2xl py-8 px-4 cursor-pointer active:bg-gray-50 transition-colors bg-white shadow-sm"
       >
-        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
+        <div className="w-12 h-12 rounded-xl bg-brand-yellow-lg flex items-center justify-center mb-3">
           <svg
-            className="w-6 h-6 text-gray-400"
+            className="w-6 h-6 text-brand-secondary"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -1600,7 +1771,7 @@ function PhotoUploadPanel({
             {CAMERA_ICON}
           </svg>
         </div>
-        <p className="text-sm font-semibold text-gray-700">
+        <p className="text-sm font-semibold text-font-main-sub">
           Tap to choose photos
         </p>
         <p className="text-xs text-font-dim mt-1">
@@ -1626,7 +1797,7 @@ function PhotoUploadPanel({
               key={i}
               src={src}
               alt=""
-              className="h-24 w-24 object-cover rounded-xl border border-gray-100 shrink-0"
+              className="h-24 w-24 object-cover rounded-xl bg-gray-100 shrink-0"
             />
           ))}
         </div>
@@ -1639,17 +1810,71 @@ function PhotoUploadPanel({
         <button
           onClick={handleUpload}
           disabled={uploading || files.length === 0}
-          className="w-full font-bold rounded-xl py-3.5 text-center bg-brand-yellow text-brand-secondary hover:bg-brand-yellow-lg transition-colors disabled:opacity-50"
+          className="w-full font-semibold rounded-xl py-3.5 text-center shadow-sm bg-brand-secondary text-brand-yellow active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
         >
           {uploading ? "Uploading..." : "Upload photos"}
         </button>
         <button
           onClick={onDone}
-          className="w-full text-sm font-semibold text-font-dim py-2"
+          className="w-full bg-white shadow-sm rounded-xl py-3.5 text-sm font-semibold text-font-main-sub active:bg-gray-100 transition-colors"
         >
           {uploaded ? "Done" : "Skip for now"}
         </button>
       </div>
     </div>
+  );
+}
+
+/**
+ * Sidebar-style row with a switch — replaces the plain checkboxes so
+ * on/off settings read the same as the Live/Paused switch in the fleet
+ * list.
+ */
+function ToggleRow({
+  label,
+  hint,
+  badge,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  badge?: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="w-full flex items-center gap-3 rounded-xl bg-brand-bg px-3.5 py-3 text-left active:bg-gray-100 transition-colors"
+    >
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-font-main-sub">
+          {label}
+          {badge && (
+            <span className="rounded-md bg-brand-yellow/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-secondary">
+              {badge}
+            </span>
+          )}
+        </span>
+        {hint && (
+          <span className="block text-xs text-font-dim mt-0.5">{hint}</span>
+        )}
+      </span>
+      <span
+        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
+          checked ? "bg-brand-yellow-lg" : "bg-gray-300"
+        }`}
+      >
+        <span
+          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${
+            checked ? "translate-x-[26px]" : "translate-x-1"
+          }`}
+        />
+      </span>
+    </button>
   );
 }

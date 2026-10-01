@@ -27,6 +27,7 @@ import {
   editDraftKey,
 } from "@/lib/listingDraft";
 import { queryKeys } from "@/lib/queryKeys";
+import { goBackOr } from "@/lib/navigation";
 import { SearchPickerSheet } from "@/components/ui/SearchPickerSheet";
 import type {
   City,
@@ -154,6 +155,52 @@ function detailToFormState(detail: ListingDetail): EditFormState {
   };
 }
 
+function getEditValidationMessage(form: EditFormState): string | null {
+  if (!form.pickupLocationId) return "Choose a pickup location.";
+  if (!form.pickupPointId) return "Choose an exact pickup point.";
+  if (!form.scheduleTemplateId) return "Choose a schedule template.";
+  const quantity = Number(form.availableCount);
+  if (
+    form.availableCount.trim() === "" ||
+    !Number.isInteger(quantity) ||
+    quantity < 1
+  )
+    return "Fleet quantity must be a whole number of at least 1.";
+
+  const amounts = [
+    ["Security deposit", form.securityDepositAmount],
+    ["Excess charge per km", form.excessChargePerKm],
+    ["Late return penalty per hour", form.lateReturnPenaltyPerHour],
+  ] as const;
+  for (const [label, value] of amounts) {
+    const amount = Number(value);
+    if (value.trim() === "" || !Number.isFinite(amount) || amount < 0) {
+      return `${label} must be a valid amount of ₹0 or more.`;
+    }
+  }
+
+  if (form.pricingPackages.length === 0)
+    return "Add at least one pricing package.";
+  if (form.pricingPackages.some((pkg) => !pkg.packageTypeId))
+    return "Choose a package type for each pricing package.";
+  if (
+    form.pricingPackages.some((pkg) => {
+      const price = Number(pkg.price);
+      return pkg.price.trim() === "" || !Number.isFinite(price) || price <= 0;
+    })
+  )
+    return "Each package price must be greater than ₹0.";
+  if (
+    form.pricingPackages.some((pkg) => {
+      if (!pkg.kmLimit.trim()) return false;
+      const limit = Number(pkg.kmLimit);
+      return !Number.isInteger(limit) || limit < 1;
+    })
+  )
+    return "Package kilometre limits must be whole numbers above 0, or left blank.";
+  return null;
+}
+
 export default function EditListingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -183,7 +230,10 @@ export default function EditListingPage() {
   } = useQuery({
     queryKey: queryKeys.fleet.listing(token, listingId),
     queryFn: async () => {
-      const res = await getListingDetailApi(listingId as string, token as string);
+      const res = await getListingDetailApi(
+        listingId as string,
+        token as string,
+      );
       if (!res.success || !res.data) {
         throw new Error(res.message || "Listing not found");
       }
@@ -196,7 +246,8 @@ export default function EditListingPage() {
       ? loadErrorObj.message
       : "Listing not found"
     : null;
-  const formInitialized = seededListingId === listingId && seededListingId !== null;
+  const formInitialized =
+    seededListingId === listingId && seededListingId !== null;
 
   if (listingDetail && listingId && seededListingId !== listingId) {
     const restored = loadDraft<EditFormState>(draftKey);
@@ -234,7 +285,11 @@ export default function EditListingPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (payload: ListingUpdatePayload) => {
-      const res = await updateListingApi(listingId as string, payload, token as string);
+      const res = await updateListingApi(
+        listingId as string,
+        payload,
+        token as string,
+      );
       if (!res.success || !res.data) {
         throw new Error(res.message || "Failed to save changes");
       }
@@ -255,7 +310,7 @@ export default function EditListingPage() {
       queryClient.invalidateQueries({ queryKey: ["fleet", "list", token] });
       setSaved(true);
       setTimeout(
-        () => router.push(`/fleet/listing?id=${listingId}` as Route),
+        () => goBackOr(router, `/fleet/listing?id=${listingId}`),
         900,
       );
     },
@@ -263,9 +318,7 @@ export default function EditListingPage() {
 
   const submitting = updateMutation.isPending;
   const submitError =
-    updateMutation.error instanceof Error
-      ? updateMutation.error.message
-      : null;
+    updateMutation.error instanceof Error ? updateMutation.error.message : null;
 
   function handleSubmit() {
     if (!token || !form || !listingId) return;
@@ -275,9 +328,7 @@ export default function EditListingPage() {
       schedule_template_id: form.scheduleTemplateId!,
       available_count: Number(form.availableCount) || 1,
       security_deposit_amount: form.securityDepositAmount || "0",
-      km_limit_per_day: form.kmLimitPerDay
-        ? Number(form.kmLimitPerDay)
-        : null,
+      km_limit_per_day: form.kmLimitPerDay ? Number(form.kmLimitPerDay) : null,
       excess_charge_per_km: form.excessChargePerKm || "0",
       late_return_penalty_per_hour: form.lateReturnPenaltyPerHour || "0",
       doorstep_delivery_enabled: form.doorstepDeliveryEnabled,
@@ -321,104 +372,126 @@ export default function EditListingPage() {
     );
   }
 
-  const policiesIncomplete =
-    !form.securityDepositAmount ||
-    !form.excessChargePerKm ||
-    !form.lateReturnPenaltyPerHour;
+  const validationMessage = getEditValidationMessage(form);
 
   return (
     <>
       <Header title="Edit listing" onBack={() => router.back()} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 space-y-4 bg-brand-bg">
-        <div className="flex items-center gap-3 bg-white border border-gray-100 rounded-2xl px-4 py-3.5 shadow-sm">
-          <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center shrink-0">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pb-8 pt-4 sm:px-6 sm:pt-6">
+        <div className="mx-auto max-w-3xl space-y-5">
+          <section className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-100 p-1.5 text-font-dim">
+              {listingDetail?.vehicle_type.primary_image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={listingDetail.vehicle_type.primary_image}
+                  alt=""
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  {VEHICLE_ICON}
+                </svg>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-font-dim/70">
+                Editing vehicle
+              </p>
+              <p className="mt-0.5 truncate font-heading text-[15px] font-bold text-font-main-sub">
+                {vehicleTypeLabel}
+              </p>
+            </div>
+            <span className="ml-auto shrink-0 rounded-full bg-brand-yellow/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-brand-secondary">
+              {listingDetail?.status.replace(/_/g, " ") ?? "Listing"}
+            </span>
+          </section>
+          <p className="-mt-3 px-1 text-xs text-font-dim">
+            Vehicle type is fixed after creation. Changes to listing details
+            send it back for admin approval.
+          </p>
+
+          <Section title="Pickup location">
+            <LocationPicker
+              form={form}
+              update={update}
+              token={token!}
+              onCreatePickupPoint={handleCreatePickupPoint}
+            />
+          </Section>
+
+          <Section title="Photos">
+            <PhotosManager
+              listingId={listingId}
+              images={images}
+              setImages={setImages}
+              token={token!}
+            />
+          </Section>
+
+          <Section title="Schedule">
+            <SchedulePicker
+              form={form}
+              update={update}
+              token={token!}
+              onCreateNew={handleCreateScheduleTemplate}
+            />
+          </Section>
+
+          <Section title="Pricing packages">
+            <PricingEditor form={form} update={update} token={token!} />
+          </Section>
+
+          <Section title="Policies">
+            <PoliciesEditor form={form} update={update} />
+          </Section>
+
+          {submitError && (
+            <p
+              role="alert"
+              className="rounded-xl bg-red-50 px-3.5 py-3 text-sm font-medium text-red-700"
             >
-              {VEHICLE_ICON}
-            </svg>
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
-              Vehicle type
+              {submitError}
             </p>
-            <p className="text-sm font-semibold text-font-main-sub mt-0.5 truncate">
-              {vehicleTypeLabel}
+          )}
+          {saved && (
+            <p
+              role="status"
+              className="rounded-xl bg-green-50 px-3.5 py-3 text-sm font-semibold text-green-800"
+            >
+              Changes saved. This listing is pending admin re-approval.
             </p>
-          </div>
+          )}
+
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || !!validationMessage || saved}
+            className="min-h-12 w-full rounded-xl px-4 py-3.5 text-center text-sm font-semibold shadow-sm bg-brand-secondary text-brand-yellow active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
+          >
+            {submitting
+              ? "Saving changes..."
+              : saved
+                ? "Saved"
+                : "Save changes"}
+          </button>
+          {validationMessage && (
+            <p
+              role="status"
+              className="rounded-xl bg-amber-50 px-3.5 py-3 text-sm font-medium text-amber-900"
+            >
+              {validationMessage}
+            </p>
+          )}
+          <p className="text-xs text-font-dim text-center">
+            Your changes require admin approval before taking effect.
+          </p>
         </div>
-        <p className="text-xs text-font-dim px-1 -mt-2">
-          Vehicle type can&apos;t be changed after creation.
-        </p>
-
-        <Section title="Pickup location">
-          <LocationPicker
-            form={form}
-            update={update}
-            token={token!}
-            onCreatePickupPoint={handleCreatePickupPoint}
-          />
-        </Section>
-
-        <Section title="Photos">
-          <PhotosManager
-            listingId={listingId}
-            images={images}
-            setImages={setImages}
-            token={token!}
-          />
-        </Section>
-
-        <Section title="Schedule">
-          <SchedulePicker
-            form={form}
-            update={update}
-            token={token!}
-            onCreateNew={handleCreateScheduleTemplate}
-          />
-        </Section>
-
-        <Section title="Pricing packages">
-          <PricingEditor form={form} update={update} token={token!} />
-        </Section>
-
-        <Section title="Policies">
-          <PoliciesEditor form={form} update={update} />
-        </Section>
-
-        {submitError && (
-          <p className="text-sm text-red-500 font-medium">{submitError}</p>
-        )}
-        {saved && (
-          <p className="text-sm text-green-600 font-medium">
-            Saved. Listing is pending re-approval.
-          </p>
-        )}
-
-        <button
-          onClick={handleSubmit}
-          disabled={submitting || !form.pickupPointId || policiesIncomplete}
-          className="w-full font-bold rounded-xl py-4 text-center bg-brand-yellow text-brand-secondary hover:bg-brand-yellow-lg transition-colors disabled:opacity-50"
-        >
-          {submitting ? "Saving..." : "Save changes"}
-        </button>
-        {!form.pickupPointId && (
-          <p className="text-xs text-red-500 text-center -mt-3">
-            Select an exact pickup point before saving.
-          </p>
-        )}
-        {form.pickupPointId && policiesIncomplete && (
-          <p className="text-xs text-red-500 text-center -mt-3">
-            Security deposit, excess charge, and late return penalty can&apos;t
-            be blank — enter 0 if not applicable.
-          </p>
-        )}
-        <p className="text-xs text-font-dim text-center">
-          Saving sends this listing back for admin approval.
-        </p>
       </main>
     </>
   );
@@ -432,11 +505,11 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-      <h2 className="font-heading font-bold text-sm text-font-main-sub mb-3">
+    <section>
+      <h2 className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
         {title}
       </h2>
-      {children}
+      <div className="bg-white rounded-2xl shadow-sm p-3">{children}</div>
     </section>
   );
 }
@@ -463,19 +536,19 @@ function PickerField({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`w-full flex items-center gap-3 border-2 rounded-xl px-3.5 py-3 text-left transition-colors ${
-        filled ? "border-brand-yellow bg-brand-yellow/5" : "border-gray-200"
+      className={`w-full flex items-center gap-3 rounded-2xl p-2.5 text-left transition-colors ${
+        filled ? "bg-brand-yellow/20" : "bg-brand-bg active:bg-gray-100"
       } disabled:opacity-40 disabled:cursor-not-allowed`}
     >
       <div
-        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
           filled
-            ? "bg-brand-yellow text-brand-secondary"
-            : "bg-gray-100 text-gray-400"
+            ? "bg-brand-yellow-lg text-brand-secondary"
+            : "bg-white text-font-dim"
         }`}
       >
         <svg
-          className="w-4.5 h-4.5"
+          className="w-5 h-5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -484,19 +557,19 @@ function PickerField({
         </svg>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-font-dim/70">
           {label}
         </p>
         <p
           className={`text-sm truncate ${
-            filled ? "font-semibold text-gray-900" : "text-font-dim"
+            filled ? "font-semibold text-font-main-sub" : "text-font-dim"
           }`}
         >
           {value || placeholder}
         </p>
       </div>
       <svg
-        className="w-5 h-5 text-gray-300 shrink-0"
+        className="w-5 h-5 text-gray-400 shrink-0"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -636,7 +709,7 @@ function LocationPicker({
 
       {form.pickupLocationId && (
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2 px-1">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-font-dim/70 mb-2 px-1">
             Exact pickup address
           </p>
           {pickupPointsLoading ? (
@@ -644,13 +717,13 @@ function LocationPicker({
               Loading your saved addresses...
             </p>
           ) : pickupPoints.length === 0 ? (
-            <div className="text-center py-4 border-2 border-dashed border-gray-200 rounded-xl">
+            <div className="text-center py-4 px-4 bg-brand-bg rounded-2xl">
               <p className="text-xs text-font-dim mb-2">
                 No saved addresses in this area yet.
               </p>
               <button
                 onClick={onCreatePickupPoint}
-                className="text-xs font-bold text-brand-secondary bg-brand-yellow px-3 py-1.5 rounded-lg hover:bg-brand-yellow-lg transition-colors"
+                className="text-sm font-semibold text-brand-secondary bg-brand-yellow-lg px-4 py-2.5 rounded-xl active:bg-brand-yellow transition-colors"
               >
                 + Add pickup point
               </button>
@@ -669,17 +742,17 @@ function LocationPicker({
                           pickupPointLabel: p.label || p.address,
                         })
                       }
-                      className={`w-full flex items-start gap-3 text-left border-2 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                      className={`w-full flex items-start gap-3 text-left rounded-2xl p-2.5 text-sm transition-colors ${
                         selected
-                          ? "border-brand-yellow bg-brand-yellow/5"
-                          : "border-gray-200 hover:border-gray-300"
+                          ? "bg-brand-yellow/25 ring-2 ring-brand-yellow-lg"
+                          : "bg-brand-bg active:bg-gray-100"
                       }`}
                     >
                       <div
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                           selected
-                            ? "bg-brand-yellow text-brand-secondary"
-                            : "bg-gray-100 text-gray-400"
+                            ? "bg-brand-yellow-lg text-brand-secondary"
+                            : "bg-white text-font-dim"
                         }`}
                       >
                         <svg
@@ -691,21 +764,37 @@ function LocationPicker({
                           {PIN_ICON}
                         </svg>
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-medium">
+                      <div className="min-w-0 flex-1 self-center">
+                        <p className="font-semibold text-font-main-sub">
                           {p.label || "Pickup point"}
                         </p>
                         <p className="text-xs text-font-dim mt-0.5">
                           {p.address}
                         </p>
                       </div>
+                      {selected && (
+                        <svg
+                          className="w-5 h-5 shrink-0 text-brand-secondary"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      )}
                     </button>
                   );
                 })}
               </div>
               <button
                 onClick={onCreatePickupPoint}
-                className="text-xs font-semibold text-brand-yellow-lg mt-2"
+                className="inline-flex items-center rounded-xl bg-brand-bg px-3.5 py-2.5 text-sm font-semibold text-font-main-sub active:bg-gray-100 transition-colors mt-2"
               >
                 + Add a new pickup point
               </button>
@@ -739,6 +828,7 @@ function LocationPicker({
             setActiveSheet(null);
           }}
           onClose={() => setActiveSheet(null)}
+          selectedKey={form.cityId}
           showAllByDefault
           emptyLabel="No cities found."
         />
@@ -765,6 +855,7 @@ function LocationPicker({
             setActiveSheet(null);
           }}
           onClose={() => setActiveSheet(null)}
+          selectedKey={form.pickupLocationId}
           showAllByDefault
           emptyLabel="No matching locations."
         />
@@ -832,12 +923,12 @@ function PhotosManager({
               <img
                 src={img.image_url ?? undefined}
                 alt=""
-                className="h-24 w-24 rounded-xl object-cover border border-gray-100"
+                className="h-24 w-24 rounded-xl object-cover bg-gray-100"
               />
               <button
                 onClick={() => handleDelete(img.id)}
                 disabled={deletingId === img.id}
-                className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center disabled:opacity-50 shadow-sm"
+                className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-brand-secondary/80 text-white text-base leading-none flex items-center justify-center disabled:opacity-50"
                 aria-label="Delete photo"
               >
                 ×
@@ -849,19 +940,19 @@ function PhotosManager({
 
       <label
         htmlFor="edit-listing-photo-input"
-        className={`flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-4 px-4 cursor-pointer hover:border-brand-yellow transition-colors bg-gray-50/50 ${
+        className={`flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-2xl py-4 px-4 cursor-pointer active:bg-gray-50 transition-colors ${
           uploading ? "opacity-50 pointer-events-none" : ""
         }`}
       >
         <svg
-          className="w-5 h-5 text-gray-400"
+          className="w-5 h-5 text-font-dim"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
           {CAMERA_ICON}
         </svg>
-        <span className="text-sm font-semibold text-gray-600">
+        <span className="text-sm font-semibold text-font-main-sub">
           {uploading ? "Uploading..." : "Add more photos"}
         </span>
         <input
@@ -893,17 +984,45 @@ function SchedulePicker({
   token: string;
   onCreateNew: () => void;
 }) {
-  const { data: templates = [], isLoading: loading } = useQuery({
+  const {
+    data: templates = [],
+    isLoading: loading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: queryKeys.fleet.scheduleTemplates(token),
     queryFn: async () => {
       const res = await getScheduleTemplatesApi(token);
-      return res.data ?? [];
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Failed to load schedule templates");
+      }
+      return res.data;
     },
     enabled: !!token,
   });
 
   if (loading)
     return <p className="text-sm text-font-dim">Loading templates...</p>;
+
+  if (error) {
+    return (
+      <div
+        role="alert"
+        className="flex items-center justify-between gap-3 rounded-xl bg-red-50 px-3.5 py-3 text-sm text-red-700"
+      >
+        <span>
+          {error instanceof Error ? error.message : "Failed to load templates."}
+        </span>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="shrink-0 font-bold underline"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
@@ -915,17 +1034,17 @@ function SchedulePicker({
             onClick={() =>
               update({ scheduleTemplateId: t.id, scheduleTemplateName: t.name })
             }
-            className={`w-full flex items-center gap-3 text-left border-2 rounded-xl px-3.5 py-3 text-sm font-medium transition-colors ${
+            className={`w-full flex items-center gap-3 text-left rounded-2xl p-2.5 text-sm transition-colors ${
               selected
-                ? "border-brand-yellow bg-brand-yellow/5"
-                : "border-gray-200 hover:border-gray-300"
+                ? "bg-brand-yellow/25 ring-2 ring-brand-yellow-lg"
+                : "bg-brand-bg active:bg-gray-100"
             }`}
           >
             <div
-              className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                 selected
-                  ? "bg-brand-yellow text-brand-secondary"
-                  : "bg-gray-100 text-gray-400"
+                  ? "bg-brand-yellow-lg text-brand-secondary"
+                  : "bg-white text-font-dim"
               }`}
             >
               <svg
@@ -937,13 +1056,29 @@ function SchedulePicker({
                 {CALENDAR_ICON}
               </svg>
             </div>
-            {t.name}
+            <span className="flex-1 font-semibold text-font-main-sub">{t.name}</span>
+            {selected && (
+                        <svg
+                          className="w-5 h-5 shrink-0 text-brand-secondary"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+            )}
           </button>
         );
       })}
       <button
         onClick={onCreateNew}
-        className="text-sm font-semibold text-brand-yellow-lg"
+        className="inline-flex items-center rounded-xl bg-brand-bg px-3.5 py-2.5 text-sm font-semibold text-font-main-sub active:bg-gray-100 transition-colors"
       >
         + Create a new schedule template
       </button>
@@ -962,11 +1097,19 @@ function PricingEditor({
   update: (patch: Partial<EditFormState>) => void;
   token: string;
 }) {
-  const { data: packageTypes = [], isLoading: loading } = useQuery({
+  const {
+    data: packageTypes = [],
+    isLoading: loading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: queryKeys.fleet.packageTypes(token),
     queryFn: async () => {
       const res = await getPackageTypesApi(token);
-      return res.data ?? [];
+      if (!res.success || !res.data) {
+        throw new Error(res.message || "Failed to load package types");
+      }
+      return res.data;
     },
     enabled: !!token,
   });
@@ -1004,6 +1147,28 @@ function PricingEditor({
   if (loading)
     return <p className="text-sm text-font-dim">Loading package types...</p>;
 
+  if (error) {
+    return (
+      <div
+        role="alert"
+        className="flex items-center justify-between gap-3 rounded-xl bg-red-50 px-3.5 py-3 text-sm text-red-700"
+      >
+        <span>
+          {error instanceof Error
+            ? error.message
+            : "Failed to load package types."}
+        </span>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="shrink-0 font-bold underline"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {form.pricingPackages.map((pkg, i) => {
@@ -1013,20 +1178,20 @@ function PricingEditor({
         return (
           <div
             key={i}
-            className="border border-gray-100 rounded-xl p-4 space-y-3"
+            className="rounded-2xl border-2 border-gray-100 p-3 space-y-3"
           >
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-brand-yellow/15 text-brand-yellow-lg flex items-center justify-center text-[11px] font-bold shrink-0">
+                <div className="w-7 h-7 rounded-full bg-brand-secondary text-brand-yellow flex items-center justify-center text-xs font-bold shrink-0">
                   {i + 1}
                 </div>
-                <label className="text-xs font-semibold text-gray-600">
+                <p className="text-sm font-semibold text-font-main-sub">
                   Package {i + 1}
-                </label>
+                </p>
               </div>
               <button
                 onClick={() => removePackage(i)}
-                className="text-xs text-red-500 font-semibold"
+                className="rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 active:bg-red-100 transition-colors"
               >
                 Remove
               </button>
@@ -1038,7 +1203,7 @@ function PricingEditor({
                   packageTypeId: Number(e.target.value) || null,
                 })
               }
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+              className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
             >
               <option value="">Select a package type</option>
               {availableTypes.map((pt) => (
@@ -1047,63 +1212,58 @@ function PricingEditor({
                 </option>
               ))}
             </select>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-font-dim/70 mb-1.5 px-1">
                   Price
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-400">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-font-dim">
                     ₹
                   </span>
                   <input
                     type="number"
                     min="0"
+                    step="0.01"
                     value={pkg.price}
                     onChange={(e) =>
                       updatePackage(i, { price: e.target.value })
                     }
-                    className="w-full border border-gray-300 rounded-xl pl-7 pr-3 py-2.5 text-sm"
+                    className="w-full bg-brand-bg border-2 border-transparent rounded-xl pl-8 pr-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-font-dim/70 mb-1.5 px-1">
                   Km limit (blank = unlimited)
                 </label>
                 <input
                   type="number"
                   min="1"
+                  step="1"
                   value={pkg.kmLimit}
                   onChange={(e) =>
                     updatePackage(i, { kmLimit: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+                  className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
                 />
               </div>
             </div>
-            <label className="flex items-center gap-2 text-sm bg-brand-yellow/10 border border-brand-yellow/30 rounded-xl px-3.5 py-3">
-              <input
-                type="checkbox"
-                checked={pkg.payAtPickupEnabled}
-                onChange={(e) =>
-                  updatePackage(i, { payAtPickupEnabled: e.target.checked })
-                }
-                className="w-4 h-4 accent-brand-yellow"
-              />
-              <span className="font-semibold text-font-main-sub">
-                Allow pay at pickup
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-brand-yellow-lg ml-auto">
-                Recommended
-              </span>
-            </label>
+            <ToggleRow
+              label="Allow pay at pickup"
+              badge="Recommended"
+              hint="Customers can pay the balance when they collect the bike"
+              checked={pkg.payAtPickupEnabled}
+              onChange={(checked) =>
+                updatePackage(i, { payAtPickupEnabled: checked })
+              }
+            />
           </div>
         );
       })}
       <button
         onClick={addPackage}
-        className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm font-semibold text-font-dim hover:border-brand-yellow hover:text-brand-secondary transition-colors"
+        className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-2xl py-3.5 text-sm font-semibold text-font-main-sub active:bg-gray-50 transition-colors"
       >
         <svg
           className="w-4 h-4"
@@ -1139,18 +1299,20 @@ function PoliciesEditor({
         <input
           type="number"
           min="1"
+          step="1"
           value={form.availableCount}
           onChange={(e) => update({ availableCount: e.target.value })}
-          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+          className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
         />
       </Field>
       <Field label="Security deposit (₹)">
         <input
           type="number"
           min="0"
+          step="0.01"
           value={form.securityDepositAmount}
           onChange={(e) => update({ securityDepositAmount: e.target.value })}
-          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+          className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
         />
       </Field>
       {/* <Field label="Km limit per day (optional)">
@@ -1159,38 +1321,35 @@ function PoliciesEditor({
           min="1"
           value={form.kmLimitPerDay}
           onChange={(e) => update({ kmLimitPerDay: e.target.value })}
-          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+          className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
         />
       </Field> */}
       <Field label="Excess charge per km (₹)">
         <input
           type="number"
           min="0"
+          step="0.01"
           value={form.excessChargePerKm}
           onChange={(e) => update({ excessChargePerKm: e.target.value })}
-          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+          className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
         />
       </Field>
       <Field label="Late return penalty per hour (₹)">
         <input
           type="number"
           min="0"
+          step="0.01"
           value={form.lateReturnPenaltyPerHour}
           onChange={(e) => update({ lateReturnPenaltyPerHour: e.target.value })}
-          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+          className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
         />
       </Field>
-      <label className="flex items-center gap-2 text-sm bg-gray-50 rounded-xl px-3.5 py-3">
-        <input
-          type="checkbox"
-          checked={form.doorstepDeliveryEnabled}
-          onChange={(e) =>
-            update({ doorstepDeliveryEnabled: e.target.checked })
-          }
-          className="w-4 h-4 accent-brand-yellow"
-        />
-        Offer doorstep delivery
-      </label>
+      <ToggleRow
+        label="Offer doorstep delivery"
+        hint="Deliver the bike to the customer's address"
+        checked={form.doorstepDeliveryEnabled}
+        onChange={(checked) => update({ doorstepDeliveryEnabled: checked })}
+      />
     </div>
   );
 }
@@ -1204,10 +1363,64 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1">
+      <label className="block text-[11px] font-bold uppercase tracking-wider text-font-dim/70 mb-1.5 px-1">
         {label}
       </label>
       {children}
     </div>
+  );
+}
+
+/**
+ * Sidebar-style row with a switch — replaces the plain checkboxes so
+ * on/off settings read the same as the Live/Paused switch in the fleet
+ * list.
+ */
+function ToggleRow({
+  label,
+  hint,
+  badge,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  badge?: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="w-full flex items-center gap-3 rounded-xl bg-brand-bg px-3.5 py-3 text-left active:bg-gray-100 transition-colors"
+    >
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-font-main-sub">
+          {label}
+          {badge && (
+            <span className="rounded-md bg-brand-yellow/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-secondary">
+              {badge}
+            </span>
+          )}
+        </span>
+        {hint && (
+          <span className="block text-xs text-font-dim mt-0.5">{hint}</span>
+        )}
+      </span>
+      <span
+        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
+          checked ? "bg-brand-yellow-lg" : "bg-gray-300"
+        }`}
+      >
+        <span
+          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${
+            checked ? "translate-x-[26px]" : "translate-x-1"
+          }`}
+        />
+      </span>
+    </button>
   );
 }

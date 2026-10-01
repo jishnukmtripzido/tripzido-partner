@@ -3,6 +3,7 @@ export type VehicleKind = "motorcycle" | "scooter";
 export interface Vehicle {
   id: string;
   name: string;
+  brand?: string;
   quantity: number;
   kind: VehicleKind;
   imageUrl?: string | null;

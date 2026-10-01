@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import type { Route } from "next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/context/AuthContext";
@@ -12,6 +11,7 @@ import {
 import { PickupPointForm } from "@/components/features/fleet/PickupPointForm";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { queryKeys } from "@/lib/queryKeys";
+import { goBackOr } from "@/lib/navigation";
 import type { PickupPointPayload } from "@/types/listing-create.types";
 
 function formatFieldErrors(errors?: Record<string, string[]>): string {
@@ -66,7 +66,7 @@ export default function EditPickupPointPage() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.fleet.pickupPoints(token),
       });
-      router.push("/settings/pickup-points" as Route);
+      goBackOr(router, "/settings/pickup-points");
     },
   });
 
@@ -74,7 +74,7 @@ export default function EditPickupPointPage() {
     return (
       <>
         <Header title="Edit pickup point" onBack={() => router.back()} />
-        <main className="flex-1 px-5 pt-10">
+        <main className="flex-1 bg-brand-bg px-5 pt-10">
           <PageLoader />
         </main>
       </>
@@ -85,8 +85,8 @@ export default function EditPickupPointPage() {
     return (
       <>
         <Header title="Edit pickup point" onBack={() => router.back()} />
-        <main className="flex-1 px-5 pt-10">
-          <p className="text-sm text-red-500 font-semibold text-center bg-red-50 py-3 rounded-xl mx-4">
+        <main className="flex-1 bg-brand-bg px-5 pt-4">
+          <p className="rounded-2xl bg-white px-4 py-4 text-center text-sm font-semibold text-red-600 shadow-sm">
             {detailQuery.error instanceof Error
               ? detailQuery.error.message
               : "Not found"}
@@ -101,7 +101,7 @@ export default function EditPickupPointPage() {
   return (
     <>
       <Header title="Edit pickup point" onBack={() => router.back()} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg">
+      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-8 bg-brand-bg">
         <PickupPointForm
           initial={point}
           pickupLocationId={point.pickup_location}

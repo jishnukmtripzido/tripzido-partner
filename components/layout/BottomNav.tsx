@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Route } from "next";
+import { useConfirmedBookingsCount } from "@/hooks/useConfirmedBookingsCount";
 
 interface NavItem {
   href: Route;
@@ -16,7 +17,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Home",
     icon: (active) => (
       <svg
-        className="w-6 h-6 mb-1"
+        className="w-6 h-6"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -32,12 +33,12 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     // Block Bikes is nested under Fleet, so /fleet/block also lights
-    // this tab up — see isActive() below.
+    // this tab up (prefix match in BottomNav below).
     href: "/fleet",
     label: "Fleet",
     icon: (active) => (
       <svg
-        className="w-6 h-6 mb-1"
+        className="w-6 h-6"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -57,7 +58,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Bookings",
     icon: (active) => (
       <svg
-        className="w-6 h-6 mb-1"
+        className="w-6 h-6"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -76,7 +77,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Profile",
     icon: (active) => (
       <svg
-        className="w-6 h-6 mb-1"
+        className="w-6 h-6"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -96,32 +97,55 @@ const NAV_ITEMS: NavItem[] = [
  * Bottom tab bar shared by every dashboard screen. Active state is a
  * pathname match — Ledger (reached via the Sidebar, not a tab) simply
  * has no tab active, which is more correct than the mockup's fallback.
+ * /fleet/block (Block Bikes) lights up Fleet, since it's nested under it.
+ *
+ * The active tab gets a yellow pill behind a dark icon + label: yellow
+ * text on white (the old style) is ~1.6:1 contrast and hard to read
+ * outdoors.
  */
 export function BottomNav() {
   const pathname = usePathname();
-
-  function isActive(href: string) {
-    if (href === "/fleet") return pathname.startsWith("/fleet");
-    return pathname.startsWith(href);
-  }
+  // Confirmed bookings still waiting for handover — shown as a count on
+  // the Bookings tab so upcoming pickups aren't missed.
+  const confirmedCount = useConfirmedBookingsCount();
 
   return (
-    <nav className="bg-white border-t border-gray-200 fixed bottom-0 w-full flex justify-around items-center pb-safe pt-2 px-2 z-20">
+    <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto flex w-full max-w-md items-stretch border-t border-gray-100 bg-white px-2 pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)] shadow-[0_-4px_16px_rgba(0,0,0,0.04)]">
       {NAV_ITEMS.map((item) => {
-        const active = isActive(item.href);
+        const active = pathname.startsWith(item.href);
+        const badge = item.href === "/bookings" ? confirmedCount : 0;
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center p-2 transition-colors ${
-              active
-                ? "text-brand-yellow-lg"
-                : "text-gray-600 hover:text-gray-600"
-            }`}
+            aria-current={active ? "page" : undefined}
+            aria-label={
+              badge > 0
+                ? `${item.label}, ${badge} upcoming to hand over`
+                : undefined
+            }
+            className="flex flex-1 flex-col items-center gap-1 py-1"
           >
-            {item.icon(active)}
             <span
-              className={`text-[10px] ${active ? "font-bold" : "font-medium"}`}
+              className={`relative flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-200 ${
+                active
+                  ? "bg-brand-yellow-lg text-brand-secondary"
+                  : "text-gray-500"
+              }`}
+            >
+              {item.icon(active)}
+              {badge > 0 && (
+                <span className="absolute -top-1 right-1.5 min-w-[18px] h-[18px] rounded-full border-2 border-white bg-red-500 px-1 text-center text-[9px] font-bold leading-[14px] tabular-nums text-white">
+                  {badge > 9 ? "9+" : badge}
+                </span>
+              )}
+            </span>
+            <span
+              className={`text-[11px] ${
+                active
+                  ? "font-bold text-brand-secondary"
+                  : "font-medium text-gray-500"
+              }`}
             >
               {item.label}
             </span>

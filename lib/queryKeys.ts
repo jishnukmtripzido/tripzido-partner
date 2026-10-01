@@ -25,6 +25,12 @@ export const queryKeys = {
       ["bookings", "list", token, params] as const,
     detail: (token: string | null, id: string | null) =>
       ["bookings", "detail", token, id] as const,
+    // Under the ["bookings", "list"] prefix on purpose: booking status
+    // changes already invalidate that prefix, which refreshes the
+    // bottom-nav badge too. Separate slot from list() because this is
+    // a plain query, not an infinite one.
+    confirmedCount: (token: string | null) =>
+      ["bookings", "list", "confirmedCount", token] as const,
   },
   fleet: {
     list: (token: string | null, params: { tab: string }) =>
@@ -47,7 +53,8 @@ export const queryKeys = {
   },
   ledger: {
     // No `page` — same reasoning as bookings.list above.
-    list: (token: string | null) => ["ledger", "list", token] as const,
+    list: (token: string | null, status: string = "all") =>
+      ["ledger", "list", token, status] as const,
     detail: (token: string | null, id: string | null) =>
       ["ledger", "detail", token, id] as const,
   },

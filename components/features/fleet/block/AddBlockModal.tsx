@@ -8,6 +8,8 @@ import { createBlockApi } from "@/services/block.service";
 import type { VendorBlockedPeriod } from "@/types/block.types";
 import { useDismissTransition } from "@/hooks/useDismissTransition";
 import { queryKeys } from "@/lib/queryKeys";
+import { SwitchRow } from "@/components/features/fleet/block/BlockListItem";
+import { SearchPickerSheet } from "@/components/ui/SearchPickerSheet";
 
 const REASON_OPTIONS = [
   { value: "MAINTENANCE", label: "Maintenance" },
@@ -79,6 +81,31 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
     },
   });
 
+  // Listing picker sheet — the fleet options are already fully loaded
+  // (page_size=100), so search filters that list client-side instead of
+  // re-hitting the network per keystroke.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerItems, setPickerItems] = useState<typeof listings>([]);
+
+  function openPicker() {
+    if (listingsLoading) return;
+    setPickerItems(listings);
+    setPickerOpen(true);
+  }
+
+  function filterListings(query: string) {
+    const q = query.trim().toLowerCase();
+    setPickerItems(
+      q
+        ? listings.filter((l) =>
+            [l.name, l.brand, l.location_name, l.pickup_point_label]
+              .filter(Boolean)
+              .some((field) => field!.toLowerCase().includes(q)),
+          )
+        : listings,
+    );
+  }
+
   const selectedListing = listings.find((l) => l.id === listingId);
   const maxCount = selectedListing?.quantity ?? 1;
 
@@ -107,40 +134,117 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
         aria-hidden="true"
       />
       <div
-        className={`modal-panel modal-panel-${phase} relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-5 pb-safe max-h-[90vh] overflow-y-auto`}
+        className={`modal-panel modal-panel-${phase} relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm px-5 pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+2rem)] max-h-[90vh] overflow-y-auto`}
       >
-        <h3 className=" font-bold text-base text-font-main-sub mb-4">
-          Block bikes
-        </h3>
+        <div className="flex items-center gap-3 mb-5">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-yellow-lg text-brand-secondary">
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+              />
+            </svg>
+          </span>
+          <div>
+            <h3 className="font-heading font-bold text-base text-font-main-sub">
+              Block bikes
+            </h3>
+            <p className="text-xs text-font-dim">
+              Blocked bikes can&apos;t be booked by customers
+            </p>
+          </div>
+        </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-font-dim/70 mb-1.5 px-1">
               Vehicle
             </label>
-            {listingsLoading ? (
-              <p className="text-xs text-font-dim">Loading your fleet...</p>
-            ) : (
-              <select
-                value={listingId ?? ""}
-                onChange={(e) => {
-                  setListingId(Number(e.target.value) || null);
-                  setCount(1);
-                }}
-                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+            <button
+              type="button"
+              onClick={openPicker}
+              disabled={listingsLoading}
+              className={`w-full flex items-center gap-3 rounded-2xl p-2.5 text-left transition-colors disabled:opacity-60 ${
+                selectedListing
+                  ? "bg-brand-yellow/20"
+                  : "bg-brand-bg active:bg-gray-100"
+              }`}
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white text-font-dim">
+                {selectedListing?.primary_image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={selectedListing.primary_image}
+                    alt=""
+                    className="h-full w-full object-contain p-0.5"
+                  />
+                ) : (
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM5 17H3v-6l2-5h9l4 5h1a2 2 0 012 2v4h-2M9 17h6"
+                    />
+                  </svg>
+                )}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span
+                  className={`block truncate text-sm ${
+                    selectedListing
+                      ? "font-semibold text-font-main-sub"
+                      : "text-font-dim"
+                  }`}
+                >
+                  {listingsLoading
+                    ? "Loading your fleet..."
+                    : (selectedListing?.name ?? "Select a listing")}
+                </span>
+                {selectedListing && (
+                  <span className="block truncate text-xs text-font-dim">
+                    {[
+                      selectedListing.location_name,
+                      selectedListing.pickup_point_label,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                )}
+              </span>
+              <svg
+                className="h-5 w-5 shrink-0 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
               >
-                <option value="">Select a listing</option>
-                {listings.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name} — {l.location_name}
-                  </option>
-                ))}
-              </select>
-            )}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-font-dim/70 mb-1.5 px-1">
               Start
             </label>
             <input
@@ -148,26 +252,24 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
               value={start}
               min={nowLocalInputValue()}
               onChange={(e) => setStart(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+              className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
             />
           </div>
 
-          <div>
-            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 mb-2">
-              <input
-                type="checkbox"
-                checked={isIndefinite}
-                onChange={(e) => {
-                  setIsIndefinite(e.target.checked);
-                  if (e.target.checked) setEnd("");
-                }}
-              />
-              Block until further notice (no end date)
-            </label>
+          <SwitchRow
+            label="Until further notice"
+            hint="No end date — close it when the bike is back"
+            checked={isIndefinite}
+            onChange={(checked) => {
+              setIsIndefinite(checked);
+              if (checked) setEnd("");
+            }}
+          />
 
+          <div>
             {!isIndefinite && (
               <>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-font-dim/70 mb-1.5 px-1">
                   End
                 </label>
                 <input
@@ -175,33 +277,37 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
                   value={end}
                   min={start || nowLocalInputValue()}
                   onChange={(e) => setEnd(e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+                  className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
                 />
               </>
             )}
           </div>
 
           {selectedListing && (
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-gray-600">
-                Bikes to block{" "}
-                <span className="font-normal text-gray-400">
-                  (max {maxCount})
-                </span>
-              </label>
+            <div className="flex items-center justify-between gap-3 rounded-xl bg-brand-bg px-3.5 py-3">
+              <div>
+                <p className="text-sm font-semibold text-font-main-sub">
+                  Bikes to block
+                </p>
+                <p className="text-xs text-font-dim">
+                  Up to {maxCount} in this fleet
+                </p>
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCount((c) => Math.max(1, c - 1))}
-                  className="w-7 h-7 rounded bg-gray-50 border border-gray-200 text-sm font-bold"
+                  aria-label="Block one fewer bike"
+                  className="w-9 h-9 rounded-xl bg-white shadow-sm text-base font-bold text-font-main-sub active:bg-gray-100"
                 >
                   −
                 </button>
-                <span className="w-6 text-center text-sm font-bold">
+                <span className="w-7 text-center text-base font-bold tabular-nums">
                   {count}
                 </span>
                 <button
                   onClick={() => setCount((c) => Math.min(maxCount, c + 1))}
-                  className="w-7 h-7 rounded bg-brand-yellow text-brand-secondary text-sm font-bold"
+                  aria-label="Block one more bike"
+                  className="w-9 h-9 rounded-xl bg-brand-yellow-lg text-brand-secondary text-base font-bold active:bg-brand-yellow"
                 >
                   +
                 </button>
@@ -210,13 +316,13 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-font-dim/70 mb-1.5 px-1">
               Reason
             </label>
             <select
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+              className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
             >
               {REASON_OPTIONS.map((r) => (
                 <option key={r.value} value={r.value}>
@@ -227,27 +333,29 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-font-dim/70 mb-1.5 px-1">
               Note (optional)
             </label>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={2}
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm resize-none"
+              className="w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-semibold text-font-main-sub focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors resize-none"
             />
           </div>
         </div>
 
         {error && (
-          <p className="text-sm text-red-500 font-medium mt-3">{error}</p>
+          <p className="mt-3 rounded-xl bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700">
+            {error}
+          </p>
         )}
 
         <div className="flex gap-3 mt-5">
           <button
             onClick={dismiss}
             disabled={submitting}
-            className="flex-1 border-2 border-gray-200 rounded-xl py-3 text-sm font-bold text-font-dim disabled:opacity-50"
+            className="flex-1 rounded-xl bg-gray-100 py-3.5 text-sm font-semibold text-font-main-sub active:bg-gray-200 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
@@ -256,12 +364,59 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
             disabled={
               submitting || !listingId || !start || (!isIndefinite && !end)
             }
-            className="flex-1 rounded-xl py-3 text-sm font-bold bg-brand-yellow text-brand-secondary hover:bg-brand-yellow-lg disabled:opacity-50"
+            className="flex-1 rounded-xl py-3.5 text-sm font-semibold bg-brand-secondary text-brand-yellow active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
           >
             {submitting ? "Creating..." : "Create block"}
           </button>
         </div>
       </div>
+
+      {/* Rendered outside the animated panel: its transform would
+          otherwise trap this fixed-position sheet inside the panel. */}
+      {pickerOpen && (
+        <SearchPickerSheet
+          title="Select a listing"
+          placeholder="Search by bike, brand or location..."
+          items={pickerItems}
+          loading={false}
+          getKey={(l) => l.id}
+          renderItem={(l) => (
+            <span className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-100">
+                {l.primary_image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={l.primary_image}
+                    alt=""
+                    className="h-full w-full object-contain p-0.5 mix-blend-multiply"
+                  />
+                )}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate font-semibold text-font-main-sub">
+                  {l.name}
+                </span>
+                <span className="block truncate text-xs text-font-dim">
+                  {[l.location_name, l.pickup_point_label]
+                    .filter(Boolean)
+                    .join(" · ")}{" "}
+                  · {l.quantity} unit{l.quantity === 1 ? "" : "s"}
+                </span>
+              </span>
+            </span>
+          )}
+          onQueryChange={filterListings}
+          onSelect={(l) => {
+            setListingId(l.id);
+            setCount(1);
+            setPickerOpen(false);
+          }}
+          onClose={() => setPickerOpen(false)}
+          selectedKey={listingId}
+          showAllByDefault
+          emptyLabel="No listings match your search."
+        />
+      )}
     </div>
   );
 }

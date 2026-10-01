@@ -22,9 +22,16 @@ async function request<T>(
     timeout = 30000, // 15s default — safe for all calls including search
   } = options;
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  // File uploads (FormData) must go out as-is: the browser sets the
+  // multipart Content-Type itself, including the boundary. Forcing JSON
+  // here would stringify FormData to "{}" and the backend's
+  // MultiPartParser-only views would reject it with 415.
+  const isFormData =
+    typeof FormData !== "undefined" && body instanceof FormData;
+
+  const headers: Record<string, string> = isFormData
+    ? {}
+    : { "Content-Type": "application/json" };
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -37,7 +44,11 @@ async function request<T>(
     const res = await fetch(process.env.NEXT_PUBLIC_API_URL + endpoint, {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      body: isFormData
+        ? (body as FormData)
+        : body
+          ? JSON.stringify(body)
+          : undefined,
       cache: revalidate ? "force-cache" : cache,
       next: revalidate ? { revalidate } : undefined,
       signal: controller.signal,

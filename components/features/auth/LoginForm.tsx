@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PhoneInput } from "./PhoneInput";
+import { PasswordField } from "./PasswordField";
+import { AuthLabel, AuthError, AUTH_PRIMARY_BUTTON } from "./AuthScreen";
 import { passwordLoginApi, getProfileApi } from "@/services/auth.service";
 import { useAuth } from "@/context/AuthContext";
 
@@ -57,69 +59,46 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="pt-4">
-      <h2 className="text-[32px] leading-tight font-extrabold mb-2 text-brand-secondary">
-        Welcome back
-      </h2>
-      <p className="text-font-dim mb-8 text-sm font-medium">
-        Manage your fleet, track earnings, and grow your business.
-      </p>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PhoneInput value={phone} onChange={setPhone} />
 
-      <div className="space-y-5">
-        <PhoneInput value={phone} onChange={setPhone} />
-
-        <div>
-          <label className="block text-sm font-semibold text-font-main-sub mb-2">
-            Password
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-sm outline-none focus:border-brand-yellow bg-gray-50"
-          />
+      <div>
+        <div className="flex items-end justify-between">
+          <AuthLabel htmlFor="login-password">Password</AuthLabel>
+          <Link
+            href="/forgot-password"
+            className="mb-1.5 px-1 text-xs font-semibold text-font-main-sub underline decoration-brand-yellow-lg decoration-2 underline-offset-2"
+          >
+            Forgot password?
+          </Link>
         </div>
+        <PasswordField
+          id="login-password"
+          value={password}
+          onChange={setPassword}
+          placeholder="Enter your password"
+          autoComplete="current-password"
+        />
       </div>
 
-      <div className="flex justify-end mt-3">
-        <Link
-          href="/forgot-password"
-          className="text-sm font-semibold text-brand-yellow-lg hover:underline"
-        >
-          Forgot password?
-        </Link>
-      </div>
+      {error && <AuthError>{error}</AuthError>}
 
-      {error && (
-        <p className="text-sm text-red-500 font-medium mt-4">{error}</p>
-      )}
-
-      <div className="mt-8 space-y-4">
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className="w-full font-bold rounded-xl py-4 text-center transition-colors bg-gray-200 text-gray-400 enabled:bg-brand-yellow enabled:text-brand-secondary enabled:hover:bg-brand-yellow-lg disabled:cursor-not-allowed"
-        >
-          {isSubmitting ? "Signing in..." : "Sign In"}
+      <div className="pt-2">
+        <button type="submit" disabled={!canSubmit} className={AUTH_PRIMARY_BUTTON}>
+          {isSubmitting ? "Signing in..." : "Sign in"}
         </button>
-        <p className="text-center text-xs text-font-dim mt-4">
-          By continuing, you agree to our{" "}
-          <a
-            href="#"
-            className="text-brand-yellow-lg font-semibold hover:underline"
-          >
-            Terms of Service
-          </a>{" "}
-          &{" "}
-          <a
-            href="#"
-            className="text-brand-yellow-lg font-semibold hover:underline"
-          >
-            Privacy Policy
-          </a>
-        </p>
       </div>
+
+      <p className="px-4 pt-2 text-center text-xs leading-relaxed text-font-dim">
+        By continuing, you agree to our{" "}
+        <a href="#" className="font-semibold text-font-main-sub underline">
+          Terms of Service
+        </a>{" "}
+        &{" "}
+        <a href="#" className="font-semibold text-font-main-sub underline">
+          Privacy Policy
+        </a>
+      </p>
     </form>
   );
 }

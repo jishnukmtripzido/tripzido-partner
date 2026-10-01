@@ -59,7 +59,9 @@ export async function uploadVendorDocumentApi(
   return api.post<VendorDocumentResponse>(
     "/api/vendors/me/documents/",
     formData,
-    { token: accessToken },
+    // Files can be up to 50MB — the default 30s timeout would cut off
+    // larger uploads on a mobile connection.
+    { token: accessToken, timeout: 180000 },
   );
 }
 

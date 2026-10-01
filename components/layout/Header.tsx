@@ -80,6 +80,7 @@
 
 import type { ReactNode } from "react";
 import { NotificationBell } from "@/components/features/notifications/NotificationBell";
+import { HEADER_ICON_BUTTON } from "@/components/layout/headerStyles";
 
 interface HeaderProps {
   title: string;
@@ -90,24 +91,25 @@ interface HeaderProps {
 
 export function Header({ title, onMenuClick, onBack, rightSlot }: HeaderProps) {
   return (
-    <header className="bg-white sticky top-0 z-20 px-5 py-4 flex justify-between items-center shadow-sm pt-safe">
-      <div className="flex items-center gap-4 min-w-0">
+    <header className="bg-white sticky top-0 z-20 px-5 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] flex justify-between items-center shadow-sm">
+      <div className="flex items-center gap-3 min-w-0">
         {onBack ? (
           <button
             onClick={onBack}
             aria-label="Go back"
-            className="p-1.5 -m-1.5 text-font-main-sub hover:text-brand-yellow-lg transition-colors shrink-0"
+            className={HEADER_ICON_BUTTON}
           >
             <svg
-              className="w-6 h-6"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
+                strokeWidth={2.5}
                 d="M15 19l-7-7 7-7"
               />
             </svg>
@@ -116,13 +118,14 @@ export function Header({ title, onMenuClick, onBack, rightSlot }: HeaderProps) {
           <button
             onClick={onMenuClick}
             aria-label="Open menu"
-            className="lg:hidden p-1.5 -m-1.5 text-font-main-sub hover:text-brand-yellow-lg transition-colors shrink-0"
+            className={`lg:hidden ${HEADER_ICON_BUTTON}`}
           >
             <svg
-              className="w-7 h-7"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"

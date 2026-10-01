@@ -1,48 +1,53 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import type { Route } from "next";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/context/AuthContext";
 import { getVendorPayoutDetailApi } from "@/services/payment.service";
 import { PAYOUT_STATUS_STYLES } from "@/lib/payoutStatus";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { queryKeys } from "@/lib/queryKeys";
+import {
+  formatAmount,
+  formatShortDate,
+} from "@/components/features/ledger/LedgerListItem";
 
 // ── Icons — reusing the same vocabulary established elsewhere in this
-// portal (Booking Detail, Listing Detail), plus the clipboard icon
-// LedgerListItem already uses, for continuity between list and detail. ──
+// portal (Booking Detail, Listing Detail). ─────────────────────────────
 
-const CLIPBOARD_ICON = (
+const HASH_ICON = (
   <path
     strokeLinecap="round"
     strokeLinejoin="round"
     strokeWidth={2}
-    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+    d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
   />
 );
-const DEPOSIT_ICON = (
+const CLOCK_ICON = (
   <path
     strokeLinecap="round"
     strokeLinejoin="round"
     strokeWidth={2}
-    d="M3 10h18M3 6h18a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V7a1 1 0 011-1z"
+    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
   />
 );
-const STOREFRONT_ICON = (
+const CALENDAR_ICON = (
   <path
     strokeLinecap="round"
     strokeLinejoin="round"
     strokeWidth={2}
-    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
   />
 );
-const RECEIPT_ICON = (
+const BANK_ICON = (
   <path
     strokeLinecap="round"
     strokeLinejoin="round"
     strokeWidth={2}
-    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+    d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11m16-11v11M8 14v3m4-3v3m4-3v3"
   />
 );
 const VEHICLE_ICON = (
@@ -54,29 +59,39 @@ const VEHICLE_ICON = (
   />
 );
 
-// Date+time display, matching the day/month/year style used elsewhere
-// in the vendor portal (see BlockListItem's formatBlockDateTime and
-// the booking detail page's formatBookingDateTime).
 function formatPayoutDateTime(iso: string): string {
   const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const datePart = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-  const timePart = d.toLocaleTimeString(undefined, {
-    hour: "2-digit",
+  return `${formatShortDate(iso)}, ${d.toLocaleTimeString(undefined, {
+    hour: "numeric",
     minute: "2-digit",
-  });
-  return `${datePart}, ${timePart}`;
+  })}`;
 }
 
 // Date-only display (no time component) for plain "YYYY-MM-DD"
 // values like period_start/period_end and pickup_date/dropoff_date.
-// Parsed via string split rather than `new Date()` to avoid a
-// timezone-driven off-by-one day on date-only strings.
+// Built from the string parts rather than `new Date(str)`, which would
+// parse it as UTC midnight and can show the previous day locally.
 function formatDateOnly(dateStr: string): string {
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return dateStr;
+  const parts = dateStr.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return dateStr;
   const [year, month, day] = parts;
-  return `${day}/${month}/${year}`;
+  return new Date(year, month - 1, day).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+// "account_holder_name" → "Account Holder Name".
+function toTitleCase(value: string): string {
+  return value
+    .replace(/_/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ")
+    .replace(/\bIfsc\b/, "IFSC")
+    .replace(/\bUpi\b/, "UPI");
 }
 
 export default function LedgerDetailPage() {
@@ -84,6 +99,7 @@ export default function LedgerDetailPage() {
   const searchParams = useSearchParams();
   const { token } = useAuth();
   const payoutId = searchParams.get("id");
+  const [copied, setCopied] = useState(false);
 
   const {
     data: payout,
@@ -92,7 +108,10 @@ export default function LedgerDetailPage() {
   } = useQuery({
     queryKey: queryKeys.ledger.detail(token, payoutId),
     queryFn: async () => {
-      const res = await getVendorPayoutDetailApi(payoutId as string, token as string);
+      const res = await getVendorPayoutDetailApi(
+        payoutId as string,
+        token as string,
+      );
       if (!res.success || !res.data) {
         throw new Error(res.message || "Payout not found");
       }
@@ -101,183 +120,271 @@ export default function LedgerDetailPage() {
     enabled: !!token && !!payoutId,
   });
 
+  async function copyUtr(utr: string) {
+    try {
+      await navigator.clipboard.writeText(utr);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard unavailable (older WebView / permissions) — the UTR is
+      // still visible and selectable, so there's nothing else to do.
+    }
+  }
+
+  const bankEntries = payout?.bank_account_snapshot
+    ? Object.entries(payout.bank_account_snapshot)
+    : [];
+
   return (
     <>
       <Header
         title={payout ? `Payout #${payout.id}` : "Payout"}
         onBack={() => router.back()}
       />
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg space-y-4">
+      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-8 bg-brand-bg">
         {isLoading && <PageLoader />}
         {error && !isLoading && (
-          <p className="text-sm text-red-500 text-center mt-10">
+          <p className="mt-6 rounded-2xl bg-white shadow-sm px-4 py-4 text-center text-sm font-semibold text-red-600">
             {error instanceof Error ? error.message : "Failed to load payout"}
           </p>
         )}
 
         {payout && !isLoading && (
-          <>
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-brand-yellow/15 flex items-center justify-center shrink-0">
-                  <svg
-                    className="w-5 h-5 text-brand-secondary"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    {CLIPBOARD_ICON}
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-xs text-font-dim">Payout #{payout.id}</p>
-                  <span
-                    className={`inline-block text-[11px] font-bold px-2.5 py-1 rounded-full mt-0.5 ${
-                      PAYOUT_STATUS_STYLES[payout.status] ??
-                      "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {payout.status_label}
-                  </span>
-                </div>
+          <div className="space-y-5">
+            {/* Summary */}
+            <section className="rounded-2xl bg-white p-3 shadow-sm">
+              <div className="rounded-xl bg-brand-bg px-4 py-5 text-center">
+                <span
+                  className={`inline-block rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                    PAYOUT_STATUS_STYLES[payout.status] ??
+                    "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {payout.status_label}
+                </span>
+                <p className="mt-3 font-heading text-4xl font-bold tabular-nums text-font-main-sub">
+                  ₹{formatAmount(payout.total_amount)}
+                </p>
+                <p className="mt-1.5 text-xs text-font-dim">
+                  {payout.items.length} booking
+                  {payout.items.length === 1 ? "" : "s"} ·{" "}
+                  {payout.paid_at
+                    ? `Paid ${formatShortDate(payout.paid_at)}`
+                    : `Created ${formatShortDate(payout.created_at)}`}
+                </p>
               </div>
-              <p className="text-3xl font-heading font-extrabold text-font-main-sub">
-                ₹
-                {Number(payout.total_amount).toLocaleString("en-IN", {
-                  minimumFractionDigits: 2,
-                })}
-              </p>
-            </div>
+            </section>
 
-            <Section title="Transfer details" icon={DEPOSIT_ICON}>
-              <Row
+            {/* Transfer */}
+            <Section title="Transfer">
+              <IconRow
+                icon={HASH_ICON}
                 label="UTR number"
-                value={payout.utr_number || "Not recorded yet"}
+                hint={payout.utr_number || "Not recorded yet"}
+                trailing={
+                  payout.utr_number ? (
+                    <button
+                      type="button"
+                      onClick={() => copyUtr(payout.utr_number)}
+                      className="rounded-xl bg-gray-100 px-3 py-2 text-xs font-semibold text-font-main-sub active:bg-gray-200 transition-colors"
+                    >
+                      {copied ? "Copied" : "Copy"}
+                    </button>
+                  ) : undefined
+                }
               />
-              <Row
+              <IconRow
+                icon={CLOCK_ICON}
                 label="Paid on"
-                value={
+                hint={
                   payout.paid_at
                     ? formatPayoutDateTime(payout.paid_at)
                     : "Pending"
                 }
               />
               {payout.period_start && payout.period_end && (
-                <Row
+                <IconRow
+                  icon={CALENDAR_ICON}
                   label="Period"
-                  value={`${formatDateOnly(payout.period_start)} to ${formatDateOnly(
+                  hint={`${formatDateOnly(payout.period_start)} – ${formatDateOnly(
                     payout.period_end,
                   )}`}
                 />
               )}
             </Section>
 
-            {payout.bank_account_snapshot &&
-              Object.keys(payout.bank_account_snapshot).length > 0 && (
-                <Section title="Bank account" icon={STOREFRONT_ICON}>
-                  {Object.entries(payout.bank_account_snapshot).map(
-                    ([key, value]) => (
-                      <Row
-                        key={key}
-                        label={key.replace(/_/g, " ")}
-                        value={String(value)}
-                      />
-                    ),
-                  )}
-                </Section>
-              )}
-
-            {payout.note && (
-              <Section title="Note" icon={RECEIPT_ICON}>
-                <p className="text-sm text-font-dim">{payout.note}</p>
+            {bankEntries.length > 0 && (
+              <Section title="Bank account">
+                <div className="flex items-center gap-3 px-1 pb-3 pt-1">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-font-dim">
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      {BANK_ICON}
+                    </svg>
+                  </span>
+                  <p className="text-xs text-font-dim">
+                    Account this payout was sent to
+                  </p>
+                </div>
+                <div className="space-y-2.5 rounded-xl bg-brand-bg p-3">
+                  {bankEntries.map(([key, value]) => (
+                    <div
+                      key={key}
+                      className="flex items-start justify-between gap-4 text-sm"
+                    >
+                      <span className="shrink-0 text-font-dim">
+                        {toTitleCase(key)}
+                      </span>
+                      <span className="break-all text-right font-semibold text-font-main-sub">
+                        {String(value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </Section>
             )}
 
-            <Section
-              title={`Bookings covered (${payout.items.length})`}
-              icon={VEHICLE_ICON}
-            >
-              <div className="space-y-3">
-                {payout.items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="border border-gray-100 rounded-xl p-3 flex items-center gap-3"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-gray-50 text-gray-400 flex items-center justify-center shrink-0">
+            {payout.note && (
+              <Section title="Note">
+                <p className="px-1 py-1 text-sm leading-relaxed text-font-main-sub">
+                  {payout.note}
+                </p>
+              </Section>
+            )}
+
+            {/* Bookings covered */}
+            <Section title={`Bookings covered · ${payout.items.length}`}>
+              {payout.items.length === 0 ? (
+                <p className="px-1 py-2 text-sm text-font-dim">
+                  No bookings attached yet.
+                </p>
+              ) : (
+                <div className="-my-1 divide-y divide-gray-100">
+                  {payout.items.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() =>
+                        router.push(
+                          `/bookings/detail?id=${item.booking_id}` as Route,
+                        )
+                      }
+                      className="flex w-full items-center gap-3 px-1 py-3 text-left active:bg-gray-50 transition-colors"
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-font-dim">
+                        <svg
+                          className="h-5 w-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          {VEHICLE_ICON}
+                        </svg>
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-font-main-sub">
+                          {item.vehicle_name}
+                        </span>
+                        <span className="block truncate text-xs text-font-dim">
+                          #{item.booking_reference} ·{" "}
+                          {formatDateOnly(item.pickup_date)} –{" "}
+                          {formatDateOnly(item.dropoff_date)}
+                        </span>
+                      </span>
+                      <span className="shrink-0 rounded-lg bg-brand-yellow/30 px-2 py-0.5 text-sm font-bold tabular-nums text-brand-secondary">
+                        ₹{formatAmount(item.amount)}
+                      </span>
                       <svg
-                        className="w-4 h-4"
+                        className="h-4 w-4 shrink-0 text-gray-400"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
+                        aria-hidden="true"
                       >
-                        {VEHICLE_ICON}
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
                       </svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-font-main-sub truncate">
-                        {item.vehicle_name}
-                      </p>
-                      <p className="text-xs text-font-dim mt-0.5">
-                        #{item.booking_reference} •{" "}
-                        {formatDateOnly(item.pickup_date)} to{" "}
-                        {formatDateOnly(item.dropoff_date)}
-                      </p>
-                    </div>
-                    <p className="font-bold text-brand-secondary shrink-0">
-                      ₹{item.amount}
-                    </p>
+                    </button>
+                  ))}
+                  <div className="flex items-center justify-between px-1 pt-3 pb-1">
+                    <span className="text-sm font-semibold text-font-main-sub">
+                      Total
+                    </span>
+                    <span className="font-heading text-base font-bold tabular-nums text-font-main-sub">
+                      ₹{formatAmount(payout.total_amount)}
+                    </span>
                   </div>
-                ))}
-                {payout.items.length === 0 && (
-                  <p className="text-sm text-font-dim">
-                    No bookings attached yet.
-                  </p>
-                )}
-              </div>
+                </div>
+              )}
             </Section>
-          </>
+          </div>
         )}
       </main>
     </>
   );
 }
 
+/** Sidebar-style section: small uppercase title above a white card. */
 function Section({
   title,
-  icon,
   children,
 }: {
   title: string;
-  icon: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-      <div className="flex items-center gap-2.5 mb-3">
-        <div className="w-8 h-8 rounded-lg bg-brand-yellow/10 text-brand-yellow-lg flex items-center justify-center shrink-0">
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            {icon}
-          </svg>
-        </div>
-        <h2 className="font-heading font-bold text-sm text-font-main-sub">
-          {title}
-        </h2>
-      </div>
-      <div className="space-y-2">{children}</div>
+    <section>
+      <h2 className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
+        {title}
+      </h2>
+      <div className="rounded-2xl bg-white p-3 shadow-sm">{children}</div>
     </section>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function IconRow({
+  icon,
+  label,
+  hint,
+  trailing,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  hint?: string;
+  trailing?: React.ReactNode;
+}) {
   return (
-    <div className="flex justify-between text-sm">
-      <span className="text-font-dim capitalize">{label}</span>
-      <span className="font-medium text-font-main-sub text-right">{value}</span>
+    <div className="mt-2 flex items-center gap-3 px-1 py-1.5 first:mt-0">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-font-dim">
+        <svg
+          className="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          {icon}
+        </svg>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-xs text-font-dim">{label}</span>
+        {hint && (
+          <span className="block break-all text-sm font-semibold text-font-main-sub">
+            {hint}
+          </span>
+        )}
+      </span>
+      {trailing && <span className="shrink-0">{trailing}</span>}
     </div>
   );
 }

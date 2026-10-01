@@ -18,6 +18,7 @@ const HIDE_BOTTOM_NAV_PREFIXES = [
   "/bookings/detail",
   "/settings/terms",
   "/settings/schedule-templates/edit",
+  "/settings/schedule-templates/detail",
   "/settings/pickup-points/edit",
 ];
 
@@ -36,7 +37,7 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
         <div
           className={`flex-1 flex flex-col min-h-0 ${
             showBottomNav
-              ? "pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-0"
+              ? "pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0"
               : "pb-[env(safe-area-inset-bottom,0px)]"
           }`}
         >

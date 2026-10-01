@@ -1,20 +1,22 @@
 "use client";
 
 import { Suspense } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import type { Route } from "next";
+import { useAuth } from "@/context/AuthContext";
 import { BalanceCard } from "@/components/features/dashboard/BalanceCard";
 import { StatCard } from "@/components/features/dashboard/StatCard";
 import { OrdersOverviewChart } from "@/components/features/dashboard/OrdersOverviewChart";
-import { CompactBookingCard } from "@/components/features/bookings/CompactBookingCard";
+import { DashboardBookingRow } from "@/components/features/dashboard/DashboardBookingRow";
 import { DashboardErrorBoundary } from "@/components/features/dashboard/DashboardErrorBoundary";
 import {
   BalanceCardSkeleton,
   StatCardSkeleton,
   OrdersOverviewChartSkeleton,
   FleetSummarySkeleton,
-  BookingCardSkeleton,
+  BookingListSkeleton,
 } from "@/components/features/dashboard/DashboardSkeleton";
 import {
   getVendorDashboardStatusApi,
@@ -48,24 +50,24 @@ const VENDOR_STATUS_BANNER: Record<
   { style: string; message: (reason: string) => string }
 > = {
   PENDING: {
-    style: "bg-yellow-50 border-yellow-200 text-yellow-800",
+    style: "bg-amber-50 text-amber-900",
     message: () =>
       "Your vendor account is pending admin approval. Some features may be limited until approved.",
   },
   REJECTED: {
-    style: "bg-red-50 border-red-200 text-red-800",
+    style: "bg-red-50 text-red-800",
     message: (reason) =>
       reason
         ? `Your vendor application was rejected: ${reason}`
         : "Your vendor application was rejected.",
   },
   SUSPENDED: {
-    style: "bg-red-50 border-red-200 text-red-800",
+    style: "bg-red-50 text-red-800",
     message: () =>
       "Your vendor account has been suspended. Contact support for details.",
   },
   BANNED: {
-    style: "bg-red-50 border-red-200 text-red-800",
+    style: "bg-red-50 text-red-800",
     message: () => "Your vendor account has been permanently banned.",
   },
 };
@@ -87,8 +89,33 @@ function getLast7DayLabels(): string[] {
   return labels;
 }
 
-const currency = (n: number) =>
-  `₹ ${n.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+// Whole rupees for the half-width month tiles, so large amounts fit.
+const rupees = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
+
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+const QUICK_ACTIONS: { href: Route; label: string; icon: string }[] = [
+  {
+    href: "/fleet/listing/new",
+    label: "Add bike",
+    icon: "M12 4v16m8-8H4",
+  },
+  {
+    href: "/fleet/block",
+    label: "Block bikes",
+    icon: "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636",
+  },
+  {
+    href: "/settings/pickup-points",
+    label: "Pickup points",
+    icon: "M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z",
+  },
+];
 
 interface DashboardContentProps {
   token: string;
@@ -108,101 +135,118 @@ interface DashboardContentProps {
  * just be redundant, not genuinely independent.
  */
 export function DashboardContent({ token }: DashboardContentProps) {
+  const { user } = useAuth();
+  const today = new Date().toLocaleDateString(undefined, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
   return (
-    <main className="flex-1 overflow-y-auto hide-scrollbar px-5 lg:px-8 pt-6 lg:pt-8 pb-6 space-y-5 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-5 lg:items-start bg-brand-bg">
-      <div className="lg:col-span-2">
-        <DashboardErrorBoundary
-          fallback={({ error, retry }) => (
-            <SectionError message={error.message} onRetry={retry} />
-          )}
-        >
-          <Suspense fallback={<BalanceCardSkeleton />}>
-            <StatusBalanceSection token={token} />
-          </Suspense>
-        </DashboardErrorBoundary>
-      </div>
+    <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8 lg:px-8 lg:py-7">
+      <div className="mx-auto w-full max-w-5xl space-y-5">
+        {/* Greeting */}
+        <div className="px-1">
+          <p className="text-xs text-font-dim">{today}</p>
+          <h2 className="mt-0.5 font-heading text-2xl font-bold text-font-main-sub">
+            {greeting()}
+            {user?.first_name ? `, ${user.first_name}` : ""}
+          </h2>
+        </div>
 
-      <div className="lg:col-span-2">
-        <DashboardErrorBoundary
-          fallback={({ error, retry }) => (
-            <SectionError message={error.message} onRetry={retry} />
-          )}
-        >
-          <Suspense
-            fallback={
-              <div className="space-y-3">
-                <BookingCardSkeleton />
-                <BookingCardSkeleton />
-              </div>
-            }
-          >
-            <AttentionSection token={token} />
-          </Suspense>
-        </DashboardErrorBoundary>
-      </div>
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
+          {/* Balance + status */}
+          <SectionBoundary>
+            <Suspense fallback={<BalanceCardSkeleton />}>
+              <StatusBalanceSection token={token} />
+            </Suspense>
+          </SectionBoundary>
 
-      <DashboardErrorBoundary
-        fallback={({ error, retry }) => (
+          {/* Quick actions */}
+          <nav aria-label="Quick actions" className="grid grid-cols-3 gap-2.5">
+            {QUICK_ACTIONS.map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="flex flex-col items-center gap-2 rounded-2xl bg-white px-2 py-3.5 text-center shadow-sm active:scale-[0.98] transition-transform"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-yellow/30 text-brand-secondary">
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d={action.icon}
+                    />
+                  </svg>
+                </span>
+                <span className="text-xs font-semibold text-font-main-sub">
+                  {action.label}
+                </span>
+              </Link>
+            ))}
+          </nav>
+
+          {/* Needs attention — renders nothing when there's nothing due */}
           <div className="lg:col-span-2">
-            <SectionError message={error.message} onRetry={retry} />
+            <SectionBoundary>
+              <Suspense fallback={<BookingListSkeleton rows={2} />}>
+                <AttentionSection token={token} />
+              </Suspense>
+            </SectionBoundary>
           </div>
-        )}
-      >
-        <Suspense
-          fallback={
-            <>
-              <div className="lg:col-span-1">
-                <StatCardSkeleton />
-              </div>
-              <div className="lg:col-span-1">
-                <StatCardSkeleton />
-              </div>
-              <div className="lg:col-span-2">
-                <OrdersOverviewChartSkeleton />
-              </div>
-            </>
-          }
-        >
-          <StatsSection token={token} />
-        </Suspense>
-      </DashboardErrorBoundary>
 
-      <div className="lg:col-span-2">
-        <DashboardErrorBoundary
-          fallback={({ error, retry }) => (
-            <SectionError message={error.message} onRetry={retry} />
-          )}
-        >
-          <Suspense fallback={<FleetSummarySkeleton />}>
-            <FleetSection token={token} />
-          </Suspense>
-        </DashboardErrorBoundary>
-      </div>
-
-      <div className="lg:col-span-2">
-        <DashboardErrorBoundary
-          fallback={({ error, retry }) => (
-            <SectionError message={error.message} onRetry={retry} />
-          )}
-        >
-          <Suspense
-            fallback={
-              <div className="space-y-3">
-                <div className="h-4 w-32 bg-gray-100 rounded animate-pulse" />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  <BookingCardSkeleton />
-                  <BookingCardSkeleton />
-                  <BookingCardSkeleton />
-                  <BookingCardSkeleton />
+          {/* Month tiles + week chart (one shared query) */}
+          <SectionBoundary>
+            <Suspense
+              fallback={
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <StatCardSkeleton />
+                    <StatCardSkeleton />
+                  </div>
+                  <OrdersOverviewChartSkeleton />
                 </div>
-              </div>
-            }
-          >
-            <RecentBookingsSection token={token} />
-          </Suspense>
-        </DashboardErrorBoundary>
+              }
+            >
+              <StatsSection token={token} />
+            </Suspense>
+          </SectionBoundary>
+
+          <div className="space-y-5">
+            <SectionBoundary>
+              <Suspense fallback={<FleetSummarySkeleton />}>
+                <FleetSection token={token} />
+              </Suspense>
+            </SectionBoundary>
+
+            <SectionBoundary>
+              <Suspense fallback={<BookingListSkeleton rows={4} />}>
+                <RecentBookingsSection token={token} />
+              </Suspense>
+            </SectionBoundary>
+          </div>
+        </div>
       </div>
     </main>
+  );
+}
+
+function SectionBoundary({ children }: { children: React.ReactNode }) {
+  return (
+    <DashboardErrorBoundary
+      fallback={({ error, retry }) => (
+        <SectionError message={error.message} onRetry={retry} />
+      )}
+    >
+      {children}
+    </DashboardErrorBoundary>
   );
 }
 
@@ -214,14 +258,56 @@ function SectionError({
   onRetry: () => void;
 }) {
   return (
-    <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-sm text-red-700 flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-sm text-red-700 shadow-sm">
       <span>{message}</span>
       <button
         onClick={onRetry}
-        className="text-xs font-bold text-red-700 underline shrink-0"
+        className="shrink-0 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 active:bg-red-100"
       >
         Retry
       </button>
+    </div>
+  );
+}
+
+/** Sidebar-style section title with an optional count and action link. */
+function SectionTitle({
+  title,
+  count,
+  action,
+}: {
+  title: string;
+  count?: number;
+  action?: { label: string; href: Route };
+}) {
+  return (
+    <div className="mb-2 flex items-center justify-between gap-2 px-1">
+      <h3 className="text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
+        {title}
+        {count !== undefined && ` · ${count}`}
+      </h3>
+      {action && (
+        <Link
+          href={action.href}
+          className="flex items-center gap-0.5 text-xs font-semibold text-font-main-sub active:opacity-70"
+        >
+          {action.label}
+          <svg
+            className="h-3.5 w-3.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.5}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </Link>
+      )}
     </div>
   );
 }
@@ -237,22 +323,15 @@ function StatusBalanceSection({ token }: { token: string }) {
   const banner = VENDOR_STATUS_BANNER[data.vendor_status];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {banner && (
         <div
-          className={`border rounded-xl px-4 py-3 text-sm font-medium ${banner.style}`}
+          className={`rounded-2xl px-4 py-3 text-sm font-medium ${banner.style}`}
         >
           {banner.message(data.vendor_rejection_reason)}
         </div>
       )}
-      <BalanceCard
-        balance={Number(data.current_balance)}
-        // onWithdraw={() => {
-        //   // TODO: wire up to the real withdrawal flow/endpoint —
-        //   // manual payouts only for now, no vendor-initiated action
-        //   // exists yet.
-        // }}
-      />
+      <BalanceCard balance={Number(data.current_balance)} />
     </div>
   );
 }
@@ -268,55 +347,56 @@ function AttentionSection({ token }: { token: string }) {
       ),
   });
   const router = useRouter();
-  const hasNeedsAttention =
-    data.bookings_to_start.length > 0 || data.bookings_to_return.length > 0;
+  const open = (id: number) =>
+    router.push(`/bookings/detail?id=${id}` as Route);
 
-  if (!hasNeedsAttention) return null;
+  if (data.bookings_to_start.length === 0 && data.bookings_to_return.length === 0)
+    return null;
 
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
       {data.bookings_to_start.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="font-heading font-bold text-base text-font-main-sub">
-            Needs attention
-          </h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <section>
+          <SectionTitle
+            title="To hand over"
+            count={data.bookings_to_start.length}
+          />
+          <div className="space-y-0.5 rounded-2xl bg-white p-1.5 shadow-sm ring-2 ring-brand-yellow-lg/60">
             {data.bookings_to_start.map((booking) => (
-              <CompactBookingCard
+              <DashboardBookingRow
                 key={booking.id}
                 booking={booking}
-                variant="compact"
-                onClick={() =>
-                  router.push(`/bookings/detail?id=${booking.id}` as Route)
-                }
+                when="start"
+                onClick={() => open(booking.id)}
               />
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {data.bookings_to_return.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-5">
-          <h3 className="font-heading font-bold text-base text-font-main-sub  tracking-wide lg:col-span-2">
-            Ready to return
-          </h3>
-          {data.bookings_to_return.map((booking) => (
-            <CompactBookingCard
-              key={booking.id}
-              booking={booking}
-              variant="compact"
-              onClick={() =>
-                router.push(`/bookings/detail?id=${booking.id}` as Route)
-              }
-            />
-          ))}
-        </div>
+        <section>
+          <SectionTitle
+            title="To collect back"
+            count={data.bookings_to_return.length}
+          />
+          <div className="space-y-0.5 rounded-2xl bg-white p-1.5 shadow-sm">
+            {data.bookings_to_return.map((booking) => (
+              <DashboardBookingRow
+                key={booking.id}
+                booking={booking}
+                when="end"
+                onClick={() => open(booking.id)}
+              />
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );
 }
 
-// ── Section 3: Revenue card + Orders card + Weekly chart (one shared promise) ──
+// ── Section 3: Revenue + Orders tiles + Weekly chart (one shared query) ──
 
 function StatsSection({ token }: { token: string }) {
   const { data } = useSuspenseQuery({
@@ -326,67 +406,71 @@ function StatsSection({ token }: { token: string }) {
   });
 
   return (
-    <>
-      <div className="lg:col-span-1">
-        <StatCard
-          iconTone="yellow"
-          icon={
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          }
-          label="Revenue (This month)"
-          value={currency(Number(data.revenue_this_month))}
-          trendPct={data.revenue_trend_pct}
-          lastLabel="Last month"
-          lastValue={currency(Number(data.revenue_last_month))}
-        />
-      </div>
+    <div className="space-y-5">
+      <section>
+        <SectionTitle title="This month" />
+        <div className="grid grid-cols-2 gap-2.5">
+          <StatCard
+            iconTone="yellow"
+            icon={
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            }
+            label="Revenue"
+            value={rupees(Number(data.revenue_this_month))}
+            trendPct={data.revenue_trend_pct}
+            lastLabel="Last month"
+            lastValue={rupees(Number(data.revenue_last_month))}
+          />
+          <StatCard
+            iconTone="gray"
+            icon={
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            }
+            label="Orders"
+            value={String(data.orders_this_month)}
+            trendPct={data.orders_trend_pct}
+            lastLabel="Last month"
+            lastValue={String(data.orders_last_month)}
+          />
+        </div>
+      </section>
 
-      <div className="lg:col-span-1">
-        <StatCard
-          iconTone="gray"
-          icon={
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-              />
-            </svg>
-          }
-          label="Orders (This month)"
-          value={String(data.orders_this_month)}
-          trendPct={data.orders_trend_pct}
-          lastLabel="Last month"
-          lastValue={String(data.orders_last_month)}
-        />
-      </div>
-
-      <div className="lg:col-span-2">
+      <section>
+        <SectionTitle title="This week" />
         <OrdersOverviewChart
           bars={toBarHeights(data.weekly_order_bars)}
+          counts={data.weekly_order_bars}
           dayLabels={getLast7DayLabels()}
           rangeLabel={data.range_label}
         />
-      </div>
-    </>
+      </section>
+    </div>
   );
 }
 
@@ -398,40 +482,36 @@ function FleetSection({ token }: { token: string }) {
     queryFn: () =>
       getVendorDashboardFleetApi(token).then(unwrap<VendorDashboardFleet>),
   });
-  const router = useRouter();
+
+  const stats = [
+    { value: data.fleet_total_listings, label: "Listings", href: "/fleet" },
+    { value: data.fleet_pending_approval, label: "Pending", href: "/fleet" },
+    { value: data.fleet_blocked_units, label: "Blocked", href: "/fleet/block" },
+  ] as const;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-heading font-bold text-lg">Your fleet</h3>
-        <button
-          onClick={() => router.push("/fleet" as Route)}
-          className="text-xs font-semibold text-brand-yellow-lg"
-        >
-          Manage
-        </button>
+    <section>
+      <SectionTitle
+        title="Your fleet"
+        action={{ label: "Manage", href: "/fleet" }}
+      />
+      <div className="grid grid-cols-3 divide-x divide-gray-100 rounded-2xl bg-white py-3.5 shadow-sm">
+        {stats.map((stat) => (
+          <Link
+            key={stat.label}
+            href={stat.href as Route}
+            className="px-2 text-center active:opacity-70"
+          >
+            <p className="font-heading text-2xl font-bold leading-none tabular-nums text-font-main-sub">
+              {stat.value}
+            </p>
+            <p className="mt-1.5 text-[11px] font-semibold text-font-dim">
+              {stat.label}
+            </p>
+          </Link>
+        ))}
       </div>
-      <div className="grid grid-cols-3 gap-3 text-center">
-        <div>
-          <p className="text-2xl font-heading font-extrabold text-font-main-sub">
-            {data.fleet_total_listings}
-          </p>
-          <p className="text-xs text-font-dim mt-0.5">Listings</p>
-        </div>
-        <div>
-          <p className="text-2xl font-heading font-extrabold text-font-main-sub">
-            {data.fleet_pending_approval}
-          </p>
-          <p className="text-xs text-font-dim mt-0.5">Pending approval</p>
-        </div>
-        <div>
-          <p className="text-2xl font-heading font-extrabold text-font-main-sub">
-            {data.fleet_blocked_units}
-          </p>
-          <p className="text-xs text-font-dim mt-0.5">Blocked now</p>
-        </div>
-      </div>
-    </div>
+    </section>
   );
 }
 
@@ -448,29 +528,23 @@ function RecentBookingsSection({ token }: { token: string }) {
   const router = useRouter();
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="font-heading font-bold text-base text-font-main-sub">
-          Recent bookings
-        </h3>
-        <button
-          onClick={() => router.push("/bookings" as Route)}
-          className="text-xs font-bold text-brand-yellow-lg"
-        >
-          See all
-        </button>
-      </div>
+    <section>
+      <SectionTitle
+        title="Recent bookings"
+        action={{ label: "See all", href: "/bookings" }}
+      />
       {data.recent_bookings.length === 0 ? (
-        <p className="text-sm text-font-dim text-center py-6">
+        <p className="rounded-2xl bg-white px-4 py-8 text-center text-sm text-font-dim shadow-sm">
           No bookings yet.
         </p>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="space-y-0.5 rounded-2xl bg-white p-1.5 shadow-sm">
           {data.recent_bookings.map((booking) => (
-            <CompactBookingCard
+            <DashboardBookingRow
               key={booking.id}
               booking={booking}
-              variant="compact"
+              when="start"
+              showStatus
               onClick={() =>
                 router.push(`/bookings/detail?id=${booking.id}` as Route)
               }
@@ -478,6 +552,6 @@ function RecentBookingsSection({ token }: { token: string }) {
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }

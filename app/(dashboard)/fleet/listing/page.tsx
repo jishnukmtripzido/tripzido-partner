@@ -18,11 +18,11 @@ import type { VehicleReviewsResponse } from "@/types/review.types";
 import type { Route } from "next";
 
 const STATUS_STYLES: Record<string, string> = {
-  APPROVED: "bg-green-50 text-green-600",
-  PENDING: "bg-brand-yellow/10 text-brand-yellow-lg",
+  APPROVED: "bg-green-100 text-green-700",
+  PENDING: "bg-yellow-100 text-yellow-700",
   PAUSED: "bg-gray-100 text-gray-600",
-  SUSPENDED: "bg-red-50 text-red-600",
-  REJECTED: "bg-red-50 text-red-600",
+  SUSPENDED: "bg-red-100 text-red-700",
+  REJECTED: "bg-red-100 text-red-700",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -37,30 +37,6 @@ const STATUS_LABELS: Record<string, string> = {
 // per-policy icons matching the customer portal's "Things to Remember"
 // treatment, for consistency across the whole system. ──────────────────
 
-const VEHICLE_ICON = (
-  <path
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    strokeWidth={2}
-    d="M8 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM5 17H3v-6l2-5h9l4 5h1a2 2 0 012 2v4h-2M9 17h6"
-  />
-);
-const CAMERA_ICON = (
-  <>
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-    />
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M12 17a4 4 0 100-8 4 4 0 000 8z"
-    />
-  </>
-);
 const PIN_ICON = (
   <>
     <path
@@ -93,36 +69,12 @@ const TAG_ICON = (
     d="M7 7h.01M7 3h5.586a1 1 0 01.707.293l6.414 6.414a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-8-8A1 1 0 012 10.586V5a2 2 0 012-2z"
   />
 );
-const CALENDAR_ICON = (
-  <path
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    strokeWidth={2}
-    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-  />
-);
-const SHIELD_ICON = (
-  <path
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    strokeWidth={2}
-    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-  />
-);
 const DEPOSIT_ICON = (
   <path
     strokeLinecap="round"
     strokeLinejoin="round"
     strokeWidth={2}
     d="M3 10h18M3 6h18a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V7a1 1 0 011-1z"
-  />
-);
-const DISTANCE_ICON = (
-  <path
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    strokeWidth={2}
-    d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
   />
 );
 const ALERT_ICON = (
@@ -149,14 +101,49 @@ const TRUCK_ICON = (
     d="M3 16V6a1 1 0 011-1h8a1 1 0 011 1v10m-10 0h10m-10 0a2 2 0 104 0m6 0a2 2 0 104 0m-4 0h4m0 0V9h3l3 4v3h-2"
   />
 );
-const STAR_ICON = (
-  <path
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    strokeWidth={2}
-    d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-  />
-);
+
+// "AUTOMATIC" → "Automatic", "PETROL_ENGINE" → "Petrol Engine".
+// For the backend's enum-style values (transmission, fuel type).
+function toTitleCase(value: string): string {
+  return value
+    .replace(/_/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+// Matches a schedule row to today by weekday name, so it works whatever
+// numbering the backend uses for day_of_week.
+function isToday(dayName: string): boolean {
+  const today = new Date()
+    .toLocaleDateString("en-US", { weekday: "long" })
+    .toLowerCase();
+  return today.slice(0, 3) === dayName.trim().toLowerCase().slice(0, 3);
+}
+
+// "24.00" → "1 day", "168.00" → "7 days", "6.00" → "6h".
+function formatDuration(hours: string): string {
+  const n = Number(hours);
+  if (!Number.isFinite(n) || n <= 0) return `${hours}h`;
+  if (n % 24 === 0) {
+    const days = n / 24;
+    return `${days} day${days === 1 ? "" : "s"}`;
+  }
+  return `${n}h`;
+}
+
+// Skips the category when it just repeats the package name
+// (e.g. "Daily" / "Daily"), so the hint only adds new information.
+function packageHint(pkg: ListingPackage): string {
+  return [
+    pkg.category.toLowerCase() !== pkg.name.toLowerCase() ? pkg.category : null,
+    formatDuration(pkg.duration_hours),
+    pkg.km_limit ? `${pkg.km_limit} km limit` : "No km limit",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 export default function ListingDetailPage() {
   const router = useRouter();
@@ -171,7 +158,10 @@ export default function ListingDetailPage() {
   } = useQuery({
     queryKey: queryKeys.fleet.listing(token, listingId),
     queryFn: async () => {
-      const res = await getListingDetailApi(listingId as string, token as string);
+      const res = await getListingDetailApi(
+        listingId as string,
+        token as string,
+      );
       if (!res.success || !res.data) {
         throw new Error(res.message || "Listing not found");
       }
@@ -195,7 +185,10 @@ export default function ListingDetailPage() {
   } = useQuery({
     queryKey: queryKeys.reviews.listing(listingId),
     queryFn: async () => {
-      const res = await getListingReviewsApi(listingId as string, token ?? undefined);
+      const res = await getListingReviewsApi(
+        listingId as string,
+        token ?? undefined,
+      );
       if (!res.success || !res.data) {
         throw new Error(res.message || "Failed to load reviews");
       }
@@ -209,8 +202,15 @@ export default function ListingDetailPage() {
       : "Failed to load reviews"
     : null;
 
+  const averageRating =
+    reviews &&
+    typeof reviews.average_rating === "number" &&
+    reviews.total_reviews
+      ? reviews.average_rating.toFixed(1)
+      : "—";
+
   return (
-    <div className="bg-brand-bg h-full flex flex-col">
+    <div className="flex h-full flex-col bg-brand-bg">
       <Header
         title={listing ? listing.vehicle_type.name : "Listing Details"}
         onBack={() => router.back()}
@@ -220,7 +220,7 @@ export default function ListingDetailPage() {
               onClick={() =>
                 router.push(`/fleet/listing/edit?id=${listing.id}` as Route)
               }
-              className="flex items-center gap-1.5 bg-brand-yellow text-brand-secondary px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm hover:bg-brand-yellow-lg transition-colors shrink-0"
+              className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm active:opacity-80 transition-opacity shrink-0"
             >
               <svg
                 className="w-4 h-4"
@@ -235,42 +235,140 @@ export default function ListingDetailPage() {
                   d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
                 />
               </svg>
-              EDIT
+              Edit
             </button>
           )
         }
       />
 
-      <main className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-5 pt-5 pb-8">
+      <main className="min-h-0 flex-1 overflow-y-auto hide-scrollbar px-5 pb-8 pt-4 sm:px-6 sm:pt-6">
         {isLoading && <PageLoader />}
 
         {error && !isLoading && (
-          <p className="text-[13px] text-red-500 font-semibold text-center mt-10 bg-red-50 py-3 rounded-xl mx-4">
+          <p className="mx-auto mt-6 max-w-2xl rounded-2xl bg-white shadow-sm px-4 py-4 text-center text-sm font-semibold text-red-600">
             {error}
           </p>
         )}
 
         {listing && !isLoading && (
-          <div className="space-y-4">
-            <VehicleTypeHeroImage listing={listing} />
-
-            <div className="flex flex-col items-center mb-2">
-              <span
-                className={`inline-block text-[11px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg shadow-sm ${
-                  STATUS_STYLES[listing.status] ?? "bg-gray-100 text-gray-600"
-                }`}
-              >
-                {STATUS_LABELS[listing.status] ?? listing.status}
-              </span>
-              {listing.status === "REJECTED" && listing.rejection_reason && (
-                <p className="text-[12px] font-medium text-red-500 mt-3 bg-red-50 px-4 py-2 rounded-lg text-center w-full">
-                  {listing.rejection_reason}
+          <div className="mx-auto max-w-5xl space-y-5">
+            {/* Hero */}
+            <section className="rounded-2xl bg-white p-3 shadow-sm">
+              <VehicleTypeHeroImage listing={listing} />
+              <div className="px-1 pt-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
+                  {listing.vehicle_type.brand} · {listing.vehicle_type.make_year}
                 </p>
-              )}
-            </div>
+                <div className="mt-0.5 flex items-center justify-between gap-3">
+                  <h2 className="min-w-0 truncate font-heading text-2xl font-bold text-font-main-sub">
+                    {listing.vehicle_type.name}
+                  </h2>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                      STATUS_STYLES[listing.status] ??
+                      "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {STATUS_LABELS[listing.status] ?? listing.status}
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5 px-1 pt-3">
+                {[
+                  toTitleCase(listing.vehicle_type.transmission_type),
+                  toTitleCase(listing.vehicle_type.fuel_type),
+                  `${listing.vehicle_type.seats} seats`,
+                  `${listing.vehicle_type.cc} cc`,
+                ]
+                  .filter(Boolean)
+                  .map((chip) => (
+                    <span
+                      key={chip}
+                      className="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-semibold text-font-dim"
+                    >
+                      {chip}
+                    </span>
+                  ))}
+              </div>
 
-            <Section title="Vehicle Details" icon={VEHICLE_ICON}>
-              <div className="grid grid-cols-2 gap-2.5">
+              {/* Key numbers — one strip inside the card instead of
+                  separate tiles */}
+              <div className="mt-4 grid grid-cols-3 divide-x divide-black/5 rounded-xl bg-brand-bg py-3">
+                <HeroStat
+                  value={String(listing.available_count)}
+                  label="Available"
+                />
+                <HeroStat
+                  value={String(listing.pricing_packages.length)}
+                  label={
+                    listing.pricing_packages.length === 1
+                      ? "Package"
+                      : "Packages"
+                  }
+                />
+                <HeroStat
+                  value={reviewsLoading ? "…" : averageRating}
+                  label="Rating"
+                  star={averageRating !== "—" && !reviewsLoading}
+                />
+              </div>
+
+              {listing.status === "REJECTED" && listing.rejection_reason && (
+                <div className="mt-3 flex gap-2.5 rounded-xl bg-red-50 p-3 text-red-700">
+                  <svg
+                    className="h-5 w-5 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    {ALERT_ICON}
+                  </svg>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide">
+                      Rejection reason
+                    </p>
+                    <p className="mt-0.5 text-sm">{listing.rejection_reason}</p>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <Section title="Pricing packages">
+              {listing.pricing_packages.length === 0 ? (
+                <EmptyRow text="No pricing packages set up yet." />
+              ) : (
+                listing.pricing_packages.map((pkg: ListingPackage) => (
+                  <Row
+                    key={pkg.id}
+                    icon={TAG_ICON}
+                    label={pkg.name}
+                    hint={packageHint(pkg)}
+                    trailing={
+                      <span className="rounded-lg bg-brand-yellow/30 px-2.5 py-1 text-sm font-bold tabular-nums text-brand-secondary">
+                        ₹{pkg.price}
+                      </span>
+                    }
+                  />
+                ))
+              )}
+            </Section>
+
+            <Section title="Location">
+              <Row
+                icon={PIN_ICON}
+                label={listing.pickup_location.name}
+                hint={
+                  listing.pickup_location.address ||
+                  listing.pickup_location.city_name
+                }
+                wrapHint
+              />
+              <ExactPickupAddress listing={listing} />
+            </Section>
+
+            <Section title="Vehicle details" padded>
+              <div className="grid grid-cols-2 gap-2">
                 <Spec label="Brand" value={listing.vehicle_type.brand} />
                 <Spec
                   label="Year"
@@ -278,20 +376,14 @@ export default function ListingDetailPage() {
                 />
                 <Spec
                   label="Transmission"
-                  value={listing.vehicle_type.transmission_type}
+                  value={toTitleCase(listing.vehicle_type.transmission_type)}
                 />
                 <Spec
-                  label="Fuel Type"
-                  value={listing.vehicle_type.fuel_type}
+                  label="Fuel type"
+                  value={toTitleCase(listing.vehicle_type.fuel_type)}
                 />
-                <Spec
-                  label="Seats"
-                  value={String(listing.vehicle_type.seats)}
-                />
-                <Spec
-                  label="Engine (cc)"
-                  value={String(listing.vehicle_type.cc)}
-                />
+                <Spec label="Seats" value={String(listing.vehicle_type.seats)} />
+                <Spec label="Engine" value={`${listing.vehicle_type.cc} cc`} />
                 {listing.vehicle_type.mileage_kmpl != null && (
                   <Spec
                     label="Mileage"
@@ -300,160 +392,101 @@ export default function ListingDetailPage() {
                 )}
                 {listing.vehicle_type.top_speed_kmph != null && (
                   <Spec
-                    label="Top Speed"
+                    label="Top speed"
                     value={`${listing.vehicle_type.top_speed_kmph} km/h`}
                   />
                 )}
               </div>
             </Section>
-            <Section title="Policies" icon={SHIELD_ICON}>
-              <div className="space-y-3">
-                <PolicyRow
-                  icon={DEPOSIT_ICON}
-                  label="Security Deposit"
-                  value={`₹${listing.policies.security_deposit_amount}`}
-                />
-                {/* <PolicyRow
-                  icon={DISTANCE_ICON}
-                  label="Distance Limit"
-                  value={
-                    listing.policies.km_limit_per_day
-                      ? `${listing.policies.km_limit_per_day} km/day`
-                      : "No limit"
-                  }
-                /> */}
-                {/* {listing.policies.excess_charge_per_km != null && ( */}
-                <PolicyRow
-                  icon={ALERT_ICON}
-                  label="Excess Charge"
-                  value={`₹${listing.policies.excess_charge_per_km}/km`}
-                />
-                {/* )} */}
-                {/* {listing.policies.late_return_penalty_per_hour != null && ( */}
-                <PolicyRow
-                  icon={CLOCK_ICON}
-                  label="Late Return Penalty"
-                  value={`₹${listing.policies.late_return_penalty_per_hour}/hr`}
-                />
-                {/* )} */}
-                <PolicyRow
-                  icon={TRUCK_ICON}
-                  label="Doorstep Delivery"
-                  value={
-                    listing.policies.doorstep_delivery_enabled
-                      ? "Enabled"
-                      : "Not enabled"
-                  }
-                />
-              </div>
-            </Section>
-            <div className="flex items-center justify-center gap-3 bg-white border border-gray-100 rounded-2xl py-4 shadow-sm">
-              <div className="w-9 h-9 rounded-full bg-brand-yellow/15 text-brand-yellow-lg flex items-center justify-center shrink-0">
-                <svg
-                  className="w-4.5 h-4.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  {VEHICLE_ICON}
-                </svg>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
-                  Fleet quantity at this location
-                </p>
-                <p className="text-lg font-heading font-extrabold text-font-main-sub leading-tight">
-                  {listing.available_count}
-                </p>
-              </div>
-            </div>
 
-            <Section
-              title={`Photos (${listing.images.length})`}
-              icon={CAMERA_ICON}
-            >
-              <VendorUploadedPhotos listing={listing} />
-            </Section>
-
-            <Section title="Pickup Location" icon={PIN_ICON}>
-              <p className="font-bold text-gray-900 text-[14px]">
-                {listing.pickup_location.name}
-              </p>
-              <p className="text-[13px] font-medium text-gray-500 mt-1">
-                {listing.pickup_location.address ||
-                  listing.pickup_location.city_name}
-              </p>
-            </Section>
-
-            <Section title="Exact Pickup Address" icon={STOREFRONT_ICON}>
-              <ExactPickupAddress listing={listing} />
+            <Section title="Policies">
+              <Row
+                icon={DEPOSIT_ICON}
+                label="Security deposit"
+                trailing={
+                  <Value>₹{listing.policies.security_deposit_amount}</Value>
+                }
+              />
+              <Row
+                icon={ALERT_ICON}
+                label="Excess charge"
+                trailing={
+                  <Value>₹{listing.policies.excess_charge_per_km}/km</Value>
+                }
+              />
+              <Row
+                icon={CLOCK_ICON}
+                label="Late return penalty"
+                trailing={
+                  <Value>
+                    ₹{listing.policies.late_return_penalty_per_hour}/hr
+                  </Value>
+                }
+              />
+              <Row
+                icon={TRUCK_ICON}
+                label="Doorstep delivery"
+                trailing={
+                  listing.policies.doorstep_delivery_enabled ? (
+                    <span className="rounded-full bg-green-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-green-700">
+                      Enabled
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-font-dim">
+                      Off
+                    </span>
+                  )
+                }
+              />
             </Section>
 
             <Section
-              title={`Pricing Packages (${listing.pricing_packages.length})`}
-              icon={TAG_ICON}
+              title={
+                listing.schedule.template_name
+                  ? `Weekly schedule · ${listing.schedule.template_name}`
+                  : "Weekly schedule"
+              }
             >
-              <div className="space-y-3">
-                {listing.pricing_packages.map((pkg: ListingPackage) => (
-                  <div
-                    key={pkg.id}
-                    className="bg-gray-50/50 border border-gray-100 rounded-2xl p-4 flex items-center justify-between transition-colors hover:border-brand-yellow/50"
-                  >
-                    <div>
-                      <p className="font-bold text-[14px] text-gray-900">
-                        {pkg.name}
-                      </p>
-                      <p className="text-[12px] font-medium text-gray-500 mt-1">
-                        {pkg.category} • {pkg.duration_hours}h
-                        {pkg.km_limit
-                          ? ` • ${pkg.km_limit} km limit`
-                          : " • No km limit"}
-                      </p>
-                    </div>
-                    <p className="font-bold text-[14px] text-brand-yellow-lg bg-brand-yellow/10 px-3 py-1.5 rounded-lg">
-                      ₹{pkg.price}
-                    </p>
-                  </div>
-                ))}
-                {listing.pricing_packages.length === 0 && (
-                  <p className="text-[13px] font-medium text-gray-500">
-                    No pricing packages set up yet.
-                  </p>
-                )}
-              </div>
-            </Section>
-
-            <Section title="Weekly Schedule" icon={CALENDAR_ICON}>
               {listing.schedule.has_schedule ? (
-                <div className="space-y-2">
-                  {listing.schedule.days.map((day: ListingScheduleDay) => (
+                listing.schedule.days.map((day: ListingScheduleDay) => {
+                  const today = isToday(day.day_name);
+                  return (
                     <div
                       key={day.day_of_week}
-                      className="flex justify-between items-center text-[13px] py-1.5 border-b border-gray-50 last:border-0 last:pb-0"
+                      className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 ${
+                        today ? "bg-brand-yellow/25" : ""
+                      }`}
                     >
-                      <span className="text-gray-900 font-bold">
+                      <span className="flex items-center gap-2 text-sm font-semibold text-font-main-sub">
                         {day.day_name}
+                        {today && (
+                          <span className="rounded-md bg-brand-yellow-lg px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-secondary">
+                            Today
+                          </span>
+                        )}
                       </span>
-                      <span
-                        className={`font-semibold ${
-                          day.is_closed
-                            ? "text-red-500 bg-red-50 px-2.5 py-1 rounded-md text-[11px] uppercase tracking-wide"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {day.is_closed ? "Closed" : day.timing}
-                      </span>
+                      {day.is_closed ? (
+                        <span className="rounded-full bg-red-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-red-700">
+                          Closed
+                        </span>
+                      ) : (
+                        <span className="text-xs font-semibold tabular-nums text-font-dim">
+                          {day.timing}
+                        </span>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  );
+                })
               ) : (
-                <p className="text-[13px] font-medium text-gray-500">
-                  No schedule assigned yet.
-                </p>
+                <EmptyRow text="No schedule assigned yet." />
               )}
             </Section>
 
-            <Section title="Reviews & Ratings" icon={STAR_ICON}>
+            <Section title={`Photos · ${listing.images.length}`} padded>
+              <VendorUploadedPhotos listing={listing} />
+            </Section>
+
+            <Section title="Reviews & ratings" padded>
               <ReviewsSummary
                 reviews={reviews}
                 loading={reviewsLoading}
@@ -472,9 +505,9 @@ export default function ListingDetailPage() {
 function VehicleTypeHeroImage({ listing }: { listing: ListingDetail }) {
   if (!listing.vehicle_type.primary_image) {
     return (
-      <div className="w-full h-56 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center mb-4">
+      <div className="flex h-48 w-full items-center justify-center rounded-xl bg-gray-100 p-5 sm:h-64">
         <svg
-          className="w-12 h-12 text-gray-300"
+          className="w-12 h-12 text-font-dim/50"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -491,7 +524,7 @@ function VehicleTypeHeroImage({ listing }: { listing: ListingDetail }) {
   }
 
   return (
-    <div className="w-full h-64 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 flex items-center justify-center">
+    <div className="flex h-52 w-full items-center justify-center rounded-xl bg-gray-100 p-4 sm:h-72">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={listing.vehicle_type.primary_image}
@@ -507,21 +540,21 @@ function VendorUploadedPhotos({ listing }: { listing: ListingDetail }) {
 
   if (images.length === 0) {
     return (
-      <p className="text-[13px] font-medium text-gray-500">
+      <p className="text-sm text-font-dim">
         No photos uploaded for this listing yet.
       </p>
     );
   }
 
   return (
-    <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-2 px-2 pb-1">
+    <div className="-mx-1 flex gap-2.5 overflow-x-auto hide-scrollbar px-1">
       {images.map((img: ListingImage) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           key={img.id}
           src={img.image_url ?? undefined}
           alt={listing.vehicle_type.name}
-          className="h-32 w-32 rounded-2xl object-cover shrink-0 border border-gray-100 shadow-sm"
+          className="h-28 w-36 shrink-0 rounded-xl bg-gray-100 object-cover sm:h-32 sm:w-40"
         />
       ))}
     </div>
@@ -533,9 +566,12 @@ function ExactPickupAddress({ listing }: { listing: ListingDetail }) {
 
   if (pickupPoint === null || pickupPoint === undefined) {
     return (
-      <p className="text-[13px] font-medium text-gray-500">
-        No exact pickup point set for this listing yet, add one from Edit.
-      </p>
+      <Row
+        icon={STOREFRONT_ICON}
+        label="No pickup point"
+        hint="Add an exact pickup point from Edit."
+        wrapHint
+      />
     );
   }
 
@@ -553,128 +589,188 @@ function ExactPickupAddress({ listing }: { listing: ListingDetail }) {
     pickupPoint.label.length > 0 ? pickupPoint.label : "Pickup point";
 
   return (
-    <div className="space-y-4">
-      <div>
-        <p className="font-bold text-[14px] text-gray-900">{labelText}</p>
-        <p className="text-[13px] font-medium text-gray-500 mt-1">
-          {pickupPoint.address}
-        </p>
-      </div>
+    <>
+      <Row
+        icon={STOREFRONT_ICON}
+        label={labelText}
+        hint={pickupPoint.address}
+        wrapHint
+      />
 
-      {pickupPoint.contact_numbers.length > 0 && (
-        <div>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">
-            Contact numbers
-          </p>
-          <div className="flex flex-wrap gap-2.5">
-            {pickupPoint.contact_numbers.map(function renderContact(num) {
-              const telHref = "tel:" + num;
-              return (
-                <a
-                  key={num}
-                  href={telHref}
-                  className="text-[13px] font-bold text-gray-700 bg-gray-50 border border-gray-100 rounded-xl px-4 py-2 hover:border-brand-yellow transition-colors"
+      {(pickupPoint.contact_numbers.length > 0 || hasMapLink) && (
+        <div className="flex flex-wrap gap-2 px-2.5 pb-2 pt-1">
+          {pickupPoint.contact_numbers.map(function renderContact(num) {
+            const telHref = "tel:" + num;
+            return (
+              <a
+                key={num}
+                href={telHref}
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-gray-100 px-3 text-sm font-semibold text-font-main-sub active:bg-gray-200 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-yellow-lg"
+              >
+                <svg
+                  className="h-4 w-4 text-font-dim"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
-                  {num}
-                </a>
-              );
-            })}
-          </div>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.95.68l1.1 3.3a1 1 0 01-.5 1.2l-1.9.95a11 11 0 005.2 5.2l.95-1.9a1 1 0 011.2-.5l3.3 1.1a1 1 0 01.68.95V19a2 2 0 01-2 2h-1C9.27 21 3 14.73 3 7V5z"
+                  />
+                </svg>
+                {num}
+              </a>
+            );
+          })}
+          {hasMapLink && (
+            <a
+              href={mapHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-brand-yellow-lg px-3 text-sm font-semibold text-brand-secondary active:bg-brand-yellow transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-secondary"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+              Open in Maps
+            </a>
+          )}
         </div>
       )}
+    </>
+  );
+}
 
-      {hasMapLink && (
-        <a
-          href={mapHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-[13px] font-bold text-brand-yellow-lg hover:text-brand-secondary transition-colors mt-1"
+/**
+ * Sidebar-style section: small uppercase title above a white card.
+ * `padded` is for free-form content; without it the card is a tight
+ * list container for <Row/>s, like the sidebar's link groups.
+ */
+function Section({
+  title,
+  padded = false,
+  children,
+}: {
+  title: string;
+  padded?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <h2 className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
+        {title}
+      </h2>
+      <div
+        className={`rounded-2xl bg-white shadow-sm ${
+          padded ? "p-3" : "p-1.5 space-y-0.5"
+        }`}
+      >
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function Row({
+  icon,
+  label,
+  hint,
+  trailing,
+  wrapHint = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  hint?: string;
+  trailing?: React.ReactNode;
+  wrapHint?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl px-2.5 py-2.5">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-font-dim">
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+          {icon}
+        </svg>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-font-main-sub">
+          {label}
+        </span>
+        {hint && (
+          <span
+            className={`block text-xs text-font-dim ${
+              wrapHint ? "leading-relaxed" : "truncate"
+            }`}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-            />
-          </svg>
-          Open in Maps
-        </a>
-      )}
+            {hint}
+          </span>
+        )}
+      </span>
+      {trailing && <span className="shrink-0">{trailing}</span>}
     </div>
   );
 }
 
-function Section({
-  title,
-  icon,
-  children,
+function Value({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-sm font-bold tabular-nums text-font-main-sub">
+      {children}
+    </span>
+  );
+}
+
+function EmptyRow({ text }: { text: string }) {
+  return <p className="px-2.5 py-3 text-sm text-font-dim">{text}</p>;
+}
+
+function HeroStat({
+  value,
+  label,
+  star = false,
 }: {
-  title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
+  value: string;
+  label: string;
+  star?: boolean;
 }) {
   return (
-    <section className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-      <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-gray-50">
-        <div className="w-8 h-8 rounded-lg bg-brand-yellow/10 text-brand-yellow-lg flex items-center justify-center shrink-0">
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            {icon}
-          </svg>
-        </div>
-        <h2 className="font-heading font-bold text-[15px] text-gray-900">
-          {title}
-        </h2>
-      </div>
-      {children}
-    </section>
+    <div className="px-2 text-center">
+      <p className="font-heading text-xl font-bold tabular-nums leading-none text-font-main-sub">
+        {star && <span className="mr-0.5 text-brand-yellow-lg">★</span>}
+        {value}
+      </p>
+      <p className="mt-1.5 text-[11px] font-semibold text-font-dim">{label}</p>
+    </div>
   );
 }
 
 function Spec({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-gray-50/60 rounded-xl px-3 py-2.5">
-      <p className="text-[11px] font-medium text-gray-500">{label}</p>
-      <p className="text-[14px] font-bold text-gray-900 mt-0.5">{value}</p>
-    </div>
-  );
-}
-
-function PolicyRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded-lg bg-gray-50 text-gray-400 flex items-center justify-center shrink-0">
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          {icon}
-        </svg>
-      </div>
-      <div className="flex-1 flex items-center justify-between text-[13px]">
-        <span className="font-medium text-gray-500">{label}</span>
-        <span className="font-bold text-gray-900">{value}</span>
-      </div>
+    <div className="min-w-0 rounded-xl bg-brand-bg px-3 py-2.5">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-font-dim/70">
+        {label}
+      </p>
+      <p className="mt-0.5 break-words text-sm font-bold text-font-main-sub">
+        {value}
+      </p>
     </div>
   );
 }
@@ -689,20 +785,14 @@ function ReviewsSummary({
   error: string | null;
 }) {
   if (loading) {
-    return (
-      <p className="text-[13px] font-medium text-gray-500">
-        Loading reviews...
-      </p>
-    );
+    return <p className="text-sm text-font-dim">Loading reviews...</p>;
   }
   if (error) {
-    return <p className="text-[13px] font-medium text-red-500">{error}</p>;
+    return <p className="text-sm font-medium text-red-500">{error}</p>;
   }
   if (!reviews || !reviews.total_reviews) {
     return (
-      <p className="text-[13px] font-medium text-gray-500">
-        No reviews yet for this listing.
-      </p>
+      <p className="text-sm text-font-dim">No reviews yet for this listing.</p>
     );
   }
 
@@ -710,30 +800,30 @@ function ReviewsSummary({
     typeof reviews.average_rating === "number" ? reviews.average_rating : null;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-4">
-        <div className="text-center shrink-0">
-          <p className="text-3xl font-heading font-extrabold text-font-main-sub leading-none">
+    <div className="space-y-4">
+      <div className="flex items-center gap-4 rounded-xl bg-brand-bg p-3">
+        <div className="shrink-0 text-center px-1">
+          <p className="font-heading text-3xl font-bold leading-none text-font-main-sub">
             {averageRating !== null ? averageRating.toFixed(1) : "—"}
           </p>
-          <p className="text-[11px] text-gray-400 font-medium mt-1">
+          <p className="mt-1 text-[11px] font-semibold text-font-dim">
             {reviews.total_reviews} review
             {reviews.total_reviews === 1 ? "" : "s"}
           </p>
         </div>
         {reviews.rating_breakdown?.length > 0 && (
-          <div className="flex-1 space-y-1.5">
+          <div className="flex-1 space-y-1.5 border-l border-black/5 pl-4">
             {reviews.rating_breakdown.map((b) => (
               <div
                 key={b.criterion}
-                className="flex items-center justify-between text-[12px]"
+                className="flex items-center justify-between text-xs"
               >
-                <span className="text-gray-500">{b.criterion_label}</span>
-                <span className="font-bold text-gray-900">
+                <span className="text-font-dim">{b.criterion_label}</span>
+                <span className="font-bold text-font-main-sub">
                   {typeof b.average_score === "number"
                     ? b.average_score.toFixed(1)
                     : "—"}{" "}
-                  ★
+                  <span className="text-brand-yellow-lg">★</span>
                 </span>
               </div>
             ))}
@@ -743,32 +833,36 @@ function ReviewsSummary({
 
       <div className="space-y-3">
         {reviews.results?.map((r) => (
-          <div
-            key={r.id}
-            className="border-t border-gray-50 pt-3 first:border-0 first:pt-0"
-          >
-            <div className="flex items-center justify-between">
-              <p className="font-bold text-[13px] text-gray-900">
-                {r.author_name}
+          <div key={r.id} className="flex gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-secondary font-heading text-xs font-bold text-brand-yellow">
+              {r.author_name?.trim()?.[0]?.toUpperCase() ?? "?"}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-sm font-semibold text-font-main-sub">
+                  {r.author_name}
+                </p>
+                {typeof r.rating === "number" && (
+                  <span className="shrink-0 rounded-md bg-brand-yellow/30 px-1.5 py-0.5 text-[11px] font-bold text-brand-secondary">
+                    {r.rating.toFixed(1)} ★
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-font-dim">
+                {new Date(r.created_at).toLocaleDateString()}
               </p>
-              {typeof r.rating === "number" && (
-                <span className="text-[12px] font-bold text-brand-yellow-lg">
-                  {r.rating.toFixed(1)} ★
-                </span>
+              {r.comment && (
+                <p className="mt-1.5 text-sm text-font-main-sub/90">
+                  {r.comment}
+                </p>
               )}
             </div>
-            <p className="text-[11px] text-gray-400 mt-0.5">
-              {new Date(r.created_at).toLocaleDateString()}
-            </p>
-            {r.comment && (
-              <p className="text-[13px] text-gray-700 mt-2">{r.comment}</p>
-            )}
           </div>
         ))}
       </div>
 
       {reviews.total_reviews > (reviews.results?.length ?? 0) && (
-        <p className="text-[11px] text-gray-400 text-center">
+        <p className="text-[11px] font-semibold text-font-dim text-center">
           Showing {reviews.results?.length ?? 0} of {reviews.total_reviews}{" "}
           reviews
         </p>

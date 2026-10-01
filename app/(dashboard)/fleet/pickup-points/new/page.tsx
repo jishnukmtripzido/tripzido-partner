@@ -2,13 +2,13 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { Route } from "next";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/context/AuthContext";
 import { createPickupPointApi } from "@/services/fleet.service";
 import { PickupPointForm } from "@/components/features/fleet/PickupPointForm";
 import { loadReturnTo, clearReturnTo } from "@/lib/listingDraft";
 import { queryKeys } from "@/lib/queryKeys";
+import { goBackOr } from "@/lib/navigation";
 import type { PickupPointPayload } from "@/types/listing-create.types";
 
 function formatFieldErrors(errors?: Record<string, string[]>): string {
@@ -49,9 +49,12 @@ export default function NewPickupPointPage() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.settings.pickupPoints(token),
       });
+      // Pop this page off the stack (back to Add bike / Edit listing /
+      // Settings) — pushing the return page would leave this form in
+      // history and loop on the next back press.
       const returnTo = loadReturnTo("/settings/pickup-points");
       clearReturnTo();
-      router.push(returnTo as Route);
+      goBackOr(router, returnTo);
     },
   });
 
@@ -62,7 +65,7 @@ export default function NewPickupPointPage() {
       : null;
 
   function goBack() {
-    router.push(loadReturnTo("/settings/pickup-points") as Route);
+    goBackOr(router, loadReturnTo("/settings/pickup-points"));
   }
 
   function handleSubmit(data: PickupPointPayload) {
@@ -73,7 +76,7 @@ export default function NewPickupPointPage() {
   return (
     <>
       <Header title="New pickup point" onBack={goBack} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg">
+      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-8 bg-brand-bg">
         <PickupPointForm
           pickupLocationId={pickupLocationId ? Number(pickupLocationId) : null}
           pickupLocationName={pickupLocationName}

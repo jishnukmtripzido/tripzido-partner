@@ -1,7 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GoogleMapPicker } from "@/components/ui/GoogleMapPicker";
+import {
+  checkLocationAccess,
+  getCurrentLocation,
+  requestLocationAccess,
+  LocationError,
+  type LocationAccess,
+} from "@/lib/location";
 import type {
   PickupPoint,
   PickupPointPayload,
@@ -122,6 +129,37 @@ export function PickupPointForm({
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
+  // Location permission state. Asked for as soon as the form opens, so
+  // "Use my current location" is ready by the time the vendor needs it.
+  const [access, setAccess] = useState<LocationAccess | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    requestLocationAccess().then((result) => {
+      if (!cancelled) setAccess(result);
+    });
+
+    // The vendor may leave to the browser's site settings to allow
+    // location — re-check when the tab becomes visible again so the
+    // banner clears without reopening the form.
+    function onVisibilityChange() {
+      if (document.visibilityState !== "visible") return;
+      checkLocationAccess().then((result) => {
+        if (!cancelled) setAccess(result);
+      });
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
+
+  async function askForLocation() {
+    setLocationError(null);
+    setAccess(await requestLocationAccess());
+  }
+
   function updateContact(i: number, v: string) {
     setContacts((prev) => prev.map((c, idx) => (idx === i ? v : c)));
   }
@@ -151,29 +189,47 @@ export function PickupPointForm({
     }
   }
 
-  function useCurrentLocation() {
-    if (typeof window === "undefined" || !("geolocation" in navigator)) {
-      setLocationError("Your browser doesn't support automatic location.");
-      return;
-    }
+  // Asks for permission again if it isn't granted (see getCurrentLocation),
+  // then drops the pin at the device's position.
+  async function useCurrentLocation() {
     setLocating(true);
     setLocationError(null);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        applyLocation(pos.coords.latitude, pos.coords.longitude);
-        setLocating(false);
-      },
-      (err) => {
+    try {
+      const { latitude, longitude } = await getCurrentLocation();
+      applyLocation(latitude, longitude);
+      setAccess("granted");
+    } catch (err) {
+      if (err instanceof LocationError) {
+        setLocationError(err.message);
+        if (err.reason !== "timeout" && err.reason !== "unavailable") {
+          setAccess(err.reason);
+        }
+      } else {
         setLocationError(
-          err.code === err.PERMISSION_DENIED
-            ? "Location access was denied. Enable it in your browser settings, or drop the pin manually."
-            : "Couldn't get your current location. Try dropping the pin manually.",
+          "Couldn't get your current location. Try again, or drop the pin manually.",
         );
-        setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-    );
+      }
+    } finally {
+      setLocating(false);
+    }
   }
+
+  // Banner shown above the map while location can't be used. On the
+  // web, "prompt" is normal (the browser asks on first use), so no banner.
+  const accessBanner =
+    access === "blocked"
+      ? {
+          title: "Location permission is blocked",
+          text: "Click the lock icon in your browser's address bar, allow Location, then check again.",
+          action: "Check again",
+        }
+      : access === "services-off"
+        ? {
+            title: "Your device's location is off",
+            text: "Turn on Location in your system settings to use your current location.",
+            action: "Check again",
+          }
+        : null;
 
   function handleSubmit() {
     onSubmit({
@@ -198,10 +254,10 @@ export function PickupPointForm({
         type="button"
         onClick={useCurrentLocation}
         disabled={locating}
-        className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${
+        className={`w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-colors disabled:opacity-50 ${
           variant === "inline"
-            ? "border-2 border-dashed border-gray-200 text-font-dim hover:border-brand-yellow hover:text-brand-secondary"
-            : "border-2 border-gray-200 text-font-dim hover:border-brand-yellow hover:text-brand-secondary"
+            ? "bg-brand-bg text-font-main-sub active:bg-gray-100"
+            : "bg-gray-100 text-font-main-sub active:bg-gray-200"
         }`}
       >
         <svg
@@ -218,109 +274,94 @@ export function PickupPointForm({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {pickupLocationName && (
-        <div className="flex items-center gap-2.5 bg-white border border-gray-100 rounded-2xl px-4 py-3 shadow-sm">
-          <div className="w-8 h-8 rounded-lg bg-gray-100 text-gray-400 flex items-center justify-center shrink-0">
+        <div className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-yellow-lg text-brand-secondary">
             <svg
-              className="w-4 h-4"
+              className="h-5 w-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               {PIN_ICON}
             </svg>
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+          </span>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-font-dim/70">
               Area
             </p>
-            <p className="text-sm font-semibold text-font-main-sub">
+            <p className="truncate text-sm font-semibold text-font-main-sub">
               {pickupLocationName}
             </p>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-brand-yellow/10 text-brand-yellow-lg flex items-center justify-center shrink-0">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              {TAG_ICON}
-            </svg>
+      {/* Point details */}
+      <FormSection title="Point details" icon={TAG_ICON}>
+        <div className="space-y-4">
+          <div>
+            <FieldLabel htmlFor="pp-label">Label (optional)</FieldLabel>
+            <input
+              id="pp-label"
+              type="text"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="e.g. Main Shop"
+              className={INPUT_CLASS}
+            />
           </div>
-          <h2 className="font-heading font-bold text-sm text-font-main-sub">
-            Point details
-          </h2>
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
-            Label (optional)
-          </label>
-          <input
-            type="text"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="e.g. Main Shop"
-            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
-            Exact address
-          </label>
-          <textarea
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            rows={3}
-            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm resize-none"
-          />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <div className="flex items-center gap-2.5 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-brand-yellow/10 text-brand-yellow-lg flex items-center justify-center shrink-0">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              {PHONE_ICON}
-            </svg>
+          <div>
+            <FieldLabel htmlFor="pp-address">Exact address</FieldLabel>
+            <textarea
+              id="pp-address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              rows={3}
+              placeholder="Building, street and landmark customers can find"
+              className={`${INPUT_CLASS} resize-none`}
+            />
           </div>
-          <h2 className="font-heading font-bold text-sm text-font-main-sub">
-            Contact numbers
-          </h2>
         </div>
-        <div className="space-y-2">
+      </FormSection>
+
+      {/* Contact numbers */}
+      <FormSection
+        title={`Contact numbers · ${contacts.length} of 3`}
+        icon={PHONE_ICON}
+      >
+        <div className="space-y-2.5">
           {contacts.map((c, i) => (
             <div key={i} className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-brand-yellow/15 text-brand-yellow-lg flex items-center justify-center text-[11px] font-bold shrink-0">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-secondary text-[11px] font-bold text-brand-yellow">
                 {i + 1}
-              </div>
+              </span>
               <input
                 type="tel"
+                inputMode="tel"
                 value={c}
                 onChange={(e) => updateContact(i, e.target.value)}
                 placeholder="10-digit number"
-                className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
+                aria-label={`Contact number ${i + 1}`}
+                className={`${INPUT_CLASS} flex-1`}
               />
               {contacts.length > 1 && (
                 <button
                   onClick={() => removeContact(i)}
-                  aria-label="Remove number"
-                  className="w-8 h-8 shrink-0 rounded-lg text-red-500 hover:bg-red-50 transition-colors text-lg font-bold flex items-center justify-center"
+                  aria-label={`Remove number ${i + 1}`}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 active:bg-red-100 transition-colors"
                 >
-                  ×
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    {CLOSE_ICON}
+                  </svg>
                 </button>
               )}
             </div>
@@ -329,13 +370,14 @@ export function PickupPointForm({
         {contacts.length < 3 && (
           <button
             onClick={addContact}
-            className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-2.5 text-sm font-semibold text-font-dim hover:border-brand-yellow hover:text-brand-secondary transition-colors mt-3"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 py-3 text-sm font-semibold text-font-main-sub active:bg-gray-50 transition-colors"
           >
             <svg
-              className="w-4 h-4"
+              className="h-4 w-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -347,95 +389,151 @@ export function PickupPointForm({
             Add another number
           </button>
         )}
-      </div>
+      </FormSection>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-brand-yellow/10 text-brand-yellow-lg flex items-center justify-center shrink-0">
+      {/* Map location */}
+      <FormSection
+        title="Map location"
+        icon={PIN_ICON}
+      >
+        <div className="space-y-3">
+          {accessBanner && (
+            <div className="flex items-start gap-3 rounded-xl bg-amber-50 p-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-yellow-lg text-brand-secondary">
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  {CROSSHAIR_ICON}
+                </svg>
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-font-main-sub">
+                  {accessBanner.title}
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed text-font-dim">
+                  {accessBanner.text}
+                </p>
+                <button
+                  type="button"
+                  onClick={askForLocation}
+                  className="mt-2 rounded-lg bg-brand-secondary px-3 py-1.5 text-xs font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+                >
+                  {accessBanner.action}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setMapFullscreen(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-gray-200 bg-white py-2.5 text-sm font-semibold text-font-main-sub active:bg-gray-50 transition-colors"
+            >
               <svg
-                className="w-4 h-4"
+                className="h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
-                {PIN_ICON}
+                {EXPAND_ICON}
               </svg>
-            </div>
-            <h2 className="font-heading font-bold text-sm text-font-main-sub">
-              Map location
-            </h2>
+              Open full-screen map
+            </button>
+            <LocateMeButton variant="inline" />
           </div>
-          <button
-            type="button"
-            onClick={() => setMapFullscreen(true)}
-            aria-label="Expand map to full screen"
-            className="w-8 h-8 rounded-lg text-gray-400 hover:bg-gray-50 hover:text-brand-secondary transition-colors flex items-center justify-center shrink-0"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+
+          <div className="relative">
+            <GoogleMapPicker
+              latitude={lat}
+              longitude={lng}
+              onChange={applyLocation}
+            />
+            {/* Second, on-map way into full screen — a corner button
+                over the map itself, where people look for it. */}
+            <button
+              type="button"
+              onClick={() => setMapFullscreen(true)}
+              aria-label="Open full-screen map"
+              className="absolute right-2.5 top-2.5 z-10 flex h-10 w-10 items-center justify-center rounded-xl bg-white text-font-main-sub shadow-md active:bg-gray-100 transition-colors"
             >
-              {EXPAND_ICON}
-            </svg>
-          </button>
-        </div>
-
-        <LocateMeButton variant="inline" />
-
-        <div>
-          <GoogleMapPicker
-            latitude={lat}
-            longitude={lng}
-            onChange={applyLocation}
-          />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                {EXPAND_ICON}
+              </svg>
+            </button>
+          </div>
           {lat != null && lng != null && (
-            <p className="text-xs text-font-dim mt-1.5">
+            <p className="flex items-center gap-1.5 px-1 text-xs text-green-700">
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
               Pin set: {lat.toFixed(6)}, {lng.toFixed(6)}
             </p>
           )}
           {locationError && (
-            <p className="text-xs text-red-500 mt-1.5">{locationError}</p>
+            <p className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">
+              {locationError}
+            </p>
           )}
-        </div>
 
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <div className="w-6 h-6 rounded-md bg-gray-50 text-gray-400 flex items-center justify-center shrink-0">
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                {LINK_ICON}
-              </svg>
-            </div>
-            <label className="text-xs font-semibold text-gray-600">
+          <div>
+            <FieldLabel htmlFor="pp-link" icon={LINK_ICON}>
               Google Maps link (optional)
-            </label>
+            </FieldLabel>
+            <input
+              id="pp-link"
+              type="url"
+              value={mapsLink}
+              onChange={(e) => setMapsLink(e.target.value)}
+              placeholder="https://maps.google.com/..."
+              className={INPUT_CLASS}
+            />
           </div>
-          <input
-            type="url"
-            value={mapsLink}
-            onChange={(e) => setMapsLink(e.target.value)}
-            placeholder="https://maps.google.com/..."
-            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
-          />
         </div>
+      </FormSection>
+
+      {error && (
+        <p className="rounded-xl bg-red-50 px-3.5 py-3 text-sm font-medium text-red-700">
+          {error}
+        </p>
+      )}
+
+      <div>
+        <button
+          onClick={handleSubmit}
+          disabled={submitting || !canSubmit}
+          className="w-full rounded-xl bg-brand-secondary py-3.5 text-center text-sm font-semibold text-brand-yellow shadow-sm active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
+        >
+          {submitting ? "Saving..." : submitLabel}
+        </button>
+        {!canSubmit && (
+          <p className="mt-2 px-1 text-center text-xs text-font-dim">
+            Add the exact address and at least one contact number to save.
+          </p>
+        )}
       </div>
-
-      {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
-
-      <button
-        onClick={handleSubmit}
-        disabled={submitting || !canSubmit}
-        className="w-full font-bold rounded-xl py-3.5 text-center bg-brand-yellow text-brand-secondary hover:bg-brand-yellow-lg transition-colors disabled:opacity-50"
-      >
-        {submitting ? "Saving..." : submitLabel}
-      </button>
 
       {/* Full-screen map overlay. Controlled/uncontrolled state (lat, lng,
           mapsLink) is shared with the inline card above via applyLocation,
@@ -443,29 +541,35 @@ export function PickupPointForm({
           applied — no separate "confirm" step is strictly needed, but we
           keep a "Use this location" button for a clear, deliberate exit. */}
       {mapFullscreen && (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
-            <h2 className="font-heading font-bold text-sm text-font-main-sub">
-              Set pickup location
-            </h2>
+        <div className="fixed inset-0 z-50 flex flex-col bg-brand-bg">
+          <div className="flex shrink-0 items-center justify-between bg-white px-5 pb-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] shadow-sm">
+            <div>
+              <h2 className="font-heading text-lg font-bold text-font-main-sub">
+                Set pickup location
+              </h2>
+              <p className="text-xs text-font-dim">
+                Tap the map or drag the pin
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => setMapFullscreen(false)}
               aria-label="Close full-screen map"
-              className="w-9 h-9 rounded-lg text-gray-400 hover:bg-gray-50 transition-colors flex items-center justify-center"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-font-main-sub active:bg-gray-200 transition-colors"
             >
               <svg
-                className="w-5 h-5"
+                className="h-5 w-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 {CLOSE_ICON}
               </svg>
             </button>
           </div>
 
-          <div className="flex-1 min-h-0">
+          <div className="min-h-0 flex-1">
             <GoogleMapPicker
               latitude={lat}
               longitude={lng}
@@ -474,15 +578,15 @@ export function PickupPointForm({
             />
           </div>
 
-          <div className="shrink-0 border-t border-gray-100 p-4 space-y-2 bg-white">
+          <div className="shrink-0 space-y-2.5 rounded-t-3xl bg-white p-4 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
             <LocateMeButton variant="fullscreen" />
             {locationError && (
-              <p className="text-xs text-red-500 text-center">
+              <p className="text-center text-xs text-red-600">
                 {locationError}
               </p>
             )}
             {lat != null && lng != null && (
-              <p className="text-xs text-font-dim text-center">
+              <p className="text-center text-xs text-font-dim">
                 Pin set: {lat.toFixed(6)}, {lng.toFixed(6)}
               </p>
             )}
@@ -490,7 +594,7 @@ export function PickupPointForm({
               type="button"
               onClick={() => setMapFullscreen(false)}
               disabled={lat == null || lng == null}
-              className="w-full font-bold rounded-xl py-3.5 text-center bg-brand-yellow text-brand-secondary hover:bg-brand-yellow-lg transition-colors disabled:opacity-50"
+              className="w-full rounded-xl bg-brand-secondary py-3.5 text-center text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400"
             >
               Use this location
             </button>
@@ -498,5 +602,72 @@ export function PickupPointForm({
         </div>
       )}
     </div>
+  );
+}
+
+const INPUT_CLASS =
+  "w-full bg-brand-bg border-2 border-transparent rounded-xl px-3.5 py-3 text-sm font-medium text-font-main-sub placeholder:text-font-dim/60 focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors";
+
+/** Sidebar-style section: small uppercase title above a white card. */
+function FormSection({
+  title,
+  icon,
+  action,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="mb-2 flex items-center justify-between gap-2 px-1">
+        <h2 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
+          <svg
+            className="h-3.5 w-3.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            {icon}
+          </svg>
+          {title}
+        </h2>
+        {action}
+      </div>
+      <div className="rounded-2xl bg-white p-3 shadow-sm">{children}</div>
+    </section>
+  );
+}
+
+function FieldLabel({
+  htmlFor,
+  icon,
+  children,
+}: {
+  htmlFor: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      className="mb-1.5 flex items-center gap-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-font-dim/70"
+    >
+      {icon && (
+        <svg
+          className="h-3.5 w-3.5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          {icon}
+        </svg>
+      )}
+      {children}
+    </label>
   );
 }

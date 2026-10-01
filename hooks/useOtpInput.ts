@@ -1,37 +1,3 @@
-// "use client";
-
-// import { useState, useRef, useEffect } from "react";
-
-// export function useOtpInput(active: boolean) {
-//   const [otp, setOtp] = useState(["", "", "", ""]);
-//   const refs = useRef<(HTMLInputElement | null)[]>([]);
-
-//   // auto focus first box when OTP step becomes active
-//   useEffect(() => {
-//     if (active) {
-//       setTimeout(() => refs.current[0]?.focus(), 100);
-//     }
-//   }, [active]);
-
-//   const handleChange = (index: number, value: string) => {
-//     if (!/^\d?$/.test(value)) return;
-//     const next = [...otp];
-//     next[index] = value;
-//     setOtp(next);
-//     if (value && index < 3) refs.current[index + 1]?.focus();
-//   };
-
-//   const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-//     if (e.key === "Backspace" && !otp[index] && index > 0) {
-//       refs.current[index - 1]?.focus();
-//     }
-//   };
-
-//   const reset = () => setOtp(["", "", "", ""]);
-
-//   return { otp, refs, handleChange, handleKeyDown, reset };
-// }
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -55,14 +21,34 @@ export function useOtpInput(active: boolean) {
     return () => window.clearTimeout(timer);
   }, [active]);
 
+  // Spreads several digits across the boxes starting at `index` — used
+  // for pasting the code, and for keyboards/autofill that drop the whole
+  // code into a single box at once.
+  function fillFrom(index: number, digits: string) {
+    const next = [...otp];
+    let last = index;
+    for (let i = 0; i < digits.length && index + i < OTP_LENGTH; i++) {
+      next[index + i] = digits[i];
+      last = index + i;
+    }
+    setOtp(next);
+    refs.current[Math.min(last + 1, OTP_LENGTH - 1)]?.focus();
+  }
+
   const handleChange = (index: number, value: string) => {
-    if (!/^\d?$/.test(value)) return;
+    const digits = value.replace(/\D/g, "");
+    if (value && !digits) return; // ignore non-digit input
+
+    if (digits.length > 1) {
+      fillFrom(index, digits);
+      return;
+    }
 
     const next = [...otp];
-    next[index] = value;
+    next[index] = digits;
     setOtp(next);
 
-    if (value && index < OTP_LENGTH - 1) {
+    if (digits && index < OTP_LENGTH - 1) {
       refs.current[index + 1]?.focus();
     }
   };
@@ -76,6 +62,17 @@ export function useOtpInput(active: boolean) {
     }
   };
 
+  const handlePaste = (
+    index: number,
+    event: React.ClipboardEvent<HTMLInputElement>,
+  ) => {
+    const digits = event.clipboardData.getData("text").replace(/\D/g, "");
+    if (!digits) return;
+    event.preventDefault();
+    // A full code always fills from the first box, wherever it's pasted.
+    fillFrom(digits.length >= OTP_LENGTH ? 0 : index, digits);
+  };
+
   const reset = () => {
     setOtp(Array.from({ length: OTP_LENGTH }, () => ""));
   };
@@ -85,6 +82,7 @@ export function useOtpInput(active: boolean) {
     refs,
     handleChange,
     handleKeyDown,
+    handlePaste,
     reset,
   };
 }

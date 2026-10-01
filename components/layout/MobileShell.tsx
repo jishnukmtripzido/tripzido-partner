@@ -11,7 +11,7 @@ import type { ReactNode } from "react";
 export function MobileShell({ children }: { children: ReactNode }) {
   return (
     <div className="w-full flex justify-center lg:justify-start h-dvh bg-gray-200 lg:bg-gray-50">
-      <div className="w-full max-w-md lg:max-w-none bg-gray-50 h-dvh flex flex-col relative shadow-2xl lg:shadow-none overflow-hidden">
+      <div className="w-full max-w-md lg:max-w-none bg-brand-bg h-dvh flex flex-col relative shadow-2xl lg:shadow-none overflow-hidden">
         {children}
       </div>
     </div>
