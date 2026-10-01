@@ -17,8 +17,10 @@ import {
  * Permanent left sidebar at lg: and up. Same links, sections and
  * confirm-to-logout as the mobile drawer, but deliberately quieter: a
  * white panel (so it reads apart from the cream page) with no yellow
- * banner competing with the dashboard, compact rows so every link fits
- * on short laptop screens, and the profile tucked into the footer.
+ * banner competing with the dashboard (just a yellow brand strip,
+ * matching the View payouts button), compact rows so every link fits
+ * on short laptop screens, log out as the last nav row, and the
+ * profile tucked into the footer.
  * Carries the Bookings badge that BottomNav shows on small screens.
  */
 export function DesktopSidebar() {
@@ -44,7 +46,7 @@ export function DesktopSidebar() {
   return (
     <aside className="hidden lg:flex lg:flex-col w-64 shrink-0 h-dvh relative z-10 bg-white border-r border-gray-200/80">
       {/* Brand */}
-      <div className="flex items-center gap-2 px-5 h-[72px] shrink-0">
+      <div className="flex items-center gap-2 px-5 h-[72px] shrink-0 bg-brand-yellow">
         <div className="bg-brand-secondary rounded-lg flex items-center justify-center h-8 w-8">
           <svg
             className="w-5 h-5 text-brand-yellow"
@@ -63,14 +65,14 @@ export function DesktopSidebar() {
         </div>
         <p className="font-heading font-extrabold text-lg tracking-tight text-brand-secondary">
           tripzido{" "}
-          <span className="font-semibold text-font-dim text-xs tracking-normal align-middle">
+          <span className="font-semibold text-brand-secondary/60 text-xs tracking-normal align-middle">
             partner
           </span>
         </p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto sidebar-scroll px-3 pt-2 pb-4 space-y-5">
+      <nav className="flex-1 overflow-y-auto sidebar-scroll px-3 pt-4 pb-4 space-y-5">
         {SECTIONS.map((section) => (
           <div key={section.title}>
             <p className="px-3 mb-1.5 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
@@ -124,56 +126,37 @@ export function DesktopSidebar() {
             </div>
           </div>
         ))}
-      </nav>
 
-      {/* Profile + logout */}
-      <div className="shrink-0 border-t border-gray-100 p-3">
-        {confirmLogout ? (
-          <div className="rounded-xl bg-brand-bg p-3">
-            <p className="text-sm font-semibold text-font-main-sub mb-3 px-1">
-              Log out of Tripzido Partner?
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setConfirmLogout(false)}
-                className="py-2 rounded-lg text-sm font-semibold bg-white text-font-main-sub shadow-sm hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleLogout}
-                className="py-2 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors"
-              >
-                Log out
-              </button>
+        {/* Log out — a nav row like the others, confirmed inline so a
+            stray click can't sign the partner out */}
+        <div className="border-t border-gray-100 pt-3">
+          {confirmLogout ? (
+            <div className="rounded-xl bg-brand-bg p-3">
+              <p className="text-sm font-semibold text-font-main-sub mb-3 px-1">
+                Log out of Tripzido Partner?
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setConfirmLogout(false)}
+                  className="py-2 rounded-lg text-sm font-semibold bg-white text-font-main-sub shadow-sm hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="py-2 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors"
+                >
+                  Log out
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1">
-            <Link
-              href={"/profile" as Route}
-              className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-2 hover:bg-gray-50 transition-colors"
-            >
-              <span className="w-9 h-9 rounded-full bg-brand-secondary text-brand-yellow flex items-center justify-center font-heading font-bold text-xs shrink-0">
-                {getInitials(user?.first_name, user?.last_name)}
-              </span>
-              <span className="min-w-0">
-                <span className="block font-semibold text-sm text-font-main-sub truncate">
-                  {fullName}
-                </span>
-                <span className="block text-xs text-font-dim truncate">
-                  {user?.phone_number ?? "Not signed in"}
-                </span>
-              </span>
-            </Link>
+          ) : (
             <button
               onClick={() => setConfirmLogout(true)}
-              aria-label="Log out"
-              title="Log out"
-              className="h-9 w-9 shrink-0 rounded-lg flex items-center justify-center text-font-dim hover:bg-red-50 hover:text-red-500 transition-colors"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
             >
               <svg
-                className="w-5 h-5"
+                className="w-5 h-5 shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -186,9 +169,30 @@ export function DesktopSidebar() {
                   d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                 />
               </svg>
+              Log out
             </button>
-          </div>
-        )}
+          )}
+        </div>
+      </nav>
+
+      {/* Profile */}
+      <div className="shrink-0 border-t border-gray-100 p-3">
+        <Link
+          href={"/profile" as Route}
+          className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-gray-50 transition-colors"
+        >
+          <span className="w-9 h-9 rounded-full bg-brand-secondary text-brand-yellow flex items-center justify-center font-heading font-bold text-xs shrink-0">
+            {getInitials(user?.first_name, user?.last_name)}
+          </span>
+          <span className="min-w-0">
+            <span className="block font-semibold text-sm text-font-main-sub truncate">
+              {fullName}
+            </span>
+            <span className="block text-xs text-font-dim truncate">
+              {user?.phone_number ?? "Not signed in"}
+            </span>
+          </span>
+        </Link>
       </div>
     </aside>
   );
