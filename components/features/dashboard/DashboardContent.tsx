@@ -144,7 +144,7 @@ export function DashboardContent({ token }: DashboardContentProps) {
 
   return (
     <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8 lg:px-8 lg:py-7">
-      <div className="mx-auto w-full max-w-5xl space-y-5">
+      <div className="mx-auto w-full max-w-5xl space-y-5 lg:max-w-7xl">
         {/* Greeting */}
         <div className="px-1">
           <p className="text-xs text-font-dim">{today}</p>
@@ -154,72 +154,54 @@ export function DashboardContent({ token }: DashboardContentProps) {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
-          {/* Balance + status */}
-          <SectionBoundary>
-            <Suspense fallback={<BalanceCardSkeleton />}>
-              <StatusBalanceSection token={token} />
-            </Suspense>
-          </SectionBoundary>
+        {/*
+          Phones: one column in reading order. lg+: two independent
+          columns (main | side) that stack on their own, so a short
+          card never leaves a hole beside a tall one. Quick actions
+          render in both places — inline on phones, top of the side
+          column on desktop — to keep the phone order unchanged.
+        */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_28rem]">
+          {/* Main column */}
+          <div className="space-y-5">
+            {/* Balance + status */}
+            <SectionBoundary>
+              <Suspense fallback={<BalanceCardSkeleton />}>
+                <StatusBalanceSection token={token} />
+              </Suspense>
+            </SectionBoundary>
 
-          {/* Quick actions */}
-          <nav aria-label="Quick actions" className="grid grid-cols-3 gap-2.5">
-            {QUICK_ACTIONS.map((action) => (
-              <Link
-                key={action.href}
-                href={action.href}
-                className="flex flex-col items-center gap-2 rounded-2xl bg-white px-2 py-3.5 text-center shadow-sm active:scale-[0.98] transition-transform"
-              >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-yellow/30 text-brand-secondary">
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d={action.icon}
-                    />
-                  </svg>
-                </span>
-                <span className="text-xs font-semibold text-font-main-sub">
-                  {action.label}
-                </span>
-              </Link>
-            ))}
-          </nav>
+            <QuickActions className="grid lg:hidden" />
 
-          {/* Needs attention — renders nothing when there's nothing due */}
-          <div className="lg:col-span-2">
+            {/* Needs attention — renders nothing when there's nothing due */}
             <SectionBoundary>
               <Suspense fallback={<BookingListSkeleton rows={2} />}>
                 <AttentionSection token={token} />
               </Suspense>
             </SectionBoundary>
+
+            {/* Month tiles + week chart (one shared query) */}
+            <SectionBoundary>
+              <Suspense
+                fallback={
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <StatCardSkeleton />
+                      <StatCardSkeleton />
+                    </div>
+                    <OrdersOverviewChartSkeleton />
+                  </div>
+                }
+              >
+                <StatsSection token={token} />
+              </Suspense>
+            </SectionBoundary>
           </div>
 
-          {/* Month tiles + week chart (one shared query) */}
-          <SectionBoundary>
-            <Suspense
-              fallback={
-                <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <StatCardSkeleton />
-                    <StatCardSkeleton />
-                  </div>
-                  <OrdersOverviewChartSkeleton />
-                </div>
-              }
-            >
-              <StatsSection token={token} />
-            </Suspense>
-          </SectionBoundary>
-
+          {/* Side column */}
           <div className="space-y-5">
+            <QuickActions className="hidden lg:grid" />
+
             <SectionBoundary>
               <Suspense fallback={<FleetSummarySkeleton />}>
                 <FleetSection token={token} />
@@ -235,6 +217,44 @@ export function DashboardContent({ token }: DashboardContentProps) {
         </div>
       </div>
     </main>
+  );
+}
+
+/** `className` must set the display (grid / hidden) for each breakpoint. */
+function QuickActions({ className }: { className: string }) {
+  return (
+    <nav
+      aria-label="Quick actions"
+      className={`grid-cols-3 gap-2.5 ${className}`}
+    >
+      {QUICK_ACTIONS.map((action) => (
+        <Link
+          key={action.href}
+          href={action.href}
+          className="flex flex-col items-center gap-2 rounded-2xl bg-white px-2 py-3.5 text-center shadow-sm active:scale-[0.98] transition-transform"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-yellow/30 text-brand-secondary">
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d={action.icon}
+              />
+            </svg>
+          </span>
+          <span className="text-xs font-semibold text-font-main-sub">
+            {action.label}
+          </span>
+        </Link>
+      ))}
+    </nav>
   );
 }
 
@@ -350,11 +370,14 @@ function AttentionSection({ token }: { token: string }) {
   const open = (id: number) =>
     router.push(`/bookings/detail?id=${id}` as Route);
 
-  if (data.bookings_to_start.length === 0 && data.bookings_to_return.length === 0)
+  if (
+    data.bookings_to_start.length === 0 &&
+    data.bookings_to_return.length === 0
+  )
     return null;
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-5 2xl:grid-cols-2">
       {data.bookings_to_start.length > 0 && (
         <section>
           <SectionTitle
