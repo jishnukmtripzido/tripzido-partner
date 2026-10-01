@@ -139,7 +139,7 @@ export default function VendorDetailsPage() {
   return (
     <>
       <Header title="Vendor Details" onBack={() => router.back()} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8">
+      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8 lg:px-page-narrow lg:pt-7">
         {loading ? (
           <PageLoader />
         ) : error || !vendor ? (

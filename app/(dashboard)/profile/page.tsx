@@ -142,7 +142,7 @@ export default function ProfilePage() {
   return (
     <>
       <Header title="Profile" onMenuClick={openSidebar} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8">
+      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8 lg:px-page-narrow lg:pt-7">
         {/* Identity card */}
         <section className="overflow-hidden rounded-2xl bg-white shadow-sm">
           <div className="bg-linear-to-br from-banner-from to-banner-to h-16" />
