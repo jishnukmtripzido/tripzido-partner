@@ -91,7 +91,7 @@ interface HeaderProps {
 
 export function Header({ title, onMenuClick, onBack, rightSlot }: HeaderProps) {
   return (
-    <header className="bg-white sticky top-0 z-20 px-5 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] lg:px-8 lg:py-4 flex justify-between items-center shadow-sm">
+    <header className="bg-white sticky top-0 z-20 px-5 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] lg:px-8 lg:py-4 flex justify-between items-center shadow-sm lg:border-b lg:border-gray-200/80 lg:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)]">
       <div className="flex items-center gap-3 min-w-0">
         {onBack ? (
           <button
