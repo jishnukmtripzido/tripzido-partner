@@ -48,7 +48,7 @@ export default function VendorTermsPage() {
           )
         }
       />
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-8 bg-brand-bg">
+      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-8 bg-brand-bg lg:px-page-narrow lg:pt-7">
         {isLoading ? (
           <PageLoader />
         ) : error ? (

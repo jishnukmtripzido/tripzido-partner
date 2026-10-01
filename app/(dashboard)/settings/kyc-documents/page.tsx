@@ -160,7 +160,7 @@ export default function KycDocumentsPage() {
           </button>
         }
       />
-      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8">
+      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8 lg:px-page-narrow lg:pt-7">
         {loading ? (
           <PageLoader />
         ) : error ? (
@@ -197,8 +197,8 @@ export default function KycDocumentsPage() {
               No documents yet
             </p>
             <p className="mt-1 text-xs text-font-dim">
-              Upload your business and ID documents so our team can verify
-              your account.
+              Upload your business and ID documents so our team can verify your
+              account.
             </p>
             <button
               onClick={() => setShowAddForm(true)}
@@ -487,10 +487,26 @@ function AddDocumentSheet({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-font-main-sub">
-                  {file ? file.name : "Tap to choose a file"}
+                  {file ? (
+                    file.name
+                  ) : (
+                    <>
+                      <span className="lg:hidden">Tap</span>
+                      <span className="hidden lg:inline">Click</span> to choose
+                      a file
+                    </>
+                  )}
                 </span>
                 <span className="block text-xs text-font-dim">
-                  {file ? `${formatBytes(file.size)} · tap to change` : DOC_FILE_HINT}
+                  {file ? (
+                    <>
+                      {formatBytes(file.size)} ·{" "}
+                      <span className="lg:hidden">tap</span>
+                      <span className="hidden lg:inline">click</span> to change
+                    </>
+                  ) : (
+                    DOC_FILE_HINT
+                  )}
                 </span>
               </span>
               <input

@@ -120,7 +120,7 @@ export default function PickupPointsPage() {
           </button>
         }
       />
-      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8">
+      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8 lg:px-8 lg:pt-7">
         {loading && <PageLoader />}
 
         {error && (
@@ -178,7 +178,7 @@ export default function PickupPointsPage() {
                 <h2 className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
                   {group.area} · {group.points.length}
                 </h2>
-                <div className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
+                <div className="space-y-2.5 lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-3 lg:space-y-0">
                   {group.points.map((p) => (
                     <PickupPointCard
                       key={p.id}

@@ -74,7 +74,7 @@ export default function EditPickupPointPage() {
     return (
       <>
         <Header title="Edit pickup point" onBack={() => router.back()} />
-        <main className="flex-1 bg-brand-bg px-5 pt-10">
+        <main className="flex-1 bg-brand-bg px-5 pt-10 lg:px-page-narrow">
           <PageLoader />
         </main>
       </>
@@ -85,7 +85,7 @@ export default function EditPickupPointPage() {
     return (
       <>
         <Header title="Edit pickup point" onBack={() => router.back()} />
-        <main className="flex-1 bg-brand-bg px-5 pt-4">
+        <main className="flex-1 bg-brand-bg px-5 pt-4 lg:px-page-narrow lg:pt-7">
           <p className="rounded-2xl bg-white px-4 py-4 text-center text-sm font-semibold text-red-600 shadow-sm">
             {detailQuery.error instanceof Error
               ? detailQuery.error.message
@@ -101,7 +101,7 @@ export default function EditPickupPointPage() {
   return (
     <>
       <Header title="Edit pickup point" onBack={() => router.back()} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-8 bg-brand-bg">
+      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-8 bg-brand-bg lg:px-page-narrow lg:pt-7">
         <PickupPointForm
           initial={point}
           pickupLocationId={point.pickup_location}

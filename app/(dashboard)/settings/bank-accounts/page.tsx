@@ -113,7 +113,7 @@ export default function BankAccountsPage() {
           </button>
         }
       />
-      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8">
+      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8 lg:px-page-narrow lg:pt-7">
         {loading ? (
           <PageLoader />
         ) : error ? (

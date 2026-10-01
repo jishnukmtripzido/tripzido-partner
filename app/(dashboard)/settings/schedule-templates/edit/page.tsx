@@ -76,7 +76,7 @@ export default function EditScheduleTemplatePage() {
   return (
     <>
       <Header title="Edit schedule template" onBack={() => router.back()} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8">
+      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8 lg:px-page-narrow lg:pt-7">
         {detailQuery.isLoading ? (
           <PageLoader />
         ) : detailQuery.error || !detailQuery.data ? (

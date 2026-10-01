@@ -104,8 +104,8 @@ export default function SettingsPage() {
   return (
     <div className="bg-brand-bg h-full flex flex-col">
       <Header title="Settings" onMenuClick={openSidebar} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-8">
-        <div className="space-y-5 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0 lg:items-start">
+      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-8 lg:px-8 lg:pt-7">
+        <div className="mx-auto max-w-5xl space-y-5 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0 lg:items-start">
           {SECTIONS.map((section) => (
             <section key={section.title}>
               <h2 className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
