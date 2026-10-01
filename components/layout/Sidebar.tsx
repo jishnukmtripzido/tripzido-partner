@@ -7,7 +7,6 @@ import type { Route } from "next";
 import { useAuth } from "@/context/AuthContext";
 import { logoutApi } from "@/services/auth.service";
 import { useMountTransition } from "@/hooks/useMountTransition";
-import { useConfirmedBookingsCount } from "@/hooks/useConfirmedBookingsCount";
 
 interface SidebarProps {
   open: boolean;
@@ -26,7 +25,7 @@ interface SidebarSection {
   links: SidebarLink[];
 }
 
-const SECTIONS: SidebarSection[] = [
+export const SECTIONS: SidebarSection[] = [
   {
     title: "Business",
     links: [
@@ -138,7 +137,7 @@ const LINKS = SECTIONS.flatMap((s) => s.links);
 // Longest-prefix match — same fix as DesktopSidebar. Prevents parent
 // and child routes (e.g. "/fleet" and "/fleet/block") from both
 // lighting up at once when the pathname is the more specific one.
-function getActiveHref(pathname: string): string | null {
+export function getActiveHref(pathname: string): string | null {
   const matches = LINKS.filter(
     (l) => pathname === l.href || pathname.startsWith(`${l.href}/`),
   );
@@ -148,7 +147,7 @@ function getActiveHref(pathname: string): string | null {
   ).href;
 }
 
-function getInitials(first?: string, last?: string): string {
+export function getInitials(first?: string, last?: string): string {
   const initials = `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase();
   return initials || "P";
 }
@@ -158,7 +157,6 @@ function getInitials(first?: string, last?: string): string {
  * lg:). Uses useMountTransition so it plays a real enter AND exit
  * animation. Backdrop reuses the existing .modal-backdrop-* fade
  * classes; the drawer panel uses the .drawer-panel-* slide classes.
- * The contents are SidebarPanel, shared with DesktopSidebar.
  */
 export function Sidebar({ open, onClose }: SidebarProps) {
   const { shouldRender, phase } = useMountTransition(open, 250);
@@ -190,23 +188,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
  *
  * The drawer unmounts once its close animation ends, so the logout
  * confirmation always reopens in its default state.
- *
- * `onClose` is only passed by the drawer — it adds the close button
- * and closes the drawer on navigation. The permanent desktop sidebar
- * omits it and sets `showBadges`, since BottomNav (which carries the
- * Bookings badge on small screens) is hidden there.
  */
-export function SidebarPanel({
-  onClose,
-  showBadges = false,
-}: {
-  onClose?: () => void;
-  showBadges?: boolean;
-}) {
+function SidebarPanel({ onClose }: { onClose: () => void }) {
   const pathname = usePathname();
   const { user, token, refreshToken, logout } = useAuth();
   const [confirmLogout, setConfirmLogout] = useState(false);
-  const confirmedCount = useConfirmedBookingsCount();
   const activeHref = getActiveHref(pathname);
 
   function handleLogout() {
@@ -215,7 +201,7 @@ export function SidebarPanel({
         // Ignored — session is cleared locally regardless.
       });
     }
-    onClose?.();
+    onClose();
     logout();
   }
 
@@ -251,27 +237,25 @@ export function SidebarPanel({
               </span>
             </h2>
           </div>
-          {onClose && (
-            <button
-              onClick={onClose}
-              aria-label="Close menu"
-              className="h-9 w-9 rounded-full bg-white/40 text-brand-secondary flex items-center justify-center hover:bg-white/60 active:bg-white/70 transition-colors"
+          <button
+            onClick={onClose}
+            aria-label="Close menu"
+            className="h-9 w-9 rounded-full bg-white/40 text-brand-secondary flex items-center justify-center hover:bg-white/60 active:bg-white/70 transition-colors"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          )}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
 
         <Link
@@ -316,8 +300,6 @@ export function SidebarPanel({
             <div className="bg-white rounded-2xl p-1.5 space-y-0.5 shadow-sm">
               {section.links.map((link) => {
                 const active = link.href === activeHref;
-                const badge =
-                  showBadges && link.href === "/bookings" ? confirmedCount : 0;
                 return (
                   <Link
                     key={link.href}
@@ -358,20 +340,11 @@ export function SidebarPanel({
                         {link.hint}
                       </span>
                     </span>
-                    {badge > 0 ? (
+                    {active && (
                       <span
-                        className="min-w-[20px] h-5 rounded-full bg-red-500 px-1.5 text-center text-[10px] font-bold leading-5 tabular-nums text-white shrink-0"
-                        aria-label={`${badge} upcoming to hand over`}
-                      >
-                        {badge > 9 ? "9+" : badge}
-                      </span>
-                    ) : (
-                      active && (
-                        <span
-                          className="h-2 w-2 rounded-full bg-brand-yellow-lg shrink-0 mr-1"
-                          aria-hidden="true"
-                        />
-                      )
+                        className="h-2 w-2 rounded-full bg-brand-yellow-lg shrink-0 mr-1"
+                        aria-hidden="true"
+                      />
                     )}
                   </Link>
                 );
