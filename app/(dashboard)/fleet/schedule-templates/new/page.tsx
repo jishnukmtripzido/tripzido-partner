@@ -58,7 +58,7 @@ export default function NewScheduleTemplatePage() {
   return (
     <>
       <Header title="New schedule template" onBack={goBack} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8">
+      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8 lg:px-page-narrow lg:pt-7">
         <p className="mb-4 px-1 text-xs text-font-dim">
           Set your opening hours once and reuse them across listings.
         </p>

@@ -352,7 +352,7 @@ export default function EditListingPage() {
     return (
       <>
         <Header title="Edit listing" onBack={() => router.back()} />
-        <main className="flex-1 px-5 pt-10">
+        <main className="flex-1 px-5 pt-10 lg:px-8">
           <p className="text-sm text-font-dim text-center">Loading...</p>
         </main>
       </>
@@ -363,7 +363,7 @@ export default function EditListingPage() {
     return (
       <>
         <Header title="Edit listing" onBack={() => router.back()} />
-        <main className="flex-1 px-5 pt-10">
+        <main className="flex-1 px-5 pt-10 lg:px-8">
           <p className="text-sm text-red-500 text-center">
             {loadError || "Listing not found"}
           </p>
@@ -377,7 +377,7 @@ export default function EditListingPage() {
   return (
     <>
       <Header title="Edit listing" onBack={() => router.back()} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pb-8 pt-4 sm:px-6 sm:pt-6">
+      <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pb-8 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-7">
         <div className="mx-auto max-w-3xl space-y-5">
           <section className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-100 p-1.5 text-font-dim">

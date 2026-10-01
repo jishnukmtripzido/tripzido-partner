@@ -417,7 +417,7 @@ export default function NewListingPage() {
           // wizard for wherever it was opened from (Fleet / Home).
           onBack={() => goBackOr(router, "/fleet")}
         />
-        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg">
+        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg lg:px-page-narrow lg:pt-7">
           <PhotoUploadPanel
             listingId={createdListingId}
             token={token}
@@ -435,7 +435,7 @@ export default function NewListingPage() {
   return (
     <>
       <Header title="Add a bike" onBack={() => router.back()} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg">
+      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-6 bg-brand-bg lg:px-page-narrow lg:pt-7">
         <StepIndicator currentStep={draft.step} />
 
         <div className="bg-white rounded-2xl shadow-sm p-4">
@@ -1229,22 +1229,24 @@ function StepSchedule({
                       {CALENDAR_ICON}
                     </svg>
                   </div>
-                  <span className="flex-1 font-semibold text-font-main-sub">{t.name}</span>
+                  <span className="flex-1 font-semibold text-font-main-sub">
+                    {t.name}
+                  </span>
                   {selected && (
-                        <svg
-                          className="w-5 h-5 shrink-0 text-brand-secondary"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2.5}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
+                    <svg
+                      className="w-5 h-5 shrink-0 text-brand-secondary"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
                   )}
                 </button>
               );
@@ -1772,7 +1774,8 @@ function PhotoUploadPanel({
           </svg>
         </div>
         <p className="text-sm font-semibold text-font-main-sub">
-          Tap to choose photos
+          <span className="lg:hidden">Tap</span>
+          <span className="hidden lg:inline">Click</span> to choose photos
         </p>
         <p className="text-xs text-font-dim mt-1">
           {files.length > 0

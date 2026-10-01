@@ -241,7 +241,7 @@ export default function ListingDetailPage() {
         }
       />
 
-      <main className="min-h-0 flex-1 overflow-y-auto hide-scrollbar px-5 pb-8 pt-4 sm:px-6 sm:pt-6">
+      <main className="min-h-0 flex-1 overflow-y-auto hide-scrollbar px-5 pb-8 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-7">
         {isLoading && <PageLoader />}
 
         {error && !isLoading && (
@@ -251,248 +251,263 @@ export default function ListingDetailPage() {
         )}
 
         {listing && !isLoading && (
-          <div className="mx-auto max-w-5xl space-y-5">
-            {/* Hero */}
-            <section className="rounded-2xl bg-white p-3 shadow-sm">
-              <VehicleTypeHeroImage listing={listing} />
-              <div className="px-1 pt-4">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
-                  {listing.vehicle_type.brand} · {listing.vehicle_type.make_year}
-                </p>
-                <div className="mt-0.5 flex items-center justify-between gap-3">
-                  <h2 className="min-w-0 truncate font-heading text-2xl font-bold text-font-main-sub">
-                    {listing.vehicle_type.name}
-                  </h2>
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
-                      STATUS_STYLES[listing.status] ??
-                      "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {STATUS_LABELS[listing.status] ?? listing.status}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-1.5 px-1 pt-3">
-                {[
-                  toTitleCase(listing.vehicle_type.transmission_type),
-                  toTitleCase(listing.vehicle_type.fuel_type),
-                  `${listing.vehicle_type.seats} seats`,
-                  `${listing.vehicle_type.cc} cc`,
-                ]
-                  .filter(Boolean)
-                  .map((chip) => (
+          <div className="mx-auto max-w-5xl space-y-5 lg:max-w-6xl lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start lg:gap-6 lg:space-y-0">
+            {/* Left column: hero + pricing */}
+            <div className="space-y-5">
+              {/* Hero */}
+              <section className="rounded-2xl bg-white p-3 shadow-sm">
+                <VehicleTypeHeroImage listing={listing} />
+                <div className="px-1 pt-4">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
+                    {listing.vehicle_type.brand} ·{" "}
+                    {listing.vehicle_type.make_year}
+                  </p>
+                  <div className="mt-0.5 flex items-center justify-between gap-3">
+                    <h2 className="min-w-0 truncate font-heading text-2xl font-bold text-font-main-sub">
+                      {listing.vehicle_type.name}
+                    </h2>
                     <span
-                      key={chip}
-                      className="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-semibold text-font-dim"
-                    >
-                      {chip}
-                    </span>
-                  ))}
-              </div>
-
-              {/* Key numbers — one strip inside the card instead of
-                  separate tiles */}
-              <div className="mt-4 grid grid-cols-3 divide-x divide-black/5 rounded-xl bg-brand-bg py-3">
-                <HeroStat
-                  value={String(listing.available_count)}
-                  label="Available"
-                />
-                <HeroStat
-                  value={String(listing.pricing_packages.length)}
-                  label={
-                    listing.pricing_packages.length === 1
-                      ? "Package"
-                      : "Packages"
-                  }
-                />
-                <HeroStat
-                  value={reviewsLoading ? "…" : averageRating}
-                  label="Rating"
-                  star={averageRating !== "—" && !reviewsLoading}
-                />
-              </div>
-
-              {listing.status === "REJECTED" && listing.rejection_reason && (
-                <div className="mt-3 flex gap-2.5 rounded-xl bg-red-50 p-3 text-red-700">
-                  <svg
-                    className="h-5 w-5 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    {ALERT_ICON}
-                  </svg>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wide">
-                      Rejection reason
-                    </p>
-                    <p className="mt-0.5 text-sm">{listing.rejection_reason}</p>
-                  </div>
-                </div>
-              )}
-            </section>
-
-            <Section title="Pricing packages">
-              {listing.pricing_packages.length === 0 ? (
-                <EmptyRow text="No pricing packages set up yet." />
-              ) : (
-                listing.pricing_packages.map((pkg: ListingPackage) => (
-                  <Row
-                    key={pkg.id}
-                    icon={TAG_ICON}
-                    label={pkg.name}
-                    hint={packageHint(pkg)}
-                    trailing={
-                      <span className="rounded-lg bg-brand-yellow/30 px-2.5 py-1 text-sm font-bold tabular-nums text-brand-secondary">
-                        ₹{pkg.price}
-                      </span>
-                    }
-                  />
-                ))
-              )}
-            </Section>
-
-            <Section title="Location">
-              <Row
-                icon={PIN_ICON}
-                label={listing.pickup_location.name}
-                hint={
-                  listing.pickup_location.address ||
-                  listing.pickup_location.city_name
-                }
-                wrapHint
-              />
-              <ExactPickupAddress listing={listing} />
-            </Section>
-
-            <Section title="Vehicle details" padded>
-              <div className="grid grid-cols-2 gap-2">
-                <Spec label="Brand" value={listing.vehicle_type.brand} />
-                <Spec
-                  label="Year"
-                  value={String(listing.vehicle_type.make_year)}
-                />
-                <Spec
-                  label="Transmission"
-                  value={toTitleCase(listing.vehicle_type.transmission_type)}
-                />
-                <Spec
-                  label="Fuel type"
-                  value={toTitleCase(listing.vehicle_type.fuel_type)}
-                />
-                <Spec label="Seats" value={String(listing.vehicle_type.seats)} />
-                <Spec label="Engine" value={`${listing.vehicle_type.cc} cc`} />
-                {listing.vehicle_type.mileage_kmpl != null && (
-                  <Spec
-                    label="Mileage"
-                    value={`${listing.vehicle_type.mileage_kmpl} km/l`}
-                  />
-                )}
-                {listing.vehicle_type.top_speed_kmph != null && (
-                  <Spec
-                    label="Top speed"
-                    value={`${listing.vehicle_type.top_speed_kmph} km/h`}
-                  />
-                )}
-              </div>
-            </Section>
-
-            <Section title="Policies">
-              <Row
-                icon={DEPOSIT_ICON}
-                label="Security deposit"
-                trailing={
-                  <Value>₹{listing.policies.security_deposit_amount}</Value>
-                }
-              />
-              <Row
-                icon={ALERT_ICON}
-                label="Excess charge"
-                trailing={
-                  <Value>₹{listing.policies.excess_charge_per_km}/km</Value>
-                }
-              />
-              <Row
-                icon={CLOCK_ICON}
-                label="Late return penalty"
-                trailing={
-                  <Value>
-                    ₹{listing.policies.late_return_penalty_per_hour}/hr
-                  </Value>
-                }
-              />
-              <Row
-                icon={TRUCK_ICON}
-                label="Doorstep delivery"
-                trailing={
-                  listing.policies.doorstep_delivery_enabled ? (
-                    <span className="rounded-full bg-green-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-green-700">
-                      Enabled
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-font-dim">
-                      Off
-                    </span>
-                  )
-                }
-              />
-            </Section>
-
-            <Section
-              title={
-                listing.schedule.template_name
-                  ? `Weekly schedule · ${listing.schedule.template_name}`
-                  : "Weekly schedule"
-              }
-            >
-              {listing.schedule.has_schedule ? (
-                listing.schedule.days.map((day: ListingScheduleDay) => {
-                  const today = isToday(day.day_name);
-                  return (
-                    <div
-                      key={day.day_of_week}
-                      className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 ${
-                        today ? "bg-brand-yellow/25" : ""
+                      className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                        STATUS_STYLES[listing.status] ??
+                        "bg-gray-100 text-gray-600"
                       }`}
                     >
-                      <span className="flex items-center gap-2 text-sm font-semibold text-font-main-sub">
-                        {day.day_name}
-                        {today && (
-                          <span className="rounded-md bg-brand-yellow-lg px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-secondary">
-                            Today
+                      {STATUS_LABELS[listing.status] ?? listing.status}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5 px-1 pt-3">
+                  {[
+                    toTitleCase(listing.vehicle_type.transmission_type),
+                    toTitleCase(listing.vehicle_type.fuel_type),
+                    `${listing.vehicle_type.seats} seats`,
+                    `${listing.vehicle_type.cc} cc`,
+                  ]
+                    .filter(Boolean)
+                    .map((chip) => (
+                      <span
+                        key={chip}
+                        className="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-semibold text-font-dim"
+                      >
+                        {chip}
+                      </span>
+                    ))}
+                </div>
+
+                {/* Key numbers — one strip inside the card instead of
+                  separate tiles */}
+                <div className="mt-4 grid grid-cols-3 divide-x divide-black/5 rounded-xl bg-brand-bg py-3">
+                  <HeroStat
+                    value={String(listing.available_count)}
+                    label="Available"
+                  />
+                  <HeroStat
+                    value={String(listing.pricing_packages.length)}
+                    label={
+                      listing.pricing_packages.length === 1
+                        ? "Package"
+                        : "Packages"
+                    }
+                  />
+                  <HeroStat
+                    value={reviewsLoading ? "…" : averageRating}
+                    label="Rating"
+                    star={averageRating !== "—" && !reviewsLoading}
+                  />
+                </div>
+
+                {listing.status === "REJECTED" && listing.rejection_reason && (
+                  <div className="mt-3 flex gap-2.5 rounded-xl bg-red-50 p-3 text-red-700">
+                    <svg
+                      className="h-5 w-5 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      {ALERT_ICON}
+                    </svg>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wide">
+                        Rejection reason
+                      </p>
+                      <p className="mt-0.5 text-sm">
+                        {listing.rejection_reason}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              <Section title="Pricing packages">
+                {listing.pricing_packages.length === 0 ? (
+                  <EmptyRow text="No pricing packages set up yet." />
+                ) : (
+                  listing.pricing_packages.map((pkg: ListingPackage) => (
+                    <Row
+                      key={pkg.id}
+                      icon={TAG_ICON}
+                      label={pkg.name}
+                      hint={packageHint(pkg)}
+                      trailing={
+                        <span className="rounded-lg bg-brand-yellow/30 px-2.5 py-1 text-sm font-bold tabular-nums text-brand-secondary">
+                          ₹{pkg.price}
+                        </span>
+                      }
+                    />
+                  ))
+                )}
+              </Section>
+            </div>
+
+            {/* Right column: everything else */}
+            <div className="space-y-5">
+              <Section title="Location">
+                <Row
+                  icon={PIN_ICON}
+                  label={listing.pickup_location.name}
+                  hint={
+                    listing.pickup_location.address ||
+                    listing.pickup_location.city_name
+                  }
+                  wrapHint
+                />
+                <ExactPickupAddress listing={listing} />
+              </Section>
+
+              <Section title="Vehicle details" padded>
+                <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+                  <Spec label="Brand" value={listing.vehicle_type.brand} />
+                  <Spec
+                    label="Year"
+                    value={String(listing.vehicle_type.make_year)}
+                  />
+                  <Spec
+                    label="Transmission"
+                    value={toTitleCase(listing.vehicle_type.transmission_type)}
+                  />
+                  <Spec
+                    label="Fuel type"
+                    value={toTitleCase(listing.vehicle_type.fuel_type)}
+                  />
+                  <Spec
+                    label="Seats"
+                    value={String(listing.vehicle_type.seats)}
+                  />
+                  <Spec
+                    label="Engine"
+                    value={`${listing.vehicle_type.cc} cc`}
+                  />
+                  {listing.vehicle_type.mileage_kmpl != null && (
+                    <Spec
+                      label="Mileage"
+                      value={`${listing.vehicle_type.mileage_kmpl} km/l`}
+                    />
+                  )}
+                  {listing.vehicle_type.top_speed_kmph != null && (
+                    <Spec
+                      label="Top speed"
+                      value={`${listing.vehicle_type.top_speed_kmph} km/h`}
+                    />
+                  )}
+                </div>
+              </Section>
+
+              <Section title="Policies">
+                <Row
+                  icon={DEPOSIT_ICON}
+                  label="Security deposit"
+                  trailing={
+                    <Value>₹{listing.policies.security_deposit_amount}</Value>
+                  }
+                />
+                <Row
+                  icon={ALERT_ICON}
+                  label="Excess charge"
+                  trailing={
+                    <Value>₹{listing.policies.excess_charge_per_km}/km</Value>
+                  }
+                />
+                <Row
+                  icon={CLOCK_ICON}
+                  label="Late return penalty"
+                  trailing={
+                    <Value>
+                      ₹{listing.policies.late_return_penalty_per_hour}/hr
+                    </Value>
+                  }
+                />
+                <Row
+                  icon={TRUCK_ICON}
+                  label="Doorstep delivery"
+                  trailing={
+                    listing.policies.doorstep_delivery_enabled ? (
+                      <span className="rounded-full bg-green-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-green-700">
+                        Enabled
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-font-dim">
+                        Off
+                      </span>
+                    )
+                  }
+                />
+              </Section>
+
+              <Section
+                title={
+                  listing.schedule.template_name
+                    ? `Weekly schedule · ${listing.schedule.template_name}`
+                    : "Weekly schedule"
+                }
+              >
+                {listing.schedule.has_schedule ? (
+                  listing.schedule.days.map((day: ListingScheduleDay) => {
+                    const today = isToday(day.day_name);
+                    return (
+                      <div
+                        key={day.day_of_week}
+                        className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 ${
+                          today ? "bg-brand-yellow/25" : ""
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 text-sm font-semibold text-font-main-sub">
+                          {day.day_name}
+                          {today && (
+                            <span className="rounded-md bg-brand-yellow-lg px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-secondary">
+                              Today
+                            </span>
+                          )}
+                        </span>
+                        {day.is_closed ? (
+                          <span className="rounded-full bg-red-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-red-700">
+                            Closed
+                          </span>
+                        ) : (
+                          <span className="text-xs font-semibold tabular-nums text-font-dim">
+                            {day.timing}
                           </span>
                         )}
-                      </span>
-                      {day.is_closed ? (
-                        <span className="rounded-full bg-red-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-red-700">
-                          Closed
-                        </span>
-                      ) : (
-                        <span className="text-xs font-semibold tabular-nums text-font-dim">
-                          {day.timing}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })
-              ) : (
-                <EmptyRow text="No schedule assigned yet." />
-              )}
-            </Section>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <EmptyRow text="No schedule assigned yet." />
+                )}
+              </Section>
 
-            <Section title={`Photos · ${listing.images.length}`} padded>
-              <VendorUploadedPhotos listing={listing} />
-            </Section>
+              <Section title={`Photos · ${listing.images.length}`} padded>
+                <VendorUploadedPhotos listing={listing} />
+              </Section>
 
-            <Section title="Reviews & ratings" padded>
-              <ReviewsSummary
-                reviews={reviews}
-                loading={reviewsLoading}
-                error={reviewsError}
-              />
-            </Section>
+              <Section title="Reviews & ratings" padded>
+                <ReviewsSummary
+                  reviews={reviews}
+                  loading={reviewsLoading}
+                  error={reviewsError}
+                />
+              </Section>
+            </div>
           </div>
         )}
       </main>

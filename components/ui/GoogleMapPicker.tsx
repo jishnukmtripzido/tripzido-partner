@@ -200,7 +200,9 @@ export function GoogleMapPicker({
       <p
         className={`text-xs text-font-dim mt-1 ${fullHeight ? "shrink-0 px-1" : ""}`}
       >
-        Tap the map or drag the pin to set the exact location.
+        <span className="lg:hidden">Tap</span>
+        <span className="hidden lg:inline">Click</span> the map or drag the pin
+        to set the exact location.
       </p>
     </div>
   );

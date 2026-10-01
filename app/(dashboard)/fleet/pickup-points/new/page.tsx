@@ -76,7 +76,7 @@ export default function NewPickupPointPage() {
   return (
     <>
       <Header title="New pickup point" onBack={goBack} />
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-8 bg-brand-bg">
+      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-8 bg-brand-bg lg:px-page-narrow lg:pt-7">
         <PickupPointForm
           pickupLocationId={pickupLocationId ? Number(pickupLocationId) : null}
           pickupLocationName={pickupLocationName}

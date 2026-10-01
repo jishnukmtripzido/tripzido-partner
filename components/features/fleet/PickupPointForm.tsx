@@ -392,10 +392,7 @@ export function PickupPointForm({
       </FormSection>
 
       {/* Map location */}
-      <FormSection
-        title="Map location"
-        icon={PIN_ICON}
-      >
+      <FormSection title="Map location" icon={PIN_ICON}>
         <div className="space-y-3">
           {accessBanner && (
             <div className="flex items-start gap-3 rounded-xl bg-amber-50 p-3">
@@ -548,7 +545,9 @@ export function PickupPointForm({
                 Set pickup location
               </h2>
               <p className="text-xs text-font-dim">
-                Tap the map or drag the pin
+                <span className="lg:hidden">Tap</span>
+                <span className="hidden lg:inline">Click</span> the map or drag
+                the pin
               </p>
             </div>
             <button

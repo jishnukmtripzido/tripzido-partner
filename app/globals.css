@@ -14,6 +14,14 @@
   padding-top: env(safe-area-inset-top, 0px);
 }
 
+/* Desktop page gutters for single-column forms/details: side padding
+   grows so the content stays a readable 48rem column, centered, with
+   no wrapper element (the scroll container keeps its full width, so
+   the scrollbar stays at the window edge). Use as lg:px-page-narrow. */
+@utility px-page-narrow {
+  padding-inline: max(2rem, calc((100% - 48rem) / 2));
+}
+
 /* ── Brand theme (Tailwind v4 config lives here, not in tailwind.config.ts) ── */
 @theme {
   --color-brand-yellow-lg: #ffc107;
