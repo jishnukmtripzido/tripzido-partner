@@ -7,6 +7,7 @@ import type { Route } from "next";
 import { useAuth } from "@/context/AuthContext";
 import { logoutApi } from "@/services/auth.service";
 import { useMountTransition } from "@/hooks/useMountTransition";
+import { useConfirmedBookingsCount } from "@/hooks/useConfirmedBookingsCount";
 
 interface SidebarProps {
   open: boolean;
@@ -153,30 +154,65 @@ function getInitials(first?: string, last?: string): string {
 }
 
 /**
- * Slide-in drawer opened from the hamburger button in Header. Uses
- * useMountTransition so it plays a real enter AND exit animation.
- * Backdrop reuses the existing .modal-backdrop-* fade classes; the
- * drawer panel uses the .drawer-panel-* slide classes.
- *
+ * Slide-in drawer opened from the hamburger button in Header (below
+ * lg:). Uses useMountTransition so it plays a real enter AND exit
+ * animation. Backdrop reuses the existing .modal-backdrop-* fade
+ * classes; the drawer panel uses the .drawer-panel-* slide classes.
+ * The contents are SidebarPanel, shared with DesktopSidebar.
+ */
+export function Sidebar({ open, onClose }: SidebarProps) {
+  const { shouldRender, phase } = useMountTransition(open, 250);
+
+  if (!shouldRender) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 lg:hidden">
+      <div
+        onClick={onClose}
+        className={`modal-backdrop modal-backdrop-${phase} absolute inset-0 bg-black/50`}
+        aria-hidden="true"
+      />
+
+      <aside
+        className={`drawer-panel drawer-panel-${phase} absolute left-0 top-0 bottom-0 w-[85%] max-w-xs shadow-2xl overflow-hidden`}
+      >
+        <SidebarPanel onClose={onClose} resetKey={open} />
+      </aside>
+    </div>
+  );
+}
+
+/**
  * Layout: brand header with a tappable profile card, links grouped
  * into sections (each with a one-line hint so new partners know what
  * lives where), and a logout that asks for confirmation inline so a
  * stray tap near the bottom edge can't sign the partner out.
+ *
+ * `onClose` is only passed by the drawer — it adds the close button
+ * and closes the drawer on navigation. The permanent desktop sidebar
+ * omits it and sets `showBadges`, since BottomNav (which carries the
+ * Bookings badge on small screens) is hidden there.
  */
-export function Sidebar({ open, onClose }: SidebarProps) {
+export function SidebarPanel({
+  onClose,
+  resetKey,
+  showBadges = false,
+}: {
+  onClose?: () => void;
+  resetKey?: unknown;
+  showBadges?: boolean;
+}) {
   const pathname = usePathname();
   const { user, token, refreshToken, logout } = useAuth();
-  const { shouldRender, phase } = useMountTransition(open, 250);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const confirmedCount = useConfirmedBookingsCount();
   const activeHref = getActiveHref(pathname);
 
   // Reset the logout confirmation whenever the drawer closes, so it
   // always reopens in its default state.
   useEffect(() => {
-    if (!open) setConfirmLogout(false);
-  }, [open]);
-
-  if (!shouldRender) return null;
+    setConfirmLogout(false);
+  }, [resetKey]);
 
   function handleLogout() {
     if (token && refreshToken) {
@@ -184,7 +220,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         // Ignored — session is cleared locally regardless.
       });
     }
-    onClose();
+    onClose?.();
     logout();
   }
 
@@ -193,46 +229,38 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     : "Partner";
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div
-        onClick={onClose}
-        className={`modal-backdrop modal-backdrop-${phase} absolute inset-0 bg-black/50`}
-        aria-hidden="true"
-      />
-
-      <aside
-        className={`drawer-panel drawer-panel-${phase} absolute left-0 top-0 bottom-0 w-[85%] max-w-xs bg-brand-bg shadow-2xl flex flex-col overflow-hidden`}
-      >
-        {/* Brand header + profile card */}
-        <div className="bg-linear-to-br from-banner-from to-banner-to px-5 pt-safe pb-5 rounded-br-3xl">
-          <div className="flex items-center justify-between pt-5 mb-5">
-            <div className="flex items-center gap-2">
-              <div className="bg-brand-secondary rounded-lg flex items-center justify-center h-8 w-8">
-                <svg
-                  className="w-5 h-5 text-brand-yellow"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-              </div>
-              <h2 className="font-heading font-extrabold text-lg tracking-tight text-brand-secondary">
-                tripzido{" "}
-                <span className="font-semibold text-brand-secondary/60 text-xs tracking-normal align-middle">
-                  partner
-                </span>
-              </h2>
+    <div className="flex h-full flex-col bg-brand-bg">
+      {/* Brand header + profile card */}
+      <div className="bg-linear-to-br from-banner-from to-banner-to px-5 pt-safe pb-5 rounded-br-3xl">
+        <div className="flex items-center justify-between pt-5 mb-5">
+          <div className="flex items-center gap-2">
+            <div className="bg-brand-secondary rounded-lg flex items-center justify-center h-8 w-8">
+              <svg
+                className="w-5 h-5 text-brand-yellow"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
             </div>
+            <h2 className="font-heading font-extrabold text-lg tracking-tight text-brand-secondary">
+              tripzido{" "}
+              <span className="font-semibold text-brand-secondary/60 text-xs tracking-normal align-middle">
+                partner
+              </span>
+            </h2>
+          </div>
+          {onClose && (
             <button
               onClick={onClose}
               aria-label="Close menu"
-              className="h-9 w-9 rounded-full bg-white/40 text-brand-secondary flex items-center justify-center active:bg-white/70 transition-colors"
+              className="h-9 w-9 rounded-full bg-white/40 text-brand-secondary flex items-center justify-center hover:bg-white/60 active:bg-white/70 transition-colors"
             >
               <svg
                 className="w-5 h-5"
@@ -248,151 +276,164 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 />
               </svg>
             </button>
-          </div>
-
-          <Link
-            href={"/profile" as Route}
-            onClick={onClose}
-            className="flex items-center gap-3 bg-white rounded-2xl p-3 shadow-sm active:scale-[0.98] transition-transform"
-          >
-            <div className="w-12 h-12 rounded-full bg-brand-secondary text-brand-yellow flex items-center justify-center font-heading font-bold text-base shrink-0">
-              {getInitials(user?.first_name, user?.last_name)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-heading font-bold text-sm text-font-main-sub truncate">
-                {fullName}
-              </p>
-              <p className="text-xs text-font-dim truncate">
-                {user?.phone_number ?? "Not signed in"}
-              </p>
-            </div>
-            <svg
-              className="w-5 h-5 text-gray-400 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </Link>
+          )}
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto hide-scrollbar px-3 py-4 space-y-5">
-          {SECTIONS.map((section) => (
-            <div key={section.title}>
-              <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
-                {section.title}
-              </p>
-              <div className="bg-white rounded-2xl p-1.5 space-y-0.5 shadow-sm">
-                {section.links.map((link) => {
-                  const active = link.href === activeHref;
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={onClose}
-                      aria-current={active ? "page" : undefined}
-                      className={`flex items-center gap-3 px-2.5 py-2.5 rounded-xl transition-colors ${
-                        active ? "bg-brand-yellow/25" : "active:bg-gray-100"
+        <Link
+          href={"/profile" as Route}
+          onClick={onClose}
+          className="flex items-center gap-3 bg-white rounded-2xl p-3 shadow-sm hover:shadow-md active:scale-[0.98] transition-[transform,box-shadow]"
+        >
+          <div className="w-12 h-12 rounded-full bg-brand-secondary text-brand-yellow flex items-center justify-center font-heading font-bold text-base shrink-0">
+            {getInitials(user?.first_name, user?.last_name)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-heading font-bold text-sm text-font-main-sub truncate">
+              {fullName}
+            </p>
+            <p className="text-xs text-font-dim truncate">
+              {user?.phone_number ?? "Not signed in"}
+            </p>
+          </div>
+          <svg
+            className="w-5 h-5 text-gray-400 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </Link>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto hide-scrollbar px-3 py-4 space-y-5">
+        {SECTIONS.map((section) => (
+          <div key={section.title}>
+            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
+              {section.title}
+            </p>
+            <div className="bg-white rounded-2xl p-1.5 space-y-0.5 shadow-sm">
+              {section.links.map((link) => {
+                const active = link.href === activeHref;
+                const badge =
+                  showBadges && link.href === "/bookings" ? confirmedCount : 0;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={onClose}
+                    aria-current={active ? "page" : undefined}
+                    className={`flex items-center gap-3 px-2.5 py-2.5 rounded-xl transition-colors ${
+                      active
+                        ? "bg-brand-yellow/25"
+                        : "hover:bg-gray-50 active:bg-gray-100"
+                    }`}
+                  >
+                    <span
+                      className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        active
+                          ? "bg-brand-yellow-lg text-brand-secondary"
+                          : "bg-gray-100 text-font-dim"
                       }`}
                     >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        {link.icon}
+                      </svg>
+                    </span>
+                    <span className="min-w-0 flex-1">
                       <span
-                        className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                          active
-                            ? "bg-brand-yellow-lg text-brand-secondary"
-                            : "bg-gray-100 text-font-dim"
+                        className={`block text-sm font-semibold truncate ${
+                          active ? "text-brand-secondary" : "text-font-main-sub"
                         }`}
                       >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          {link.icon}
-                        </svg>
+                        {link.label}
                       </span>
-                      <span className="min-w-0 flex-1">
-                        <span
-                          className={`block text-sm font-semibold truncate ${
-                            active ? "text-brand-secondary" : "text-font-main-sub"
-                          }`}
-                        >
-                          {link.label}
-                        </span>
-                        <span className="block text-xs text-font-dim truncate">
-                          {link.hint}
-                        </span>
+                      <span className="block text-xs text-font-dim truncate">
+                        {link.hint}
                       </span>
-                      {active && (
+                    </span>
+                    {badge > 0 ? (
+                      <span
+                        className="min-w-[20px] h-5 rounded-full bg-red-500 px-1.5 text-center text-[10px] font-bold leading-5 tabular-nums text-white shrink-0"
+                        aria-label={`${badge} upcoming to hand over`}
+                      >
+                        {badge > 9 ? "9+" : badge}
+                      </span>
+                    ) : (
+                      active && (
                         <span
                           className="h-2 w-2 rounded-full bg-brand-yellow-lg shrink-0 mr-1"
                           aria-hidden="true"
                         />
-                      )}
-                    </Link>
-                  );
-                })}
+                      )
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      {/* Logout with inline confirmation */}
+      <div className="pb-safe">
+        <div className="px-3 pt-2 pb-4">
+          {confirmLogout ? (
+            <div className="bg-white rounded-2xl p-3 shadow-sm">
+              <p className="text-sm font-semibold text-font-main-sub mb-3 px-1">
+                Log out of Tripzido Partner?
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setConfirmLogout(false)}
+                  className="py-2.5 rounded-xl text-sm font-semibold bg-gray-100 text-font-main-sub hover:bg-gray-200 active:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="py-2.5 rounded-xl text-sm font-semibold bg-red-500 text-white hover:bg-red-600 active:bg-red-600 transition-colors"
+                >
+                  Log out
+                </button>
               </div>
             </div>
-          ))}
-        </nav>
-
-        {/* Logout with inline confirmation */}
-        <div className="pb-safe">
-          <div className="px-3 pt-2 pb-4">
-            {confirmLogout ? (
-              <div className="bg-white rounded-2xl p-3 shadow-sm">
-                <p className="text-sm font-semibold text-font-main-sub mb-3 px-1">
-                  Log out of Tripzido Partner?
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setConfirmLogout(false)}
-                    className="py-2.5 rounded-xl text-sm font-semibold bg-gray-100 text-font-main-sub active:bg-gray-200 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="py-2.5 rounded-xl text-sm font-semibold bg-red-500 text-white active:bg-red-600 transition-colors"
-                  >
-                    Log out
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setConfirmLogout(true)}
-                className="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-2xl bg-white shadow-sm text-sm font-semibold text-red-500 active:bg-red-50 transition-colors"
-              >
-                <span className="h-10 w-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                    />
-                  </svg>
-                </span>
-                Log out
-              </button>
-            )}
-          </div>
+          ) : (
+            <button
+              onClick={() => setConfirmLogout(true)}
+              className="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-2xl bg-white shadow-sm text-sm font-semibold text-red-500 hover:bg-red-50 active:bg-red-50 transition-colors"
+            >
+              <span className="h-10 w-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              </span>
+              Log out
+            </button>
+          )}
         </div>
-      </aside>
+      </div>
     </div>
   );
 }
