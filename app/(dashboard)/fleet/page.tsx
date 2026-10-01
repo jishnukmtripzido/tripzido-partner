@@ -155,7 +155,7 @@ export default function FleetPage() {
         }
       />
 
-      <div className="flex gap-2 overflow-x-auto hide-scrollbar bg-brand-bg px-5 pb-2 pt-4">
+      <div className="flex gap-2 overflow-x-auto hide-scrollbar bg-brand-bg px-5 pb-2 pt-4 lg:px-8 lg:pt-6">
         {FLEET_TABS.map((t) => (
           <button
             key={t.key}
@@ -175,13 +175,13 @@ export default function FleetPage() {
       {isInitialLoad ? (
         <PageLoader />
       ) : (
-        <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pb-6 pt-3">
+        <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pb-6 pt-3 lg:px-8">
           {total != null && total > 0 && (
             <p className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
               {total} {tab} bike{total === 1 ? "" : "s"}
             </p>
           )}
-          <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-[repeat(auto-fit,minmax(380px,1fr))] lg:gap-4 lg:items-start lg:content-start">
+          <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-4 lg:items-start lg:content-start">
             {vehicles.map((vehicle) => (
               <VehicleListItem
                 key={vehicle.id}

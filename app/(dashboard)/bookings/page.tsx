@@ -141,11 +141,11 @@ export default function BookingsPage() {
           <div
             ref={searchBlockRef}
             aria-hidden={searchHidden}
-            className={`px-5 pt-4 transition-opacity duration-300 ease-out ${
+            className={`px-5 pt-4 lg:px-8 lg:pt-6 transition-opacity duration-300 ease-out ${
               searchHidden ? "opacity-0" : "opacity-100"
             }`}
           >
-            <div className="relative">
+            <div className="relative lg:max-w-xl">
               <svg
                 className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-font-dim"
                 fill="none"
@@ -193,7 +193,7 @@ export default function BookingsPage() {
             </div>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto hide-scrollbar px-5 pt-3 pb-2">
+          <div className="flex gap-2 overflow-x-auto hide-scrollbar px-5 pt-3 pb-2 lg:px-8">
             {FILTER_TABS.map((t) => (
               <button
                 key={t.key}
@@ -224,10 +224,10 @@ export default function BookingsPage() {
         ) : (
           <main
             onScroll={handleListScroll}
-            className="h-full overflow-y-auto hide-scrollbar px-5 pb-6"
+            className="h-full overflow-y-auto hide-scrollbar px-5 pb-6 lg:px-8"
             style={{ paddingTop: overlayHeight + 12 }}
           >
-            <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-[repeat(auto-fit,minmax(380px,1fr))] lg:gap-4 lg:items-start lg:content-start">
+            <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-4 lg:items-start lg:content-start">
               {bookings.map((booking) => (
                 <BookingListCard
                   key={booking.id}

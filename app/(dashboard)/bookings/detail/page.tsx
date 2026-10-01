@@ -304,7 +304,7 @@ export default function BookingDetailPage() {
         onBack={() => router.back()}
       />
 
-      <main className="min-h-0 flex-1 overflow-y-auto hide-scrollbar px-5 pb-8 pt-4 sm:px-6 sm:pt-6">
+      <main className="min-h-0 flex-1 overflow-y-auto hide-scrollbar px-5 pb-8 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-7">
         {isLoading && <PageLoader />}
 
         {error && !isLoading && (
@@ -314,295 +314,304 @@ export default function BookingDetailPage() {
         )}
 
         {booking && !isLoading && (
-          <div className="mx-auto max-w-4xl space-y-5">
-            {/* Vehicle + status */}
-            <section className="rounded-2xl bg-white p-3 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-100 p-1.5">
-                  {booking.vehicle_image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={booking.vehicle_image}
-                      alt={booking.vehicle_name}
-                      className="h-full w-full object-contain mix-blend-multiply"
-                    />
-                  ) : (
-                    <svg
-                      className="h-8 w-8 text-font-dim/50"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+          <div className="mx-auto max-w-4xl space-y-5 lg:max-w-6xl lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-start lg:gap-6 lg:space-y-0">
+            {/* Left column: vehicle, actions, trip, customer */}
+            <div className="space-y-5">
+              {/* Vehicle + status */}
+              <section className="rounded-2xl bg-white p-3 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-100 p-1.5">
+                    {booking.vehicle_image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={booking.vehicle_image}
+                        alt={booking.vehicle_name}
+                        className="h-full w-full object-contain mix-blend-multiply"
                       />
-                    </svg>
-                  )}
-                </div>
+                    ) : (
+                      <svg
+                        className="h-8 w-8 text-font-dim/50"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                    )}
+                  </div>
 
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs text-font-dim truncate">
-                    #{booking.booking_reference}
-                  </p>
-                  <h2 className="mt-0.5 truncate font-heading text-lg font-bold text-font-main-sub">
-                    {booking.vehicle_name}
-                  </h2>
-                  <span
-                    className={`mt-1.5 inline-block rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
-                      STATUS_BADGE_STYLES[booking.status] ??
-                      "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {booking.status_label}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-1.5 px-0.5 pt-3">
-                {[booking.transmission_type, booking.fuel_type]
-                  .filter(Boolean)
-                  .map((chip) => (
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-font-dim truncate">
+                      #{booking.booking_reference}
+                    </p>
+                    <h2 className="mt-0.5 truncate font-heading text-lg font-bold text-font-main-sub">
+                      {booking.vehicle_name}
+                    </h2>
                     <span
-                      key={chip}
-                      className="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-semibold text-font-dim"
-                    >
-                      {toTitleCase(chip)}
-                    </span>
-                  ))}
-                {booking.is_offline && (
-                  <span className="rounded-lg bg-brand-secondary px-2.5 py-1 text-xs font-semibold text-brand-yellow">
-                    Offline booking
-                  </span>
-                )}
-              </div>
-            </section>
-
-            {/* Status actions */}
-            {booking.available_next_statuses.length > 0 && (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {booking.available_next_statuses.map((target) => {
-                  const config = STATUS_ACTION_CONFIG[target];
-                  if (!config) return null;
-                  return (
-                    <button
-                      key={target}
-                      onClick={() => {
-                        setActionStatus(target);
-                        setActionError(null);
-                      }}
-                      className={`min-h-12 rounded-xl px-4 text-sm font-semibold shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-secondary ${
-                        config.destructive
-                          ? "bg-white text-red-600 active:bg-red-50"
-                          : "bg-brand-secondary text-brand-yellow active:opacity-80"
+                      className={`mt-1.5 inline-block rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                        STATUS_BADGE_STYLES[booking.status] ??
+                        "bg-gray-100 text-gray-600"
                       }`}
                     >
-                      {config.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Trip */}
-            <Section title="Trip">
-              <div className="rounded-xl bg-brand-bg p-3">
-                <div className="flex items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-font-dim/70">
-                      Pickup
-                    </p>
-                    <p className="mt-0.5 text-[13px] font-bold text-font-main-sub">
-                      {formatDate(booking.start_date)}
-                    </p>
-                    <p className="text-xs text-font-dim">
-                      {formatTime(booking.start_date)}
-                    </p>
+                      {booking.status_label}
+                    </span>
                   </div>
+                </div>
 
-                  <div className="flex shrink-0 flex-col items-center gap-1 px-1">
-                    {booking.duration && (
-                      <span className="max-w-24 rounded-xl bg-white px-2 py-0.5 text-center text-[10px] font-bold leading-tight text-font-main-sub shadow-sm">
-                        {booking.duration}
+                <div className="flex flex-wrap gap-1.5 px-0.5 pt-3">
+                  {[booking.transmission_type, booking.fuel_type]
+                    .filter(Boolean)
+                    .map((chip) => (
+                      <span
+                        key={chip}
+                        className="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-semibold text-font-dim"
+                      >
+                        {toTitleCase(chip)}
                       </span>
-                    )}
-                    <svg
-                      className="h-4 w-4 text-brand-yellow-lg"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M13 7l5 5m0 0l-5 5m5-5H6"
-                      />
-                    </svg>
-                  </div>
-
-                  <div className="min-w-0 flex-1 text-right">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-font-dim/70">
-                      Return
-                    </p>
-                    <p className="mt-0.5 text-[13px] font-bold text-font-main-sub">
-                      {formatDate(booking.end_date)}
-                    </p>
-                    <p className="text-xs text-font-dim">
-                      {formatTime(booking.end_date)}
-                    </p>
-                  </div>
+                    ))}
+                  {booking.is_offline && (
+                    <span className="rounded-lg bg-brand-secondary px-2.5 py-1 text-xs font-semibold text-brand-yellow">
+                      Offline booking
+                    </span>
+                  )}
                 </div>
-              </div>
+              </section>
 
-              <IconRow
-                icon={PIN_ICON}
-                label={booking.pickup_location_name}
-                hint={booking.pickup_location_address || undefined}
-              />
-              {booking.package_name && (
-                <IconRow
-                  icon={TAG_ICON}
-                  label={booking.package_name}
-                  hint="Package"
-                />
-              )}
-              {booking.handed_over_at && (
-                <IconRow
-                  icon={HANDOVER_ICON}
-                  label="Handed over"
-                  hint={formatDateTime(booking.handed_over_at)}
-                />
-              )}
-              {booking.returned_at && (
-                <IconRow
-                  icon={CLOCK_ICON}
-                  label="Returned"
-                  hint={formatDateTime(booking.returned_at)}
-                />
-              )}
-            </Section>
-
-            {/* Customer */}
-            <Section title="Customer">
-              <div className="flex items-center gap-3 px-1 py-1">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-secondary font-heading text-sm font-bold text-brand-yellow">
-                  {getInitials(booking.customer_name ?? "")}
+              {/* Status actions */}
+              {booking.available_next_statuses.length > 0 && (
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {booking.available_next_statuses.map((target) => {
+                    const config = STATUS_ACTION_CONFIG[target];
+                    if (!config) return null;
+                    return (
+                      <button
+                        key={target}
+                        onClick={() => {
+                          setActionStatus(target);
+                          setActionError(null);
+                        }}
+                        className={`min-h-12 rounded-xl px-4 text-sm font-semibold shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-secondary ${
+                          config.destructive
+                            ? "bg-white text-red-600 active:bg-red-50"
+                            : "bg-brand-secondary text-brand-yellow active:opacity-80"
+                        }`}
+                      >
+                        {config.label}
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-font-main-sub">
-                    {booking.customer_name}
-                  </p>
-                  <p className="truncate text-xs text-font-dim">
-                    {booking.customer_phone}
-                  </p>
-                </div>
-                {booking.customer_phone && (
-                  <a
-                    href={`tel:${booking.customer_phone}`}
-                    aria-label={`Call ${booking.customer_name}`}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-yellow-lg text-brand-secondary active:bg-brand-yellow transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-secondary"
-                  >
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      {PHONE_ICON}
-                    </svg>
-                  </a>
-                )}
-              </div>
-            </Section>
+              )}
 
-            {/* Payment */}
-            <Section title="Payment">
-              <div className="space-y-2.5 px-1 pt-1">
-                <Row label="Mode" value={booking.payment_mode_label} />
-                <Row label="Rent amount" value={`₹${booking.listing_amount}`} />
-                <Row label="Paid" value={`₹${booking.advance_amount}`} />
-              </div>
-              <div
-                className={`mt-3 flex items-center justify-between gap-3 rounded-xl px-3 py-3 ${
-                  hasDue ? "bg-brand-yellow/25" : "bg-brand-bg"
-                }`}
-              >
-                <span className="text-sm font-semibold text-font-main-sub">
-                  {hasDue ? "Remaining to collect" : "Remaining"}
-                </span>
-                <span className="font-heading text-lg font-bold tabular-nums text-font-main-sub">
-                  ₹{booking.remaining_amount}
-                </span>
-              </div>
-              <IconRow
-                icon={DEPOSIT_ICON}
-                label="Security deposit"
-                trailing={`₹${booking.security_deposit_amount}`}
-              />
-            </Section>
-
-            {booking.payments.length > 0 && (
-              <Section title="Payment history">
-                {booking.payments.map((p) => (
-                  <IconRow
-                    key={p.id}
-                    icon={RECEIPT_ICON}
-                    label={`${toTitleCase(p.payment_type)} · ${toTitleCase(p.status)}`}
-                    hint={
-                      p.gateway_order_id
-                        ? `Order ${p.gateway_order_id}`
-                        : "Payment record"
-                    }
-                    trailing={`₹${p.amount}`}
-                  />
-                ))}
-              </Section>
-            )}
-
-            {booking.cancellation && (
-              <Section title="Cancellation" tone="red">
-                <div className="flex gap-2.5 rounded-xl bg-red-50 p-3 text-red-700">
-                  <svg
-                    className="h-5 w-5 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    {ALERT_ICON}
-                  </svg>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold">
-                      {booking.cancellation.reason_label}
-                    </p>
-                    {booking.cancellation.reason_text && (
-                      <p className="mt-0.5 text-sm text-red-700/90">
-                        {booking.cancellation.reason_text}
+              {/* Trip */}
+              <Section title="Trip">
+                <div className="rounded-xl bg-brand-bg p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-font-dim/70">
+                        Pickup
                       </p>
-                    )}
+                      <p className="mt-0.5 text-[13px] font-bold text-font-main-sub">
+                        {formatDate(booking.start_date)}
+                      </p>
+                      <p className="text-xs text-font-dim">
+                        {formatTime(booking.start_date)}
+                      </p>
+                    </div>
+
+                    <div className="flex shrink-0 flex-col items-center gap-1 px-1">
+                      {booking.duration && (
+                        <span className="max-w-24 rounded-xl bg-white px-2 py-0.5 text-center text-[10px] font-bold leading-tight text-font-main-sub shadow-sm">
+                          {booking.duration}
+                        </span>
+                      )}
+                      <svg
+                        className="h-4 w-4 text-brand-yellow-lg"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          d="M13 7l5 5m0 0l-5 5m5-5H6"
+                        />
+                      </svg>
+                    </div>
+
+                    <div className="min-w-0 flex-1 text-right">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-font-dim/70">
+                        Return
+                      </p>
+                      <p className="mt-0.5 text-[13px] font-bold text-font-main-sub">
+                        {formatDate(booking.end_date)}
+                      </p>
+                      <p className="text-xs text-font-dim">
+                        {formatTime(booking.end_date)}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2.5 px-1 pt-3 pb-1">
-                  <Row
-                    label="Refund"
-                    value={`${booking.cancellation.refund_percentage}%`}
+
+                <IconRow
+                  icon={PIN_ICON}
+                  label={booking.pickup_location_name}
+                  hint={booking.pickup_location_address || undefined}
+                />
+                {booking.package_name && (
+                  <IconRow
+                    icon={TAG_ICON}
+                    label={booking.package_name}
+                    hint="Package"
                   />
-                  <Row
-                    label="Refundable"
-                    value={`₹${booking.cancellation.refundable_amount}`}
+                )}
+                {booking.handed_over_at && (
+                  <IconRow
+                    icon={HANDOVER_ICON}
+                    label="Handed over"
+                    hint={formatDateTime(booking.handed_over_at)}
                   />
-                  <Row
-                    label="Forfeited"
-                    value={`₹${booking.cancellation.forfeited_amount}`}
+                )}
+                {booking.returned_at && (
+                  <IconRow
+                    icon={CLOCK_ICON}
+                    label="Returned"
+                    hint={formatDateTime(booking.returned_at)}
                   />
+                )}
+              </Section>
+
+              {/* Customer */}
+              <Section title="Customer">
+                <div className="flex items-center gap-3 px-1 py-1">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-secondary font-heading text-sm font-bold text-brand-yellow">
+                    {getInitials(booking.customer_name ?? "")}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-font-main-sub">
+                      {booking.customer_name}
+                    </p>
+                    <p className="truncate text-xs text-font-dim">
+                      {booking.customer_phone}
+                    </p>
+                  </div>
+                  {booking.customer_phone && (
+                    <a
+                      href={`tel:${booking.customer_phone}`}
+                      aria-label={`Call ${booking.customer_name}`}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-yellow-lg text-brand-secondary active:bg-brand-yellow transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-secondary"
+                    >
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        {PHONE_ICON}
+                      </svg>
+                    </a>
+                  )}
                 </div>
               </Section>
-            )}
+            </div>
+
+            {/* Right column: money — stays in view beside the trip on desktop */}
+            <div className="space-y-5 lg:sticky lg:top-0">
+              {/* Payment */}
+              <Section title="Payment">
+                <div className="space-y-2.5 px-1 pt-1">
+                  <Row label="Mode" value={booking.payment_mode_label} />
+                  <Row
+                    label="Rent amount"
+                    value={`₹${booking.listing_amount}`}
+                  />
+                  <Row label="Paid" value={`₹${booking.advance_amount}`} />
+                </div>
+                <div
+                  className={`mt-3 flex items-center justify-between gap-3 rounded-xl px-3 py-3 ${
+                    hasDue ? "bg-brand-yellow/25" : "bg-brand-bg"
+                  }`}
+                >
+                  <span className="text-sm font-semibold text-font-main-sub">
+                    {hasDue ? "Remaining to collect" : "Remaining"}
+                  </span>
+                  <span className="font-heading text-lg font-bold tabular-nums text-font-main-sub">
+                    ₹{booking.remaining_amount}
+                  </span>
+                </div>
+                <IconRow
+                  icon={DEPOSIT_ICON}
+                  label="Security deposit"
+                  trailing={`₹${booking.security_deposit_amount}`}
+                />
+              </Section>
+
+              {booking.payments.length > 0 && (
+                <Section title="Payment history">
+                  {booking.payments.map((p) => (
+                    <IconRow
+                      key={p.id}
+                      icon={RECEIPT_ICON}
+                      label={`${toTitleCase(p.payment_type)} · ${toTitleCase(p.status)}`}
+                      hint={
+                        p.gateway_order_id
+                          ? `Order ${p.gateway_order_id}`
+                          : "Payment record"
+                      }
+                      trailing={`₹${p.amount}`}
+                    />
+                  ))}
+                </Section>
+              )}
+
+              {booking.cancellation && (
+                <Section title="Cancellation" tone="red">
+                  <div className="flex gap-2.5 rounded-xl bg-red-50 p-3 text-red-700">
+                    <svg
+                      className="h-5 w-5 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      {ALERT_ICON}
+                    </svg>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">
+                        {booking.cancellation.reason_label}
+                      </p>
+                      {booking.cancellation.reason_text && (
+                        <p className="mt-0.5 text-sm text-red-700/90">
+                          {booking.cancellation.reason_text}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2.5 px-1 pt-3 pb-1">
+                    <Row
+                      label="Refund"
+                      value={`${booking.cancellation.refund_percentage}%`}
+                    />
+                    <Row
+                      label="Refundable"
+                      value={`₹${booking.cancellation.refundable_amount}`}
+                    />
+                    <Row
+                      label="Forfeited"
+                      value={`₹${booking.cancellation.forfeited_amount}`}
+                    />
+                  </div>
+                </Section>
+              )}
+            </div>
           </div>
         )}
       </main>

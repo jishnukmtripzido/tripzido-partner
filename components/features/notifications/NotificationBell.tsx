@@ -166,7 +166,9 @@ export function NotificationBell() {
     <>
       <button
         onClick={() => setOpen(true)}
-        aria-label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
+        aria-label={
+          count > 0 ? `Notifications, ${count} unread` : "Notifications"
+        }
         aria-haspopup="dialog"
         aria-expanded={open}
         className={HEADER_ICON_BUTTON}
@@ -194,128 +196,44 @@ export function NotificationBell() {
 
       {/* Portaled to <body>: the Header is sticky with its own z-index,
           which would otherwise trap this full-screen panel beneath
-          anything stacked above the header (e.g. the bottom nav). */}
+          anything stacked above the header (e.g. the bottom nav).
+          Full-screen on phones; a right-hand slide-over with a
+          click-to-close backdrop at lg:. */}
       {shouldRender &&
         createPortal(
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Notifications"
-            className={`modal-panel modal-panel-${phase} fixed inset-0 z-50 flex flex-col bg-brand-bg`}
-          >
-            {/* Top bar */}
-            <header className="bg-white shadow-sm pt-safe">
-              <div className="flex items-center justify-between gap-3 px-5 py-4">
-                <div className="min-w-0">
-                  <h2 className="font-heading text-xl font-bold tracking-tight text-font-main-sub">
-                    Notifications
-                  </h2>
-                  <p className="text-xs text-font-dim">
-                    {count > 0
-                      ? `${count} unread update${count === 1 ? "" : "s"}`
-                      : "You're all caught up"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  aria-label="Close notifications"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-font-main-sub active:bg-gray-200 transition-colors"
-                >
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </header>
-
-            {/* Filters + mark all read */}
-            <div className="flex items-center gap-2 px-5 pt-4 pb-2">
-              {(["all", "unread"] as const).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setFilter(key)}
-                  aria-pressed={filter === key}
-                  className={`shrink-0 px-4 py-2 rounded-xl text-[13px] font-semibold shadow-sm transition-colors ${
-                    filter === key
-                      ? "bg-brand-secondary text-brand-yellow"
-                      : "bg-white text-font-dim active:bg-gray-100"
-                  }`}
-                >
-                  {key === "all" ? "All" : "Unread"}
-                  {key === "unread" && unreadInList > 0 && (
-                    <span className="ml-1.5 tabular-nums">{unreadInList}</span>
-                  )}
-                </button>
-              ))}
-              {unreadInList > 0 && (
-                <button
-                  type="button"
-                  onClick={handleMarkAllRead}
-                  disabled={markAllReadMutation.isPending}
-                  className="ml-auto shrink-0 rounded-xl px-3 py-2 text-[13px] font-semibold text-font-main-sub active:bg-white transition-colors disabled:opacity-50"
-                >
-                  {markAllReadMutation.isPending ? "Updating..." : "Mark all read"}
-                </button>
-              )}
-            </div>
-
-            {/* List */}
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain hide-scrollbar px-5 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+2rem)]">
-              {loading ? (
-                <div className="space-y-2.5" aria-label="Loading notifications">
-                  {[0, 1, 2, 3].map((n) => (
-                    <div
-                      key={n}
-                      className="flex animate-pulse gap-3 rounded-2xl bg-white p-3 shadow-sm"
-                    >
-                      <div className="h-10 w-10 shrink-0 rounded-xl bg-gray-100" />
-                      <div className="flex-1">
-                        <div className="h-3 w-2/3 rounded bg-gray-100" />
-                        <div className="mt-2 h-3 w-full rounded bg-gray-100" />
-                        <div className="mt-2 h-2.5 w-16 rounded bg-gray-100" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : error ? (
-                <div
-                  className="mt-2 rounded-2xl bg-white px-6 py-8 text-center shadow-sm"
-                  role="alert"
-                >
-                  <p className="text-sm font-semibold text-font-main-sub">
-                    Notifications couldn&apos;t load
-                  </p>
-                  <p className="mt-1 text-xs text-font-dim">
-                    {error instanceof Error
-                      ? error.message
-                      : "Check your connection and try again."}
-                  </p>
+          <>
+            <div
+              onClick={() => setOpen(false)}
+              className={`modal-backdrop modal-backdrop-${phase} fixed inset-0 z-50 hidden bg-black/40 lg:block`}
+              aria-hidden="true"
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Notifications"
+              className={`modal-panel modal-panel-${phase} fixed inset-0 z-50 flex flex-col bg-brand-bg lg:left-auto lg:w-[26rem] lg:shadow-2xl`}
+            >
+              {/* Top bar */}
+              <header className="bg-white shadow-sm pt-safe">
+                <div className="flex items-center justify-between gap-3 px-5 py-4">
+                  <div className="min-w-0">
+                    <h2 className="font-heading text-xl font-bold tracking-tight text-font-main-sub">
+                      Notifications
+                    </h2>
+                    <p className="text-xs text-font-dim">
+                      {count > 0
+                        ? `${count} unread update${count === 1 ? "" : "s"}`
+                        : "You're all caught up"}
+                    </p>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => refetch()}
-                    className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+                    onClick={() => setOpen(false)}
+                    aria-label="Close notifications"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-font-main-sub active:bg-gray-200 transition-colors"
                   >
-                    Try again
-                  </button>
-                </div>
-              ) : visible.length === 0 ? (
-                <div className="mt-2 flex flex-col items-center rounded-2xl bg-white px-6 py-10 text-center shadow-sm">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-yellow-lg text-brand-secondary">
                     <svg
-                      className="h-6 w-6"
+                      className="h-5 w-5"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -325,42 +243,144 @@ export function NotificationBell() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d={BELL_PATH}
+                        d="M6 18L18 6M6 6l12 12"
                       />
                     </svg>
-                  </span>
-                  <p className="mt-3 text-sm font-semibold text-font-main-sub">
-                    {filter === "unread" ? "No unread notifications" : "You're all caught up"}
-                  </p>
-                  <p className="mt-1 text-xs text-font-dim">
-                    {filter === "unread"
-                      ? "Everything has been read."
-                      : "Updates about bookings, payouts and your listings will appear here."}
-                  </p>
+                  </button>
                 </div>
-              ) : (
-                <div className="space-y-5">
-                  {groups.map((group) => (
-                    <section key={group.title}>
-                      <h3 className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
-                        {group.title}
-                      </h3>
-                      <ul className="space-y-2.5">
-                        {group.items.map((item) => (
-                          <li key={item.id}>
-                            <NotificationCard
-                              item={item}
-                              onClick={() => handleItemClick(item)}
-                            />
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  ))}
-                </div>
-              )}
+              </header>
+
+              {/* Filters + mark all read */}
+              <div className="flex items-center gap-2 px-5 pt-4 pb-2">
+                {(["all", "unread"] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setFilter(key)}
+                    aria-pressed={filter === key}
+                    className={`shrink-0 px-4 py-2 rounded-xl text-[13px] font-semibold shadow-sm transition-colors ${
+                      filter === key
+                        ? "bg-brand-secondary text-brand-yellow"
+                        : "bg-white text-font-dim active:bg-gray-100"
+                    }`}
+                  >
+                    {key === "all" ? "All" : "Unread"}
+                    {key === "unread" && unreadInList > 0 && (
+                      <span className="ml-1.5 tabular-nums">
+                        {unreadInList}
+                      </span>
+                    )}
+                  </button>
+                ))}
+                {unreadInList > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleMarkAllRead}
+                    disabled={markAllReadMutation.isPending}
+                    className="ml-auto shrink-0 rounded-xl px-3 py-2 text-[13px] font-semibold text-font-main-sub active:bg-white transition-colors disabled:opacity-50"
+                  >
+                    {markAllReadMutation.isPending
+                      ? "Updating..."
+                      : "Mark all read"}
+                  </button>
+                )}
+              </div>
+
+              {/* List */}
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain hide-scrollbar px-5 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+2rem)]">
+                {loading ? (
+                  <div
+                    className="space-y-2.5"
+                    aria-label="Loading notifications"
+                  >
+                    {[0, 1, 2, 3].map((n) => (
+                      <div
+                        key={n}
+                        className="flex animate-pulse gap-3 rounded-2xl bg-white p-3 shadow-sm"
+                      >
+                        <div className="h-10 w-10 shrink-0 rounded-xl bg-gray-100" />
+                        <div className="flex-1">
+                          <div className="h-3 w-2/3 rounded bg-gray-100" />
+                          <div className="mt-2 h-3 w-full rounded bg-gray-100" />
+                          <div className="mt-2 h-2.5 w-16 rounded bg-gray-100" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : error ? (
+                  <div
+                    className="mt-2 rounded-2xl bg-white px-6 py-8 text-center shadow-sm"
+                    role="alert"
+                  >
+                    <p className="text-sm font-semibold text-font-main-sub">
+                      Notifications couldn&apos;t load
+                    </p>
+                    <p className="mt-1 text-xs text-font-dim">
+                      {error instanceof Error
+                        ? error.message
+                        : "Check your connection and try again."}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => refetch()}
+                      className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : visible.length === 0 ? (
+                  <div className="mt-2 flex flex-col items-center rounded-2xl bg-white px-6 py-10 text-center shadow-sm">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-yellow-lg text-brand-secondary">
+                      <svg
+                        className="h-6 w-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d={BELL_PATH}
+                        />
+                      </svg>
+                    </span>
+                    <p className="mt-3 text-sm font-semibold text-font-main-sub">
+                      {filter === "unread"
+                        ? "No unread notifications"
+                        : "You're all caught up"}
+                    </p>
+                    <p className="mt-1 text-xs text-font-dim">
+                      {filter === "unread"
+                        ? "Everything has been read."
+                        : "Updates about bookings, payouts and your listings will appear here."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-5">
+                    {groups.map((group) => (
+                      <section key={group.title}>
+                        <h3 className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
+                          {group.title}
+                        </h3>
+                        <ul className="space-y-2.5">
+                          {group.items.map((item) => (
+                            <li key={item.id}>
+                              <NotificationCard
+                                item={item}
+                                onClick={() => handleItemClick(item)}
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>,
+          </>,
           document.body,
         )}
     </>

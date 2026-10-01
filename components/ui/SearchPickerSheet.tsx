@@ -62,7 +62,7 @@ export function SearchPickerSheet<T>({
     !loading && !error && items.length === 0 && !showEmpty;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col">
+    <div className="fixed inset-0 z-50 flex flex-col sm:items-center sm:justify-center">
       <div
         onClick={dismiss}
         className={`modal-backdrop modal-backdrop-${phase} absolute inset-0 bg-black/50`}
@@ -72,12 +72,12 @@ export function SearchPickerSheet<T>({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`modal-panel modal-panel-${phase} relative mt-auto flex w-full flex-col rounded-t-3xl bg-brand-bg`}
+        className={`modal-panel modal-panel-${phase} relative mt-auto flex w-full flex-col rounded-t-3xl bg-brand-bg sm:mt-0 sm:max-w-md sm:rounded-3xl`}
         style={{ maxHeight: "85vh" }}
       >
         {/* Header + search */}
         <div className="shrink-0 px-5 pt-3">
-          <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-gray-300" />
+          <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-gray-300 sm:hidden" />
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="font-heading text-lg font-bold text-font-main-sub">
               {title}

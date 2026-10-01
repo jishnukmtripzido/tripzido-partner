@@ -327,7 +327,7 @@ function FilterSheet({
   if (!shouldRender) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col">
+    <div className="fixed inset-0 z-50 flex flex-col sm:items-center sm:justify-center">
       <div
         onClick={onClose}
         className={`modal-backdrop modal-backdrop-${phase} absolute inset-0 bg-black/50`}
@@ -337,9 +337,9 @@ function FilterSheet({
         role="dialog"
         aria-modal="true"
         aria-label="Filter payouts"
-        className={`modal-panel modal-panel-${phase} relative mt-auto w-full rounded-t-3xl bg-brand-bg px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]`}
+        className={`modal-panel modal-panel-${phase} relative mt-auto w-full rounded-t-3xl bg-brand-bg px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] sm:mt-0 sm:max-w-md sm:rounded-3xl sm:pt-5`}
       >
-        <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-gray-300" />
+        <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-gray-300 sm:hidden" />
         <div className="mb-3 flex items-center justify-between px-1">
           <div>
             <h2 className="font-heading text-lg font-bold text-font-main-sub">

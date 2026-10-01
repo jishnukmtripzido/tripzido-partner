@@ -212,14 +212,14 @@ export default function BlockBikesPage() {
       {isInitialLoad ? (
         <PageLoader />
       ) : (
-        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-6">
+        <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-6 lg:px-8 lg:pt-6">
           <div className="space-y-5">
             {grouped.map((section) => (
               <section key={section.phase}>
                 <h2 className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
                   {section.title} · {section.blocks.length}
                 </h2>
-                <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start lg:content-start">
+                <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-4 lg:items-start lg:content-start">
                   {section.blocks.map((block) => (
                     <BlockListItem
                       key={block.id}
