@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Route } from "next";
@@ -176,7 +176,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       <aside
         className={`drawer-panel drawer-panel-${phase} absolute left-0 top-0 bottom-0 w-[85%] max-w-xs shadow-2xl overflow-hidden`}
       >
-        <SidebarPanel onClose={onClose} resetKey={open} />
+        <SidebarPanel onClose={onClose} />
       </aside>
     </div>
   );
@@ -188,6 +188,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
  * lives where), and a logout that asks for confirmation inline so a
  * stray tap near the bottom edge can't sign the partner out.
  *
+ * The drawer unmounts once its close animation ends, so the logout
+ * confirmation always reopens in its default state.
+ *
  * `onClose` is only passed by the drawer — it adds the close button
  * and closes the drawer on navigation. The permanent desktop sidebar
  * omits it and sets `showBadges`, since BottomNav (which carries the
@@ -195,11 +198,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
  */
 export function SidebarPanel({
   onClose,
-  resetKey,
   showBadges = false,
 }: {
   onClose?: () => void;
-  resetKey?: unknown;
   showBadges?: boolean;
 }) {
   const pathname = usePathname();
@@ -207,12 +208,6 @@ export function SidebarPanel({
   const [confirmLogout, setConfirmLogout] = useState(false);
   const confirmedCount = useConfirmedBookingsCount();
   const activeHref = getActiveHref(pathname);
-
-  // Reset the logout confirmation whenever the drawer closes, so it
-  // always reopens in its default state.
-  useEffect(() => {
-    setConfirmLogout(false);
-  }, [resetKey]);
 
   function handleLogout() {
     if (token && refreshToken) {
