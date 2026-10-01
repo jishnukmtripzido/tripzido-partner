@@ -14,6 +14,28 @@
   padding-top: env(safe-area-inset-top, 0px);
 }
 
+/* Tailwind v4 dropped the pointer cursor on buttons. Restore it for
+   everything clickable (tabs, cards, toggles, file pickers…) so mouse
+   users can tell what's interactive; disabled controls keep the
+   default arrow. Links already get a pointer from the browser. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  label[for],
+  label:has(
+      input[type="file"]:not(:disabled),
+      input[type="checkbox"]:not(:disabled),
+      input[type="radio"]:not(:disabled)
+    ),
+  select:not(:disabled),
+  summary,
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 /* Desktop page gutters for single-column forms/details: side padding
    grows so the content stays a readable 48rem column, centered, with
    no wrapper element (the scroll container keeps its full width, so
