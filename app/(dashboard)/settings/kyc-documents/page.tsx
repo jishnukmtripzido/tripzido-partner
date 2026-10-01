@@ -140,7 +140,7 @@ export default function KycDocumentsPage() {
         rightSlot={
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm active:opacity-80 transition-opacity"
+            className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity"
           >
             <svg
               className="w-4 h-4"
@@ -170,7 +170,7 @@ export default function KycDocumentsPage() {
             </p>
             <button
               onClick={() => refetch()}
-              className="mt-3 rounded-xl bg-brand-secondary px-4 py-2 text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+              className="mt-3 rounded-xl bg-brand-secondary px-4 py-2 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
             >
               Retry
             </button>
@@ -202,7 +202,7 @@ export default function KycDocumentsPage() {
             </p>
             <button
               onClick={() => setShowAddForm(true)}
-              className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+              className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
             >
               Add document
             </button>
@@ -327,7 +327,7 @@ function DocumentCard({ doc }: { doc: VendorDocument }) {
         href={toAbsoluteMediaUrl(doc.file)}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-brand-bg py-2.5 text-xs font-semibold text-font-main-sub active:bg-gray-100 transition-colors"
+        className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-brand-bg py-2.5 text-xs font-semibold text-font-main-sub hover:bg-gray-100 active:bg-gray-100 transition-colors"
       >
         <svg
           className="h-4 w-4"
@@ -409,7 +409,7 @@ function AddDocumentSheet({
                     className={`rounded-2xl p-3 text-left shadow-sm transition-colors ${
                       selected
                         ? "bg-brand-yellow/30 ring-2 ring-brand-yellow-lg"
-                        : "bg-white active:bg-gray-50"
+                        : "bg-white hover:bg-gray-50 active:bg-gray-50"
                     }`}
                   >
                     <span
@@ -456,7 +456,7 @@ function AddDocumentSheet({
               className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed p-4 transition-colors ${
                 file
                   ? "border-brand-yellow-lg bg-white"
-                  : "border-gray-300 bg-white active:bg-gray-50"
+                  : "border-gray-300 bg-white hover:bg-gray-50 active:bg-gray-50"
               }`}
             >
               <span
@@ -544,14 +544,14 @@ function AddDocumentSheet({
             <button
               onClick={dismiss}
               disabled={uploadMutation.isPending}
-              className="rounded-xl bg-white py-3.5 text-sm font-semibold text-font-main-sub shadow-sm active:bg-gray-100 transition-colors disabled:opacity-50"
+              className="rounded-xl bg-white py-3.5 text-sm font-semibold text-font-main-sub shadow-sm hover:bg-gray-100 active:bg-gray-100 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               onClick={() => uploadMutation.mutate()}
               disabled={uploadMutation.isPending || !file}
-              className="rounded-xl bg-brand-secondary py-3.5 text-sm font-semibold text-brand-yellow shadow-sm active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none"
+              className="rounded-xl bg-brand-secondary py-3.5 text-sm font-semibold text-brand-yellow shadow-sm hover:opacity-90 active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none"
             >
               {uploadMutation.isPending ? "Uploading..." : "Submit"}
             </button>

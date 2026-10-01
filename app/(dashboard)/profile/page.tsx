@@ -200,7 +200,7 @@ export default function ProfilePage() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="flex items-center gap-3 rounded-xl px-2.5 py-2.5 active:bg-gray-100 transition-colors"
+                    className="flex items-center gap-3 rounded-xl px-2.5 py-2.5 hover:bg-gray-100 active:bg-gray-100 transition-colors"
                   >
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-font-dim">
                       <svg
@@ -252,13 +252,13 @@ export default function ProfilePage() {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setConfirmLogout(false)}
-                  className="rounded-xl bg-gray-100 py-2.5 text-sm font-semibold text-font-main-sub active:bg-gray-200 transition-colors"
+                  className="rounded-xl bg-gray-100 py-2.5 text-sm font-semibold text-font-main-sub hover:bg-gray-200 active:bg-gray-200 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="rounded-xl bg-red-500 py-2.5 text-sm font-semibold text-white active:bg-red-600 transition-colors"
+                  className="rounded-xl bg-red-500 py-2.5 text-sm font-semibold text-white hover:bg-red-600 active:bg-red-600 transition-colors"
                 >
                   Log out
                 </button>
@@ -267,7 +267,7 @@ export default function ProfilePage() {
           ) : (
             <button
               onClick={() => setConfirmLogout(true)}
-              className="flex w-full items-center gap-3 rounded-2xl bg-white px-2.5 py-2.5 text-sm font-semibold text-red-500 shadow-sm active:bg-red-50 transition-colors"
+              className="flex w-full items-center gap-3 rounded-2xl bg-white px-2.5 py-2.5 text-sm font-semibold text-red-500 shadow-sm hover:bg-red-50 active:bg-red-50 transition-colors"
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50">
                 <svg

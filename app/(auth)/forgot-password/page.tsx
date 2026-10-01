@@ -284,7 +284,7 @@ export default function ForgotPasswordPage() {
               <button
                 onClick={handleSendOtp}
                 disabled={resendSeconds > 0 || isSubmitting}
-                className="shrink-0 rounded-lg px-2 py-1 text-sm font-semibold text-font-main-sub active:bg-gray-100 disabled:text-font-dim/60"
+                className="shrink-0 rounded-lg px-2 py-1 text-sm font-semibold text-font-main-sub hover:bg-gray-100 active:bg-gray-100 disabled:text-font-dim/60"
               >
                 {resendSeconds > 0 ? `Resend in ${resendSeconds}s` : "Resend"}
               </button>

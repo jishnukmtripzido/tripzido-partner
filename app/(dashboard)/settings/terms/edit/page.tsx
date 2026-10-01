@@ -160,7 +160,7 @@ function TermsEditor({
                 <button
                   onClick={() => removeItem(i)}
                   aria-label={`Remove term ${i + 1}`}
-                  className="mt-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 active:bg-red-100 transition-colors"
+                  className="mt-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 hover:bg-red-100 active:bg-red-100 transition-colors"
                 >
                   <svg
                     className="h-4 w-4"
@@ -182,7 +182,7 @@ function TermsEditor({
           </div>
           <button
             onClick={addItem}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 py-3 text-sm font-semibold text-font-main-sub active:bg-gray-50 transition-colors"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 py-3 text-sm font-semibold text-font-main-sub hover:bg-gray-50 active:bg-gray-50 transition-colors"
           >
             <svg
               className="h-4 w-4"
@@ -255,14 +255,14 @@ function TermsEditor({
         <button
           onClick={onCancel}
           disabled={saveMutation.isPending}
-          className="rounded-xl bg-white py-3.5 text-sm font-semibold text-font-main-sub shadow-sm active:bg-gray-100 transition-colors disabled:opacity-50"
+          className="rounded-xl bg-white py-3.5 text-sm font-semibold text-font-main-sub shadow-sm hover:bg-gray-100 active:bg-gray-100 transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
-          className="rounded-xl bg-brand-secondary py-3.5 text-sm font-semibold text-brand-yellow shadow-sm active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400"
+          className="rounded-xl bg-brand-secondary py-3.5 text-sm font-semibold text-brand-yellow shadow-sm hover:opacity-90 active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400"
         >
           {saveMutation.isPending ? "Saving..." : "Save"}
         </button>

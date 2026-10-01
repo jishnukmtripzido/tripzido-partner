@@ -41,7 +41,7 @@ export function DashboardBookingRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left active:bg-gray-100 transition-colors"
+      className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left hover:bg-gray-100 active:bg-gray-100 transition-colors"
     >
       <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-100">
         {booking.vehicle_image ? (

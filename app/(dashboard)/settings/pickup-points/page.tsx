@@ -100,7 +100,7 @@ export default function PickupPointsPage() {
         rightSlot={
           <button
             onClick={handleCreateNew}
-            className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm active:opacity-80 transition-opacity"
+            className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity"
           >
             <svg
               className="w-4 h-4"
@@ -130,7 +130,7 @@ export default function PickupPointsPage() {
             </p>
             <button
               onClick={() => refetch()}
-              className="mt-3 rounded-xl bg-brand-secondary px-4 py-2 text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+              className="mt-3 rounded-xl bg-brand-secondary px-4 py-2 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
             >
               Retry
             </button>
@@ -164,7 +164,7 @@ export default function PickupPointsPage() {
             </p>
             <button
               onClick={handleCreateNew}
-              className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+              className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
             >
               Add pickup point
             </button>
@@ -315,8 +315,8 @@ function CardAction({
 }) {
   const className = `flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-semibold transition-colors ${
     danger
-      ? "text-red-600 active:bg-red-50"
-      : "text-font-main-sub active:bg-gray-50"
+      ? "text-red-600 hover:bg-red-50 active:bg-red-50"
+      : "text-font-main-sub hover:bg-gray-50 active:bg-gray-50"
   }`;
   const content = (
     <>

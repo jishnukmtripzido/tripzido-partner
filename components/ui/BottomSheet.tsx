@@ -49,7 +49,7 @@ export function BottomSheet({
               type="button"
               onClick={dismiss}
               aria-label="Close"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-font-main-sub shadow-sm active:bg-gray-100"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-font-main-sub shadow-sm hover:bg-gray-100 active:bg-gray-100"
             >
               <svg
                 className="h-5 w-5"

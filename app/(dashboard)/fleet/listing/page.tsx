@@ -220,7 +220,7 @@ export default function ListingDetailPage() {
               onClick={() =>
                 router.push(`/fleet/listing/edit?id=${listing.id}` as Route)
               }
-              className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm active:opacity-80 transition-opacity shrink-0"
+              className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity shrink-0"
             >
               <svg
                 className="w-4 h-4"
@@ -620,7 +620,7 @@ function ExactPickupAddress({ listing }: { listing: ListingDetail }) {
               <a
                 key={num}
                 href={telHref}
-                className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-gray-100 px-3 text-sm font-semibold text-font-main-sub active:bg-gray-200 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-yellow-lg"
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-gray-100 px-3 text-sm font-semibold text-font-main-sub hover:bg-gray-200 active:bg-gray-200 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-yellow-lg"
               >
                 <svg
                   className="h-4 w-4 text-font-dim"
@@ -645,7 +645,7 @@ function ExactPickupAddress({ listing }: { listing: ListingDetail }) {
               href={mapHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-brand-yellow-lg px-3 text-sm font-semibold text-brand-secondary active:bg-brand-yellow transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-secondary"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-brand-yellow-lg px-3 text-sm font-semibold text-brand-secondary hover:bg-brand-yellow active:bg-brand-yellow transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-secondary"
             >
               <svg
                 className="w-4 h-4"

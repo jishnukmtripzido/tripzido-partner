@@ -397,8 +397,8 @@ export default function BookingDetailPage() {
                         }}
                         className={`min-h-12 rounded-xl px-4 text-sm font-semibold shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-secondary ${
                           config.destructive
-                            ? "bg-white text-red-600 active:bg-red-50"
-                            : "bg-brand-secondary text-brand-yellow active:opacity-80"
+                            ? "bg-white text-red-600 hover:bg-red-50 active:bg-red-50"
+                            : "bg-brand-secondary text-brand-yellow hover:opacity-90 active:opacity-80"
                         }`}
                       >
                         {config.label}
@@ -506,7 +506,7 @@ export default function BookingDetailPage() {
                     <a
                       href={`tel:${booking.customer_phone}`}
                       aria-label={`Call ${booking.customer_name}`}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-yellow-lg text-brand-secondary active:bg-brand-yellow transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-secondary"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-yellow-lg text-brand-secondary hover:bg-brand-yellow active:bg-brand-yellow transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-secondary"
                     >
                       <svg
                         className="h-5 w-5"

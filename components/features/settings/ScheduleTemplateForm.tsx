@@ -157,7 +157,7 @@ export function ScheduleTemplateForm({
             <button
               type="button"
               onClick={copyHoursToAll}
-              className="rounded-lg px-2 py-1 text-[11px] font-semibold text-font-main-sub underline decoration-brand-yellow-lg decoration-2 underline-offset-2 active:bg-white"
+              className="rounded-lg px-2 py-1 text-[11px] font-semibold text-font-main-sub underline decoration-brand-yellow-lg decoration-2 underline-offset-2 hover:bg-white active:bg-white"
             >
               Copy {DAY_NAMES[firstOpen.day_of_week].slice(0, 3)}&apos;s hours
               to all
@@ -251,7 +251,7 @@ export function ScheduleTemplateForm({
             type="button"
             onClick={onCancel}
             disabled={submitting}
-            className="rounded-xl bg-white py-3.5 text-sm font-semibold text-font-main-sub shadow-sm active:bg-gray-100 transition-colors disabled:opacity-50"
+            className="rounded-xl bg-white py-3.5 text-sm font-semibold text-font-main-sub shadow-sm hover:bg-gray-100 active:bg-gray-100 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
@@ -259,7 +259,7 @@ export function ScheduleTemplateForm({
             type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="rounded-xl bg-brand-secondary py-3.5 text-sm font-semibold text-brand-yellow shadow-sm active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
+            className="rounded-xl bg-brand-secondary py-3.5 text-sm font-semibold text-brand-yellow shadow-sm hover:opacity-90 active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
           >
             {submitting ? "Saving..." : submitLabel}
           </button>

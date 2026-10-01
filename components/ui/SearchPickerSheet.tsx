@@ -85,7 +85,7 @@ export function SearchPickerSheet<T>({
             <button
               onClick={dismiss}
               aria-label="Close"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-font-main-sub shadow-sm active:bg-gray-100"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-font-main-sub shadow-sm hover:bg-gray-100 active:bg-gray-100"
             >
               <svg
                 className="h-5 w-5"
@@ -131,7 +131,7 @@ export function SearchPickerSheet<T>({
               <button
                 onClick={() => setQuery("")}
                 aria-label="Clear search"
-                className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-gray-100 text-font-dim active:bg-gray-200"
+                className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-gray-100 text-font-dim hover:bg-gray-200 active:bg-gray-200"
               >
                 <svg
                   className="h-4 w-4"
@@ -215,7 +215,7 @@ export function SearchPickerSheet<T>({
                     onClick={() => onSelect(item)}
                     aria-pressed={selected}
                     className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-font-main-sub transition-colors ${
-                      selected ? "bg-brand-yellow/25" : "active:bg-gray-100"
+                      selected ? "bg-brand-yellow/25" : "hover:bg-gray-100 active:bg-gray-100"
                     }`}
                   >
                     <span className="min-w-0 flex-1">{renderItem(item)}</span>

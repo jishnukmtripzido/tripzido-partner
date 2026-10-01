@@ -180,7 +180,7 @@ export default function LedgerPage() {
               <button
                 onClick={() => setStatusFilter("all")}
                 aria-label={`Clear ${activeOption.label} filter`}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-brand-secondary pl-3 pr-2 py-1.5 text-xs font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-brand-secondary pl-3 pr-2 py-1.5 text-xs font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
               >
                 {activeOption.label}
                 <svg
@@ -262,7 +262,7 @@ export default function LedgerPage() {
               {statusFilter !== "all" && (
                 <button
                   onClick={() => setStatusFilter("all")}
-                  className="mt-4 px-4 py-2.5 rounded-xl bg-brand-yellow-lg text-brand-secondary text-sm font-semibold active:bg-brand-yellow transition-colors"
+                  className="mt-4 px-4 py-2.5 rounded-xl bg-brand-yellow-lg text-brand-secondary text-sm font-semibold hover:bg-brand-yellow active:bg-brand-yellow transition-colors"
                 >
                   Show all payouts
                 </button>
@@ -277,7 +277,7 @@ export default function LedgerPage() {
               </p>
               <button
                 onClick={() => refetch()}
-                className="mt-3 px-4 py-2 rounded-xl bg-brand-secondary text-brand-yellow text-sm font-semibold active:opacity-80 transition-opacity"
+                className="mt-3 px-4 py-2 rounded-xl bg-brand-secondary text-brand-yellow text-sm font-semibold hover:opacity-90 active:opacity-80 transition-opacity"
               >
                 Retry
               </button>
@@ -350,7 +350,7 @@ function FilterSheet({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-font-main-sub shadow-sm active:bg-gray-100"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-font-main-sub shadow-sm hover:bg-gray-100 active:bg-gray-100"
           >
             <svg
               className="h-5 w-5"
@@ -378,7 +378,7 @@ function FilterSheet({
                 onClick={() => onSelect(option.value)}
                 aria-pressed={selected}
                 className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors ${
-                  selected ? "bg-brand-yellow/25" : "active:bg-gray-100"
+                  selected ? "bg-brand-yellow/25" : "hover:bg-gray-100 active:bg-gray-100"
                 }`}
               >
                 <span

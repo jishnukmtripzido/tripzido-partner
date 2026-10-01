@@ -64,7 +64,7 @@ export default function ScheduleTemplatesPage() {
         rightSlot={
           <button
             onClick={handleCreateNew}
-            className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm active:opacity-80 transition-opacity"
+            className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity"
           >
             <svg
               className="w-4 h-4"
@@ -94,7 +94,7 @@ export default function ScheduleTemplatesPage() {
             </p>
             <button
               onClick={() => refetch()}
-              className="mt-3 rounded-xl bg-brand-secondary px-4 py-2 text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+              className="mt-3 rounded-xl bg-brand-secondary px-4 py-2 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
             >
               Retry
             </button>
@@ -128,7 +128,7 @@ export default function ScheduleTemplatesPage() {
             </p>
             <button
               onClick={handleCreateNew}
-              className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+              className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
             >
               Add schedule template
             </button>

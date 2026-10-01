@@ -93,7 +93,7 @@ export function AuthLabel({
 }
 
 export const AUTH_PRIMARY_BUTTON =
-  "w-full rounded-xl bg-brand-secondary py-4 text-center text-sm font-semibold text-brand-yellow shadow-sm active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed";
+  "w-full rounded-xl bg-brand-secondary py-4 text-center text-sm font-semibold text-brand-yellow shadow-sm hover:opacity-90 active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed";
 
 export function AuthError({ children }: { children: ReactNode }) {
   return (

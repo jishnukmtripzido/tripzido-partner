@@ -172,7 +172,7 @@ export default function BookingsPage() {
               {searchInput && (
                 <button
                   onClick={() => setSearchInput("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-gray-100 text-font-dim flex items-center justify-center active:bg-gray-200"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-gray-100 text-font-dim flex items-center justify-center hover:bg-gray-200 active:bg-gray-200"
                   aria-label="Clear search"
                 >
                   <svg
@@ -202,7 +202,7 @@ export default function BookingsPage() {
                 className={`shrink-0 px-4 py-2 rounded-xl text-[13px] font-semibold transition-colors duration-200 shadow-sm ${
                   tab === t.key
                     ? "bg-brand-secondary text-brand-yellow"
-                    : "bg-white text-font-dim active:bg-gray-100"
+                    : "bg-white text-font-dim hover:bg-gray-100 active:bg-gray-100"
                 }`}
               >
                 {t.label}
@@ -277,7 +277,7 @@ export default function BookingsPage() {
                 </p>
                 <button
                   onClick={() => refetch()}
-                  className="mt-3 px-4 py-2 rounded-xl bg-brand-secondary text-brand-yellow text-sm font-semibold active:opacity-80 transition-opacity"
+                  className="mt-3 px-4 py-2 rounded-xl bg-brand-secondary text-brand-yellow text-sm font-semibold hover:opacity-90 active:opacity-80 transition-opacity"
                 >
                   Retry
                 </button>

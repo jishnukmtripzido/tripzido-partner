@@ -93,7 +93,7 @@ export default function BankAccountsPage() {
         rightSlot={
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm active:opacity-80 transition-opacity"
+            className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity"
           >
             <svg
               className="w-4 h-4"
@@ -123,7 +123,7 @@ export default function BankAccountsPage() {
             </p>
             <button
               onClick={() => refetch()}
-              className="mt-3 rounded-xl bg-brand-secondary px-4 py-2 text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+              className="mt-3 rounded-xl bg-brand-secondary px-4 py-2 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
             >
               Retry
             </button>
@@ -216,7 +216,7 @@ export default function BankAccountsPage() {
                   {pendingAccounts.length === 0 && (
                     <button
                       onClick={() => setShowAddForm(true)}
-                      className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+                      className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
                     >
                       Add bank account
                     </button>
@@ -516,14 +516,14 @@ function AddBankAccountSheet({
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
                 onClick={dismiss}
-                className="rounded-xl bg-white py-3.5 text-sm font-semibold text-font-main-sub shadow-sm active:bg-gray-100 transition-colors"
+                className="rounded-xl bg-white py-3.5 text-sm font-semibold text-font-main-sub shadow-sm hover:bg-gray-100 active:bg-gray-100 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => setStep("confirm")}
                 disabled={!canContinue}
-                className="rounded-xl bg-brand-secondary py-3.5 text-sm font-semibold text-brand-yellow shadow-sm active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none"
+                className="rounded-xl bg-brand-secondary py-3.5 text-sm font-semibold text-brand-yellow shadow-sm hover:opacity-90 active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none"
               >
                 Continue
               </button>
@@ -575,14 +575,14 @@ function AddBankAccountSheet({
               <button
                 onClick={() => setStep("form")}
                 disabled={submitMutation.isPending}
-                className="rounded-xl bg-white py-3.5 text-sm font-semibold text-font-main-sub shadow-sm active:bg-gray-100 transition-colors disabled:opacity-50"
+                className="rounded-xl bg-white py-3.5 text-sm font-semibold text-font-main-sub shadow-sm hover:bg-gray-100 active:bg-gray-100 transition-colors disabled:opacity-50"
               >
                 Back
               </button>
               <button
                 onClick={() => submitMutation.mutate()}
                 disabled={submitMutation.isPending}
-                className="rounded-xl bg-brand-secondary py-3.5 text-sm font-semibold text-brand-yellow shadow-sm active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400"
+                className="rounded-xl bg-brand-secondary py-3.5 text-sm font-semibold text-brand-yellow shadow-sm hover:opacity-90 active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400"
               >
                 {submitMutation.isPending ? "Submitting..." : "Submit"}
               </button>

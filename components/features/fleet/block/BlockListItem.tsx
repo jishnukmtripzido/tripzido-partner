@@ -266,14 +266,14 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
           <button
             onClick={() => setIsEditing(false)}
             disabled={submitting}
-            className="rounded-xl bg-gray-100 py-3 text-sm font-semibold text-font-main-sub active:bg-gray-200 transition-colors disabled:opacity-50"
+            className="rounded-xl bg-gray-100 py-3 text-sm font-semibold text-font-main-sub hover:bg-gray-200 active:bg-gray-200 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={submitting}
-            className="rounded-xl bg-brand-secondary py-3 text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity disabled:opacity-50"
+            className="rounded-xl bg-brand-secondary py-3 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity disabled:opacity-50"
           >
             {submitting ? "Saving..." : "Save"}
           </button>
@@ -401,14 +401,14 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
             <button
               onClick={handleCloseNow}
               disabled={closing}
-              className="rounded-xl bg-green-50 px-3 py-2 text-xs font-semibold text-green-700 active:bg-green-100 transition-colors disabled:opacity-50"
+              className="rounded-xl bg-green-50 px-3 py-2 text-xs font-semibold text-green-700 hover:bg-green-100 active:bg-green-100 transition-colors disabled:opacity-50"
             >
               {closing ? "Closing..." : "Close now"}
             </button>
           )}
           <button
             onClick={startEditing}
-            className="rounded-xl bg-gray-100 px-3 py-2 text-xs font-semibold text-font-main-sub active:bg-gray-200 transition-colors"
+            className="rounded-xl bg-gray-100 px-3 py-2 text-xs font-semibold text-font-main-sub hover:bg-gray-200 active:bg-gray-200 transition-colors"
           >
             Edit
           </button>
@@ -417,7 +417,7 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
               setDeleteError(null);
               setShowDeleteConfirm(true);
             }}
-            className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 active:bg-red-100 transition-colors"
+            className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 active:bg-red-100 transition-colors"
           >
             Delete
           </button>
@@ -462,7 +462,7 @@ export function SwitchRow({
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="w-full flex items-center gap-3 rounded-xl bg-brand-bg px-3.5 py-3 text-left active:bg-gray-100 transition-colors"
+      className="w-full flex items-center gap-3 rounded-xl bg-brand-bg px-3.5 py-3 text-left hover:bg-gray-100 active:bg-gray-100 transition-colors"
     >
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-font-main-sub">

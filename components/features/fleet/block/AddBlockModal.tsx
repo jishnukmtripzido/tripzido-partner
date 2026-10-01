@@ -175,7 +175,7 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
               className={`w-full flex items-center gap-3 rounded-2xl p-2.5 text-left transition-colors disabled:opacity-60 ${
                 selectedListing
                   ? "bg-brand-yellow/20"
-                  : "bg-brand-bg active:bg-gray-100"
+                  : "bg-brand-bg hover:bg-gray-100 active:bg-gray-100"
               }`}
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white text-font-dim">
@@ -297,7 +297,7 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
                 <button
                   onClick={() => setCount((c) => Math.max(1, c - 1))}
                   aria-label="Block one fewer bike"
-                  className="w-9 h-9 rounded-xl bg-white shadow-sm text-base font-bold text-font-main-sub active:bg-gray-100"
+                  className="w-9 h-9 rounded-xl bg-white shadow-sm text-base font-bold text-font-main-sub hover:bg-gray-100 active:bg-gray-100"
                 >
                   −
                 </button>
@@ -307,7 +307,7 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
                 <button
                   onClick={() => setCount((c) => Math.min(maxCount, c + 1))}
                   aria-label="Block one more bike"
-                  className="w-9 h-9 rounded-xl bg-brand-yellow-lg text-brand-secondary text-base font-bold active:bg-brand-yellow"
+                  className="w-9 h-9 rounded-xl bg-brand-yellow-lg text-brand-secondary text-base font-bold hover:bg-brand-yellow active:bg-brand-yellow"
                 >
                   +
                 </button>
@@ -355,7 +355,7 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
           <button
             onClick={dismiss}
             disabled={submitting}
-            className="flex-1 rounded-xl bg-gray-100 py-3.5 text-sm font-semibold text-font-main-sub active:bg-gray-200 transition-colors disabled:opacity-50"
+            className="flex-1 rounded-xl bg-gray-100 py-3.5 text-sm font-semibold text-font-main-sub hover:bg-gray-200 active:bg-gray-200 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
@@ -364,7 +364,7 @@ export function AddBlockModal({ onClose, onCreated }: AddBlockModalProps) {
             disabled={
               submitting || !listingId || !start || (!isIndefinite && !end)
             }
-            className="flex-1 rounded-xl py-3.5 text-sm font-semibold bg-brand-secondary text-brand-yellow active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+            className="flex-1 rounded-xl py-3.5 text-sm font-semibold bg-brand-secondary text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
           >
             {submitting ? "Creating..." : "Create block"}
           </button>

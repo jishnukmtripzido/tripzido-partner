@@ -99,7 +99,7 @@ export default function ScheduleTemplateDetailPage() {
                   `/settings/schedule-templates/edit?id=${template.id}` as Route,
                 )
               }
-              className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm active:opacity-80 transition-opacity shrink-0"
+              className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity shrink-0"
             >
               <svg
                 className="w-4 h-4"
@@ -237,7 +237,7 @@ export default function ScheduleTemplateDetailPage() {
                 deleteMutation.reset();
                 setConfirmDelete(true);
               }}
-              className="flex w-full items-center gap-3 rounded-2xl bg-white px-2.5 py-2.5 text-sm font-semibold text-red-600 shadow-sm active:bg-red-50 transition-colors"
+              className="flex w-full items-center gap-3 rounded-2xl bg-white px-2.5 py-2.5 text-sm font-semibold text-red-600 shadow-sm hover:bg-red-50 active:bg-red-50 transition-colors"
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50">
                 <svg

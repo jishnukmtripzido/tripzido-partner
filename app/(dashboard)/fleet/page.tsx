@@ -135,7 +135,7 @@ export default function FleetPage() {
         rightSlot={
           <button
             onClick={() => router.push("/fleet/listing/new" as Route)}
-            className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm active:opacity-80 transition-opacity"
+            className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity"
           >
             <svg
               className="w-4 h-4"
@@ -164,7 +164,7 @@ export default function FleetPage() {
             className={`shrink-0 px-5 py-2 rounded-xl text-[13px] font-semibold transition-colors duration-200 shadow-sm ${
               tab === t.key
                 ? "bg-brand-secondary text-brand-yellow"
-                : "bg-white text-font-dim active:bg-gray-100"
+                : "bg-white text-font-dim hover:bg-gray-100 active:bg-gray-100"
             }`}
           >
             {t.label}
@@ -222,7 +222,7 @@ export default function FleetPage() {
               {tab === "active" && (
                 <button
                   onClick={() => router.push("/fleet/listing/new" as Route)}
-                  className="mt-4 px-4 py-2.5 rounded-xl bg-brand-yellow-lg text-brand-secondary text-sm font-semibold active:bg-brand-yellow transition-colors"
+                  className="mt-4 px-4 py-2.5 rounded-xl bg-brand-yellow-lg text-brand-secondary text-sm font-semibold hover:bg-brand-yellow active:bg-brand-yellow transition-colors"
                 >
                   Add your first bike
                 </button>
@@ -239,7 +239,7 @@ export default function FleetPage() {
               </p>
               <button
                 onClick={() => refetch()}
-                className="mt-3 px-4 py-2 rounded-xl bg-brand-secondary text-brand-yellow text-sm font-semibold active:opacity-80 transition-opacity"
+                className="mt-3 px-4 py-2 rounded-xl bg-brand-secondary text-brand-yellow text-sm font-semibold hover:opacity-90 active:opacity-80 transition-opacity"
               >
                 Retry
               </button>

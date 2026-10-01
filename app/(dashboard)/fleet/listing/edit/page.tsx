@@ -472,7 +472,7 @@ export default function EditListingPage() {
           <button
             onClick={handleSubmit}
             disabled={submitting || !!validationMessage || saved}
-            className="min-h-12 w-full rounded-xl px-4 py-3.5 text-center text-sm font-semibold shadow-sm bg-brand-secondary text-brand-yellow active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
+            className="min-h-12 w-full rounded-xl px-4 py-3.5 text-center text-sm font-semibold shadow-sm bg-brand-secondary text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
           >
             {submitting
               ? "Saving changes..."
@@ -537,7 +537,7 @@ function PickerField({
       onClick={onClick}
       disabled={disabled}
       className={`w-full flex items-center gap-3 rounded-2xl p-2.5 text-left transition-colors ${
-        filled ? "bg-brand-yellow/20" : "bg-brand-bg active:bg-gray-100"
+        filled ? "bg-brand-yellow/20" : "bg-brand-bg hover:bg-gray-100 active:bg-gray-100"
       } disabled:opacity-40 disabled:cursor-not-allowed`}
     >
       <div
@@ -723,7 +723,7 @@ function LocationPicker({
               </p>
               <button
                 onClick={onCreatePickupPoint}
-                className="text-sm font-semibold text-brand-secondary bg-brand-yellow-lg px-4 py-2.5 rounded-xl active:bg-brand-yellow transition-colors"
+                className="text-sm font-semibold text-brand-secondary bg-brand-yellow-lg px-4 py-2.5 rounded-xl hover:bg-brand-yellow active:bg-brand-yellow transition-colors"
               >
                 + Add pickup point
               </button>
@@ -745,7 +745,7 @@ function LocationPicker({
                       className={`w-full flex items-start gap-3 text-left rounded-2xl p-2.5 text-sm transition-colors ${
                         selected
                           ? "bg-brand-yellow/25 ring-2 ring-brand-yellow-lg"
-                          : "bg-brand-bg active:bg-gray-100"
+                          : "bg-brand-bg hover:bg-gray-100 active:bg-gray-100"
                       }`}
                     >
                       <div
@@ -794,7 +794,7 @@ function LocationPicker({
               </div>
               <button
                 onClick={onCreatePickupPoint}
-                className="inline-flex items-center rounded-xl bg-brand-bg px-3.5 py-2.5 text-sm font-semibold text-font-main-sub active:bg-gray-100 transition-colors mt-2"
+                className="inline-flex items-center rounded-xl bg-brand-bg px-3.5 py-2.5 text-sm font-semibold text-font-main-sub hover:bg-gray-100 active:bg-gray-100 transition-colors mt-2"
               >
                 + Add a new pickup point
               </button>
@@ -940,7 +940,7 @@ function PhotosManager({
 
       <label
         htmlFor="edit-listing-photo-input"
-        className={`flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-2xl py-4 px-4 cursor-pointer active:bg-gray-50 transition-colors ${
+        className={`flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-2xl py-4 px-4 cursor-pointer hover:bg-gray-50 active:bg-gray-50 transition-colors ${
           uploading ? "opacity-50 pointer-events-none" : ""
         }`}
       >
@@ -1037,7 +1037,7 @@ function SchedulePicker({
             className={`w-full flex items-center gap-3 text-left rounded-2xl p-2.5 text-sm transition-colors ${
               selected
                 ? "bg-brand-yellow/25 ring-2 ring-brand-yellow-lg"
-                : "bg-brand-bg active:bg-gray-100"
+                : "bg-brand-bg hover:bg-gray-100 active:bg-gray-100"
             }`}
           >
             <div
@@ -1078,7 +1078,7 @@ function SchedulePicker({
       })}
       <button
         onClick={onCreateNew}
-        className="inline-flex items-center rounded-xl bg-brand-bg px-3.5 py-2.5 text-sm font-semibold text-font-main-sub active:bg-gray-100 transition-colors"
+        className="inline-flex items-center rounded-xl bg-brand-bg px-3.5 py-2.5 text-sm font-semibold text-font-main-sub hover:bg-gray-100 active:bg-gray-100 transition-colors"
       >
         + Create a new schedule template
       </button>
@@ -1191,7 +1191,7 @@ function PricingEditor({
               </div>
               <button
                 onClick={() => removePackage(i)}
-                className="rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 active:bg-red-100 transition-colors"
+                className="rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 active:bg-red-100 transition-colors"
               >
                 Remove
               </button>
@@ -1263,7 +1263,7 @@ function PricingEditor({
       })}
       <button
         onClick={addPackage}
-        className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-2xl py-3.5 text-sm font-semibold text-font-main-sub active:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-2xl py-3.5 text-sm font-semibold text-font-main-sub hover:bg-gray-50 active:bg-gray-50 transition-colors"
       >
         <svg
           className="w-4 h-4"
@@ -1395,7 +1395,7 @@ function ToggleRow({
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="w-full flex items-center gap-3 rounded-xl bg-brand-bg px-3.5 py-3 text-left active:bg-gray-100 transition-colors"
+      className="w-full flex items-center gap-3 rounded-xl bg-brand-bg px-3.5 py-3 text-left hover:bg-gray-100 active:bg-gray-100 transition-colors"
     >
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-font-main-sub">

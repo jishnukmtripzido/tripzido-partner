@@ -50,7 +50,7 @@ export function BalanceCard({ balance }: BalanceCardProps) {
 
       <Link
         href="/ledger"
-        className="relative mt-5 inline-flex items-center gap-1.5 rounded-xl bg-brand-yellow px-3.5 py-2 text-sm font-semibold text-brand-secondary active:opacity-80 transition-opacity"
+        className="relative mt-5 inline-flex items-center gap-1.5 rounded-xl bg-brand-yellow px-3.5 py-2 text-sm font-semibold text-brand-secondary hover:opacity-90 active:opacity-80 transition-opacity"
       >
         View payouts
         <svg

@@ -256,8 +256,8 @@ export function PickupPointForm({
         disabled={locating}
         className={`w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-colors disabled:opacity-50 ${
           variant === "inline"
-            ? "bg-brand-bg text-font-main-sub active:bg-gray-100"
-            : "bg-gray-100 text-font-main-sub active:bg-gray-200"
+            ? "bg-brand-bg text-font-main-sub hover:bg-gray-100 active:bg-gray-100"
+            : "bg-gray-100 text-font-main-sub hover:bg-gray-200 active:bg-gray-200"
         }`}
       >
         <svg
@@ -351,7 +351,7 @@ export function PickupPointForm({
                 <button
                   onClick={() => removeContact(i)}
                   aria-label={`Remove number ${i + 1}`}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 active:bg-red-100 transition-colors"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 hover:bg-red-100 active:bg-red-100 transition-colors"
                 >
                   <svg
                     className="h-4 w-4"
@@ -370,7 +370,7 @@ export function PickupPointForm({
         {contacts.length < 3 && (
           <button
             onClick={addContact}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 py-3 text-sm font-semibold text-font-main-sub active:bg-gray-50 transition-colors"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 py-3 text-sm font-semibold text-font-main-sub hover:bg-gray-50 active:bg-gray-50 transition-colors"
           >
             <svg
               className="h-4 w-4"
@@ -417,7 +417,7 @@ export function PickupPointForm({
                 <button
                   type="button"
                   onClick={askForLocation}
-                  className="mt-2 rounded-lg bg-brand-secondary px-3 py-1.5 text-xs font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+                  className="mt-2 rounded-lg bg-brand-secondary px-3 py-1.5 text-xs font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
                 >
                   {accessBanner.action}
                 </button>
@@ -429,7 +429,7 @@ export function PickupPointForm({
             <button
               type="button"
               onClick={() => setMapFullscreen(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-gray-200 bg-white py-2.5 text-sm font-semibold text-font-main-sub active:bg-gray-50 transition-colors"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-gray-200 bg-white py-2.5 text-sm font-semibold text-font-main-sub hover:bg-gray-50 active:bg-gray-50 transition-colors"
             >
               <svg
                 className="h-4 w-4"
@@ -457,7 +457,7 @@ export function PickupPointForm({
               type="button"
               onClick={() => setMapFullscreen(true)}
               aria-label="Open full-screen map"
-              className="absolute right-2.5 top-2.5 z-10 flex h-10 w-10 items-center justify-center rounded-xl bg-white text-font-main-sub shadow-md active:bg-gray-100 transition-colors"
+              className="absolute right-2.5 top-2.5 z-10 flex h-10 w-10 items-center justify-center rounded-xl bg-white text-font-main-sub shadow-md hover:bg-gray-100 active:bg-gray-100 transition-colors"
             >
               <svg
                 className="h-5 w-5"
@@ -521,7 +521,7 @@ export function PickupPointForm({
         <button
           onClick={handleSubmit}
           disabled={submitting || !canSubmit}
-          className="w-full rounded-xl bg-brand-secondary py-3.5 text-center text-sm font-semibold text-brand-yellow shadow-sm active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
+          className="w-full rounded-xl bg-brand-secondary py-3.5 text-center text-sm font-semibold text-brand-yellow shadow-sm hover:opacity-90 active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
         >
           {submitting ? "Saving..." : submitLabel}
         </button>
@@ -554,7 +554,7 @@ export function PickupPointForm({
               type="button"
               onClick={() => setMapFullscreen(false)}
               aria-label="Close full-screen map"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-font-main-sub active:bg-gray-200 transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-font-main-sub hover:bg-gray-200 active:bg-gray-200 transition-colors"
             >
               <svg
                 className="h-5 w-5"
@@ -593,7 +593,7 @@ export function PickupPointForm({
               type="button"
               onClick={() => setMapFullscreen(false)}
               disabled={lat == null || lng == null}
-              className="w-full rounded-xl bg-brand-secondary py-3.5 text-center text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400"
+              className="w-full rounded-xl bg-brand-secondary py-3.5 text-center text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity disabled:bg-gray-200 disabled:text-gray-400"
             >
               Use this location
             </button>

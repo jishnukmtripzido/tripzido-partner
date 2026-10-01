@@ -262,7 +262,7 @@ function SectionError({
       <span>{message}</span>
       <button
         onClick={onRetry}
-        className="shrink-0 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 active:bg-red-100"
+        className="shrink-0 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 active:bg-red-100"
       >
         Retry
       </button>
@@ -289,7 +289,7 @@ function SectionTitle({
       {action && (
         <Link
           href={action.href}
-          className="flex items-center gap-0.5 text-xs font-semibold text-font-main-sub active:opacity-70"
+          className="flex items-center gap-0.5 text-xs font-semibold text-font-main-sub hover:opacity-90 active:opacity-70"
         >
           {action.label}
           <svg
@@ -500,7 +500,7 @@ function FleetSection({ token }: { token: string }) {
           <Link
             key={stat.label}
             href={stat.href as Route}
-            className="px-2 text-center active:opacity-70"
+            className="px-2 text-center hover:opacity-90 active:opacity-70"
           >
             <p className="font-heading text-2xl font-bold leading-none tabular-nums text-font-main-sub">
               {stat.value}

@@ -230,7 +230,7 @@ export function NotificationBell() {
                     type="button"
                     onClick={() => setOpen(false)}
                     aria-label="Close notifications"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-font-main-sub active:bg-gray-200 transition-colors"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-font-main-sub hover:bg-gray-200 active:bg-gray-200 transition-colors"
                   >
                     <svg
                       className="h-5 w-5"
@@ -261,7 +261,7 @@ export function NotificationBell() {
                     className={`shrink-0 px-4 py-2 rounded-xl text-[13px] font-semibold shadow-sm transition-colors ${
                       filter === key
                         ? "bg-brand-secondary text-brand-yellow"
-                        : "bg-white text-font-dim active:bg-gray-100"
+                        : "bg-white text-font-dim hover:bg-gray-100 active:bg-gray-100"
                     }`}
                   >
                     {key === "all" ? "All" : "Unread"}
@@ -277,7 +277,7 @@ export function NotificationBell() {
                     type="button"
                     onClick={handleMarkAllRead}
                     disabled={markAllReadMutation.isPending}
-                    className="ml-auto shrink-0 rounded-xl px-3 py-2 text-[13px] font-semibold text-font-main-sub active:bg-white transition-colors disabled:opacity-50"
+                    className="ml-auto shrink-0 rounded-xl px-3 py-2 text-[13px] font-semibold text-font-main-sub hover:bg-white active:bg-white transition-colors disabled:opacity-50"
                   >
                     {markAllReadMutation.isPending
                       ? "Updating..."
@@ -323,7 +323,7 @@ export function NotificationBell() {
                     <button
                       type="button"
                       onClick={() => refetch()}
-                      className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+                      className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
                     >
                       Try again
                     </button>

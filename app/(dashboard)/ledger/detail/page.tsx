@@ -188,7 +188,7 @@ export default function LedgerDetailPage() {
                       <button
                         type="button"
                         onClick={() => copyUtr(payout.utr_number)}
-                        className="rounded-xl bg-gray-100 px-3 py-2 text-xs font-semibold text-font-main-sub active:bg-gray-200 transition-colors"
+                        className="rounded-xl bg-gray-100 px-3 py-2 text-xs font-semibold text-font-main-sub hover:bg-gray-200 active:bg-gray-200 transition-colors"
                       >
                         {copied ? "Copied" : "Copy"}
                       </button>
@@ -277,7 +277,7 @@ export default function LedgerDetailPage() {
                           `/bookings/detail?id=${item.booking_id}` as Route,
                         )
                       }
-                      className="flex w-full items-center gap-3 px-1 py-3 text-left active:bg-gray-50 transition-colors"
+                      className="flex w-full items-center gap-3 px-1 py-3 text-left hover:bg-gray-50 active:bg-gray-50 transition-colors"
                     >
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-font-dim">
                         <svg

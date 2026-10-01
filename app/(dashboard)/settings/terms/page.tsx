@@ -27,7 +27,7 @@ export default function VendorTermsPage() {
           hasTerms && (
             <button
               onClick={goToEdit}
-              className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm active:opacity-80 transition-opacity shrink-0"
+              className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity shrink-0"
             >
               <svg
                 className="w-4 h-4"
@@ -58,7 +58,7 @@ export default function VendorTermsPage() {
             </p>
             <button
               onClick={() => refetch()}
-              className="mt-3 rounded-xl bg-brand-secondary px-4 py-2 text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+              className="mt-3 rounded-xl bg-brand-secondary px-4 py-2 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
             >
               Retry
             </button>
@@ -77,7 +77,7 @@ export default function VendorTermsPage() {
             </p>
             <button
               onClick={goToEdit}
-              className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow active:opacity-80 transition-opacity"
+              className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
             >
               Add terms
             </button>

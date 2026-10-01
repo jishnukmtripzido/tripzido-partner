@@ -116,7 +116,7 @@ export default function SettingsPage() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="flex items-center gap-3 rounded-xl px-2.5 py-2.5 active:bg-gray-100 transition-colors"
+                    className="flex items-center gap-3 rounded-xl px-2.5 py-2.5 hover:bg-gray-100 active:bg-gray-100 transition-colors"
                   >
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-font-dim">
                       <svg

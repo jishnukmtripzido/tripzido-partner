@@ -189,7 +189,7 @@ export default function BlockBikesPage() {
         rightSlot={
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm active:opacity-80 transition-opacity"
+            className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity"
           >
             <svg
               className="w-4 h-4"
@@ -260,7 +260,7 @@ export default function BlockBikesPage() {
               </p>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="mt-4 px-4 py-2.5 rounded-xl bg-brand-yellow-lg text-brand-secondary text-sm font-semibold active:bg-brand-yellow transition-colors"
+                className="mt-4 px-4 py-2.5 rounded-xl bg-brand-yellow-lg text-brand-secondary text-sm font-semibold hover:bg-brand-yellow active:bg-brand-yellow transition-colors"
               >
                 Block a bike
               </button>
@@ -274,7 +274,7 @@ export default function BlockBikesPage() {
               </p>
               <button
                 onClick={() => refetch()}
-                className="mt-3 px-4 py-2 rounded-xl bg-brand-secondary text-brand-yellow text-sm font-semibold active:opacity-80 transition-opacity"
+                className="mt-3 px-4 py-2 rounded-xl bg-brand-secondary text-brand-yellow text-sm font-semibold hover:opacity-90 active:opacity-80 transition-opacity"
               >
                 Retry
               </button>
