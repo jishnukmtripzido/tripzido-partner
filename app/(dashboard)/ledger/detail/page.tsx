@@ -141,121 +141,124 @@ export default function LedgerDetailPage() {
         title={payout ? `Payout #${payout.id}` : "Payout"}
         onBack={() => router.back()}
       />
-      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-8 bg-brand-bg">
+      <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-8 bg-brand-bg lg:px-8 lg:pt-7">
         {isLoading && <PageLoader />}
         {error && !isLoading && (
-          <p className="mt-6 rounded-2xl bg-white shadow-sm px-4 py-4 text-center text-sm font-semibold text-red-600">
+          <p className="mx-auto mt-6 max-w-xl rounded-2xl bg-white shadow-sm px-4 py-4 text-center text-sm font-semibold text-red-600">
             {error instanceof Error ? error.message : "Failed to load payout"}
           </p>
         )}
 
         {payout && !isLoading && (
-          <div className="space-y-5">
-            {/* Summary */}
-            <section className="rounded-2xl bg-white p-3 shadow-sm">
-              <div className="rounded-xl bg-brand-bg px-4 py-5 text-center">
-                <span
-                  className={`inline-block rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
-                    PAYOUT_STATUS_STYLES[payout.status] ??
-                    "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {payout.status_label}
-                </span>
-                <p className="mt-3 font-heading text-4xl font-bold tabular-nums text-font-main-sub">
-                  ₹{formatAmount(payout.total_amount)}
-                </p>
-                <p className="mt-1.5 text-xs text-font-dim">
-                  {payout.items.length} booking
-                  {payout.items.length === 1 ? "" : "s"} ·{" "}
-                  {payout.paid_at
-                    ? `Paid ${formatShortDate(payout.paid_at)}`
-                    : `Created ${formatShortDate(payout.created_at)}`}
-                </p>
-              </div>
-            </section>
-
-            {/* Transfer */}
-            <Section title="Transfer">
-              <IconRow
-                icon={HASH_ICON}
-                label="UTR number"
-                hint={payout.utr_number || "Not recorded yet"}
-                trailing={
-                  payout.utr_number ? (
-                    <button
-                      type="button"
-                      onClick={() => copyUtr(payout.utr_number)}
-                      className="rounded-xl bg-gray-100 px-3 py-2 text-xs font-semibold text-font-main-sub active:bg-gray-200 transition-colors"
-                    >
-                      {copied ? "Copied" : "Copy"}
-                    </button>
-                  ) : undefined
-                }
-              />
-              <IconRow
-                icon={CLOCK_ICON}
-                label="Paid on"
-                hint={
-                  payout.paid_at
-                    ? formatPayoutDateTime(payout.paid_at)
-                    : "Pending"
-                }
-              />
-              {payout.period_start && payout.period_end && (
-                <IconRow
-                  icon={CALENDAR_ICON}
-                  label="Period"
-                  hint={`${formatDateOnly(payout.period_start)} – ${formatDateOnly(
-                    payout.period_end,
-                  )}`}
-                />
-              )}
-            </Section>
-
-            {bankEntries.length > 0 && (
-              <Section title="Bank account">
-                <div className="flex items-center gap-3 px-1 pb-3 pt-1">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-font-dim">
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      {BANK_ICON}
-                    </svg>
+          <div className="mx-auto max-w-6xl space-y-5 lg:grid lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:items-start lg:gap-6 lg:space-y-0">
+            {/* Left column: amount, transfer, bank — stays in view on desktop */}
+            <div className="space-y-5 lg:sticky lg:top-0">
+              {/* Summary */}
+              <section className="rounded-2xl bg-white p-3 shadow-sm">
+                <div className="rounded-xl bg-brand-bg px-4 py-5 text-center">
+                  <span
+                    className={`inline-block rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                      PAYOUT_STATUS_STYLES[payout.status] ??
+                      "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {payout.status_label}
                   </span>
-                  <p className="text-xs text-font-dim">
-                    Account this payout was sent to
+                  <p className="mt-3 font-heading text-4xl font-bold tabular-nums text-font-main-sub">
+                    ₹{formatAmount(payout.total_amount)}
+                  </p>
+                  <p className="mt-1.5 text-xs text-font-dim">
+                    {payout.items.length} booking
+                    {payout.items.length === 1 ? "" : "s"} ·{" "}
+                    {payout.paid_at
+                      ? `Paid ${formatShortDate(payout.paid_at)}`
+                      : `Created ${formatShortDate(payout.created_at)}`}
                   </p>
                 </div>
-                <div className="space-y-2.5 rounded-xl bg-brand-bg p-3">
-                  {bankEntries.map(([key, value]) => (
-                    <div
-                      key={key}
-                      className="flex items-start justify-between gap-4 text-sm"
-                    >
-                      <span className="shrink-0 text-font-dim">
-                        {toTitleCase(key)}
-                      </span>
-                      <span className="break-all text-right font-semibold text-font-main-sub">
-                        {String(value)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </Section>
-            )}
+              </section>
 
-            {payout.note && (
-              <Section title="Note">
-                <p className="px-1 py-1 text-sm leading-relaxed text-font-main-sub">
-                  {payout.note}
-                </p>
+              {/* Transfer */}
+              <Section title="Transfer">
+                <IconRow
+                  icon={HASH_ICON}
+                  label="UTR number"
+                  hint={payout.utr_number || "Not recorded yet"}
+                  trailing={
+                    payout.utr_number ? (
+                      <button
+                        type="button"
+                        onClick={() => copyUtr(payout.utr_number)}
+                        className="rounded-xl bg-gray-100 px-3 py-2 text-xs font-semibold text-font-main-sub active:bg-gray-200 transition-colors"
+                      >
+                        {copied ? "Copied" : "Copy"}
+                      </button>
+                    ) : undefined
+                  }
+                />
+                <IconRow
+                  icon={CLOCK_ICON}
+                  label="Paid on"
+                  hint={
+                    payout.paid_at
+                      ? formatPayoutDateTime(payout.paid_at)
+                      : "Pending"
+                  }
+                />
+                {payout.period_start && payout.period_end && (
+                  <IconRow
+                    icon={CALENDAR_ICON}
+                    label="Period"
+                    hint={`${formatDateOnly(payout.period_start)} – ${formatDateOnly(
+                      payout.period_end,
+                    )}`}
+                  />
+                )}
               </Section>
-            )}
+
+              {bankEntries.length > 0 && (
+                <Section title="Bank account">
+                  <div className="flex items-center gap-3 px-1 pb-3 pt-1">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-font-dim">
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        {BANK_ICON}
+                      </svg>
+                    </span>
+                    <p className="text-xs text-font-dim">
+                      Account this payout was sent to
+                    </p>
+                  </div>
+                  <div className="space-y-2.5 rounded-xl bg-brand-bg p-3">
+                    {bankEntries.map(([key, value]) => (
+                      <div
+                        key={key}
+                        className="flex items-start justify-between gap-4 text-sm"
+                      >
+                        <span className="shrink-0 text-font-dim">
+                          {toTitleCase(key)}
+                        </span>
+                        <span className="break-all text-right font-semibold text-font-main-sub">
+                          {String(value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+              )}
+
+              {payout.note && (
+                <Section title="Note">
+                  <p className="px-1 py-1 text-sm leading-relaxed text-font-main-sub">
+                    {payout.note}
+                  </p>
+                </Section>
+              )}
+            </div>
 
             {/* Bookings covered */}
             <Section title={`Bookings covered · ${payout.items.length}`}>

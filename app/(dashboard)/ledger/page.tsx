@@ -173,7 +173,7 @@ export default function LedgerPage() {
       {isInitialLoad ? (
         <PageLoader />
       ) : (
-        <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-6">
+        <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-6 lg:px-8 lg:pt-6">
           {statusFilter !== "all" && (
             <div className="mb-3 flex items-center gap-2">
               <span className="text-xs text-font-dim">Showing</span>
@@ -206,7 +206,7 @@ export default function LedgerPage() {
               {statusFilter === "all"
                 ? `${total} payout${total === 1 ? "" : "s"} to your bank account.`
                 : `${total} ${activeOption.label.toLowerCase()} payout${total === 1 ? "" : "s"}.`}{" "}
-              Tap one to see the bookings it covers.
+              Open one to see the bookings it covers.
             </p>
           )}
 
@@ -216,7 +216,7 @@ export default function LedgerPage() {
                 <h2 className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
                   {group.title}
                 </h2>
-                <div className="space-y-2.5 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3">
+                <div className="space-y-2.5 lg:space-y-0 lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-3">
                   {group.payouts.map((payout) => (
                     <LedgerListItem
                       key={payout.id}
