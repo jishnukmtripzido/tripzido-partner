@@ -44,7 +44,7 @@ export function DesktopSidebar() {
     : "Partner";
 
   return (
-    <aside className="hidden lg:flex lg:flex-col w-64 shrink-0 h-dvh relative z-10 bg-white border-r border-gray-200/80">
+    <aside className="hidden lg:flex lg:flex-col w-64 shrink-0 h-dvh relative z-10 bg-white border-r border-gray-200/80 shadow-[4px_0_16px_-4px_rgba(0,0,0,0.08)]">
       {/* Brand */}
       <div className="flex items-center gap-2 px-5 h-[72px] shrink-0 bg-brand-yellow">
         <div className="bg-brand-secondary rounded-lg flex items-center justify-center h-8 w-8">
