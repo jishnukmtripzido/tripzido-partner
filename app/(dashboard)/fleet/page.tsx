@@ -17,6 +17,8 @@ import { queryKeys } from "@/lib/queryKeys";
 import type { Vehicle } from "@/types/fleet.types";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { InlineLoader } from "@/components/ui/InLineLoader";
+import { SuspendedNotice } from "@/components/ui/SuspendedNotice";
+import { useVendorStatus } from "@/hooks/useVendorStatus";
 
 const FLEET_TABS = [
   { key: "active", label: "Active" },
@@ -46,6 +48,7 @@ function toVehicle(listing: FleetListing): Vehicle {
 export default function FleetPage() {
   const { openSidebar } = useSidebar();
   const { token } = useAuth();
+  const { isSuspended } = useVendorStatus();
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -133,6 +136,7 @@ export default function FleetPage() {
         title="Bikes"
         onMenuClick={openSidebar}
         rightSlot={
+          !isSuspended && (
           <button
             onClick={() => router.push("/fleet/listing/new" as Route)}
             className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity"
@@ -152,6 +156,7 @@ export default function FleetPage() {
             </svg>
             Add bike
           </button>
+          )
         }
       />
 
@@ -176,6 +181,7 @@ export default function FleetPage() {
         <PageLoader />
       ) : (
         <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pb-6 pt-3 lg:px-8">
+          {isSuspended && <SuspendedNotice className="mb-3" />}
           {total != null && total > 0 && (
             <p className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-font-dim/70">
               {total} {tab} bike{total === 1 ? "" : "s"}
@@ -189,7 +195,7 @@ export default function FleetPage() {
                 onClick={() =>
                   router.push(`/fleet/listing?id=${vehicle.id}` as Route)
                 }
-                onToggleActive={handleToggleActive}
+                onToggleActive={isSuspended ? undefined : handleToggleActive}
               />
             ))}
           </div>
@@ -219,7 +225,7 @@ export default function FleetPage() {
                   ? "List your first vehicle to start getting bookings."
                   : "Bikes that are paused, pending, or rejected show up here."}
               </p>
-              {tab === "active" && (
+              {tab === "active" && !isSuspended && (
                 <button
                   onClick={() => router.push("/fleet/listing/new" as Route)}
                   className="mt-4 px-4 py-2.5 rounded-xl bg-brand-yellow-lg text-brand-secondary text-sm font-semibold hover:bg-brand-yellow active:bg-brand-yellow transition-colors"

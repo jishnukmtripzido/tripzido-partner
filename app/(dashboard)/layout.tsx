@@ -9,6 +9,8 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { DesktopSidebar } from "@/components/layout/DesktopSidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { SuspendedBlockedScreen } from "@/components/ui/SuspendedNotice";
+import { useVendorStatus } from "@/hooks/useVendorStatus";
 import { SKIP_AUTH } from "@/lib/devFlags";
 
 const HIDE_BOTTOM_NAV_PREFIXES = [
@@ -22,12 +24,28 @@ const HIDE_BOTTOM_NAV_PREFIXES = [
   "/settings/pickup-points/edit",
 ];
 
+// Screens that exist only to submit a change — a suspended vendor gets
+// SuspendedBlockedScreen instead (the backend would reject the submit).
+const SUSPENDED_BLOCKED_PREFIXES = [
+  "/fleet/listing/new",
+  "/fleet/listing/edit",
+  "/fleet/pickup-points/new",
+  "/fleet/schedule-templates/new",
+  "/settings/pickup-points/edit",
+  "/settings/schedule-templates/edit",
+  "/settings/terms/edit",
+];
+
 function DashboardChrome({ children }: { children: React.ReactNode }) {
   const { open, closeSidebar } = useSidebar();
   const pathname = usePathname();
+  const { isSuspended } = useVendorStatus();
   const showBottomNav = !HIDE_BOTTOM_NAV_PREFIXES.some((prefix) =>
     pathname.startsWith(prefix),
   );
+  const blockedForSuspended =
+    isSuspended &&
+    SUSPENDED_BLOCKED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
   return (
     <div className="flex w-full">
@@ -41,7 +59,7 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
               : "pb-[env(safe-area-inset-bottom,0px)]"
           }`}
         >
-          {children}
+          {blockedForSuspended ? <SuspendedBlockedScreen /> : children}
         </div>
         {showBottomNav && (
           <div className="lg:hidden">

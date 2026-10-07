@@ -17,6 +17,8 @@ interface BlockListItemProps {
   onDelete: (
     blockId: number,
   ) => Promise<{ success: boolean; message?: string }>;
+  /** Hide close/edit/delete (e.g. suspended vendor). */
+  readOnly?: boolean;
 }
 
 export type BlockPhase = "active" | "upcoming" | "ended";
@@ -79,7 +81,12 @@ function formatBlockTime(iso: string): string {
   });
 }
 
-export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
+export function BlockListItem({
+  block,
+  onSave,
+  onDelete,
+  readOnly = false,
+}: BlockListItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftStart, setDraftStart] = useState("");
   const [draftEnd, setDraftEnd] = useState("");
@@ -397,7 +404,7 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
           <span className="mr-auto text-[11px] font-semibold text-font-dim/70">
             #{block.id}
           </span>
-          {block.is_indefinite && isActive && (
+          {block.is_indefinite && isActive && !readOnly && (
             <button
               onClick={handleCloseNow}
               disabled={closing}
@@ -406,12 +413,15 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
               {closing ? "Closing..." : "Close now"}
             </button>
           )}
+          {!readOnly && (
           <button
             onClick={startEditing}
             className="rounded-xl bg-gray-100 px-3 py-2 text-xs font-semibold text-font-main-sub hover:bg-gray-200 active:bg-gray-200 transition-colors"
           >
             Edit
           </button>
+          )}
+          {!readOnly && (
           <button
             onClick={() => {
               setDeleteError(null);
@@ -421,6 +431,7 @@ export function BlockListItem({ block, onSave, onDelete }: BlockListItemProps) {
           >
             Delete
           </button>
+          )}
         </div>
       </article>
 

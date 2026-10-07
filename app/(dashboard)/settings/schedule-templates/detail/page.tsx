@@ -12,6 +12,8 @@ import {
 } from "@/services/fleet.service";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { SuspendedNotice } from "@/components/ui/SuspendedNotice";
+import { useVendorStatus } from "@/hooks/useVendorStatus";
 import { queryKeys } from "@/lib/queryKeys";
 import type { ScheduleTemplate } from "@/types/listing-create.types";
 import {
@@ -25,6 +27,7 @@ export default function ScheduleTemplateDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token } = useAuth();
+  const { isSuspended } = useVendorStatus();
   const queryClient = useQueryClient();
   const templateId = searchParams.get("id");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -93,6 +96,7 @@ export default function ScheduleTemplateDetailPage() {
         onBack={() => router.back()}
         rightSlot={
           template && (
+            !isSuspended && (
             <button
               onClick={() =>
                 router.push(
@@ -117,10 +121,12 @@ export default function ScheduleTemplateDetailPage() {
               </svg>
               Edit
             </button>
+            )
           )
         }
       />
       <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8 lg:px-page-narrow lg:pt-7">
+        {isSuspended && <SuspendedNotice className="mb-3" />}
         {isLoading ? (
           <PageLoader />
         ) : error || !template ? (
@@ -232,6 +238,7 @@ export default function ScheduleTemplateDetailPage() {
             </section>
 
             {/* Delete */}
+            {!isSuspended && (
             <button
               onClick={() => {
                 deleteMutation.reset();
@@ -257,6 +264,7 @@ export default function ScheduleTemplateDetailPage() {
               </span>
               Delete template
             </button>
+            )}
           </div>
         )}
       </main>

@@ -11,6 +11,8 @@ import {
 } from "@/services/vendor.service";
 import { queryKeys } from "@/lib/queryKeys";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { SuspendedNotice } from "@/components/ui/SuspendedNotice";
+import { useVendorStatus } from "@/hooks/useVendorStatus";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import type { VendorBankAccount } from "@/types/settings.types";
 
@@ -56,6 +58,7 @@ function historyBadge(acc: VendorBankAccount) {
 
 export default function BankAccountsPage() {
   const { token } = useAuth();
+  const { isSuspended } = useVendorStatus();
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -91,6 +94,7 @@ export default function BankAccountsPage() {
         title="Bank Account"
         onBack={() => router.back()}
         rightSlot={
+          !isSuspended && (
           <button
             onClick={() => setShowAddForm(true)}
             className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity"
@@ -111,9 +115,11 @@ export default function BankAccountsPage() {
             </svg>
             Add
           </button>
+          )
         }
       />
       <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8 lg:px-page-narrow lg:pt-7">
+        {isSuspended && <SuspendedNotice className="mb-3" />}
         {loading ? (
           <PageLoader />
         ) : error ? (
@@ -214,12 +220,14 @@ export default function BankAccountsPage() {
                       : "Add the bank account your payouts should be sent to."}
                   </p>
                   {pendingAccounts.length === 0 && (
+                    !isSuspended && (
                     <button
                       onClick={() => setShowAddForm(true)}
                       className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
                     >
                       Add bank account
                     </button>
+                    )
                   )}
                 </div>
               )}

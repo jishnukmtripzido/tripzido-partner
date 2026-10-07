@@ -9,6 +9,8 @@ import { getScheduleTemplatesApi } from "@/services/fleet.service";
 import { saveReturnTo } from "@/lib/listingDraft";
 import type { ScheduleTemplate } from "@/types/listing-create.types";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { SuspendedNotice } from "@/components/ui/SuspendedNotice";
+import { useVendorStatus } from "@/hooks/useVendorStatus";
 import { queryKeys } from "@/lib/queryKeys";
 import {
   CALENDAR_PATH,
@@ -33,6 +35,7 @@ function hoursSummary(t: ScheduleTemplate): string {
 export default function ScheduleTemplatesPage() {
   const router = useRouter();
   const { token } = useAuth();
+  const { isSuspended } = useVendorStatus();
 
   const {
     data: templates = [],
@@ -62,6 +65,7 @@ export default function ScheduleTemplatesPage() {
         title="Schedule Templates"
         onBack={() => router.back()}
         rightSlot={
+          !isSuspended && (
           <button
             onClick={handleCreateNew}
             className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity"
@@ -82,9 +86,11 @@ export default function ScheduleTemplatesPage() {
             </svg>
             Add
           </button>
+          )
         }
       />
       <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8 lg:px-8 lg:pt-7">
+        {isSuspended && <SuspendedNotice className="mb-3" />}
         {loading && <PageLoader />}
 
         {error && (
@@ -126,12 +132,14 @@ export default function ScheduleTemplatesPage() {
               Set your weekly opening hours once and reuse them on every
               listing.
             </p>
+            {!isSuspended && (
             <button
               onClick={handleCreateNew}
               className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
             >
               Add schedule template
             </button>
+            )}
           </div>
         )}
 

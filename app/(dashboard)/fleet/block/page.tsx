@@ -23,6 +23,8 @@ import type {
   VendorBlockedPeriodsResponse,
 } from "@/types/block.types";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { SuspendedNotice } from "@/components/ui/SuspendedNotice";
+import { useVendorStatus } from "@/hooks/useVendorStatus";
 import { InlineLoader } from "@/components/ui/InLineLoader";
 
 type BlocksPage = NonNullable<VendorBlockedPeriodsResponse["data"]>;
@@ -36,6 +38,7 @@ const PHASE_SECTIONS: { phase: BlockPhase; title: string }[] = [
 export default function BlockBikesPage() {
   const { openSidebar } = useSidebar();
   const { token } = useAuth();
+  const { isSuspended } = useVendorStatus();
   const queryClient = useQueryClient();
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -187,6 +190,7 @@ export default function BlockBikesPage() {
         title="Block Bikes"
         onMenuClick={openSidebar}
         rightSlot={
+          !isSuspended && (
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity"
@@ -206,6 +210,7 @@ export default function BlockBikesPage() {
             </svg>
             Add block
           </button>
+          )
         }
       />
 
@@ -213,6 +218,7 @@ export default function BlockBikesPage() {
         <PageLoader />
       ) : (
         <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-6 lg:px-8 lg:pt-6">
+          {isSuspended && <SuspendedNotice className="mb-3" />}
           <div className="space-y-5">
             {grouped.map((section) => (
               <section key={section.phase}>
@@ -226,6 +232,7 @@ export default function BlockBikesPage() {
                       block={block}
                       onSave={handleSaveBlock}
                       onDelete={handleDeleteBlock}
+                      readOnly={isSuspended}
                     />
                   ))}
                 </div>
@@ -258,12 +265,14 @@ export default function BlockBikesPage() {
                 Block bikes for maintenance, personal use or holidays so
                 customers can&apos;t book them.
               </p>
+              {!isSuspended && (
               <button
                 onClick={() => setShowAddModal(true)}
                 className="mt-4 px-4 py-2.5 rounded-xl bg-brand-yellow-lg text-brand-secondary text-sm font-semibold hover:bg-brand-yellow active:bg-brand-yellow transition-colors"
               >
                 Block a bike
               </button>
+              )}
             </div>
           )}
 

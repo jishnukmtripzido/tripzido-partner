@@ -34,6 +34,7 @@ interface ToggleResult {
 interface VehicleListItemProps {
   vehicle: Vehicle;
   onClick?: () => void;
+  /** Omit to show the Live/Paused switch read-only (e.g. suspended vendor). */
   onToggleActive?: (vehicleId: string) => Promise<ToggleResult>;
 }
 
@@ -213,7 +214,7 @@ export function VehicleListItem({
               aria-label={isActive ? "Pause listing" : "Activate listing"}
               onClick={handleToggle}
               onKeyDown={(e) => e.stopPropagation()}
-              disabled={toggling}
+              disabled={toggling || !onToggleActive}
               className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-secondary ${
                 isActive ? "bg-brand-yellow-lg" : "bg-gray-300"
               }`}

@@ -5,6 +5,8 @@ import type { Route } from "next";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/context/AuthContext";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { SuspendedNotice } from "@/components/ui/SuspendedNotice";
+import { useVendorStatus } from "@/hooks/useVendorStatus";
 import {
   POLICY_NOTE_FIELDS,
   useVendorTerms,
@@ -13,6 +15,7 @@ import {
 export default function VendorTermsPage() {
   const router = useRouter();
   const { token } = useAuth();
+  const { isSuspended } = useVendorStatus();
   const { data: terms, isLoading, error, refetch } = useVendorTerms(token);
 
   const goToEdit = () => router.push("/settings/terms/edit" as Route);
@@ -25,6 +28,7 @@ export default function VendorTermsPage() {
         onBack={() => router.back()}
         rightSlot={
           hasTerms && (
+            !isSuspended && (
             <button
               onClick={goToEdit}
               className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity shrink-0"
@@ -45,10 +49,12 @@ export default function VendorTermsPage() {
               </svg>
               Edit
             </button>
+            )
           )
         }
       />
       <main className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-8 bg-brand-bg lg:px-page-narrow lg:pt-7">
+        {isSuspended && <SuspendedNotice className="mb-3" />}
         {isLoading ? (
           <PageLoader />
         ) : error ? (
@@ -75,12 +81,14 @@ export default function VendorTermsPage() {
               Your terms are shown to customers on every listing. Add them so
               customers know your rules before they book.
             </p>
+            {!isSuspended && (
             <button
               onClick={goToEdit}
               className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
             >
               Add terms
             </button>
+            )}
           </div>
         ) : (
           <div className="space-y-5">

@@ -13,6 +13,8 @@ import {
 import { saveReturnTo } from "@/lib/listingDraft";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { SuspendedNotice } from "@/components/ui/SuspendedNotice";
+import { useVendorStatus } from "@/hooks/useVendorStatus";
 import { queryKeys } from "@/lib/queryKeys";
 import type { PickupPoint } from "@/types/listing-create.types";
 
@@ -29,6 +31,7 @@ function mapsHref(p: PickupPoint): string | null {
 export default function PickupPointsPage() {
   const router = useRouter();
   const { token } = useAuth();
+  const { isSuspended } = useVendorStatus();
   const queryClient = useQueryClient();
 
   const [deleteTarget, setDeleteTarget] = useState<PickupPoint | null>(null);
@@ -98,6 +101,7 @@ export default function PickupPointsPage() {
         title="Pickup Points"
         onBack={() => router.back()}
         rightSlot={
+          !isSuspended && (
           <button
             onClick={handleCreateNew}
             className="flex items-center gap-1.5 bg-brand-secondary text-brand-yellow pl-3 pr-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition-opacity"
@@ -118,9 +122,11 @@ export default function PickupPointsPage() {
             </svg>
             Add
           </button>
+          )
         }
       />
       <main className="flex-1 overflow-y-auto hide-scrollbar bg-brand-bg px-5 pt-4 pb-8 lg:px-8 lg:pt-7">
+        {isSuspended && <SuspendedNotice className="mb-3" />}
         {loading && <PageLoader />}
 
         {error && (
@@ -162,12 +168,14 @@ export default function PickupPointsPage() {
               Add the exact address and contact numbers where customers
               collect your bikes.
             </p>
+            {!isSuspended && (
             <button
               onClick={handleCreateNew}
               className="mt-4 rounded-xl bg-brand-secondary px-4 py-2.5 text-sm font-semibold text-brand-yellow hover:opacity-90 active:opacity-80 transition-opacity"
             >
               Add pickup point
             </button>
+            )}
           </div>
         )}
 
@@ -183,12 +191,18 @@ export default function PickupPointsPage() {
                     <PickupPointCard
                       key={p.id}
                       point={p}
-                      onEdit={() =>
+                      onEdit={
+                        isSuspended
+                          ? undefined
+                          : () =>
                         router.push(
                           `/settings/pickup-points/edit?id=${p.id}` as Route,
                         )
                       }
-                      onDelete={() => {
+                      onDelete={
+                        isSuspended
+                          ? undefined
+                          : () => {
                         deleteMutation.reset();
                         setDeleteTarget(p);
                       }}
@@ -223,8 +237,9 @@ function PickupPointCard({
   onDelete,
 }: {
   point: PickupPoint;
-  onEdit: () => void;
-  onDelete: () => void;
+  /** Omitted for a suspended vendor — CardAction renders a disabled cell. */
+  onEdit?: () => void;
+  onDelete?: () => void;
 }) {
   const href = mapsHref(point);
   const [firstNumber, ...otherNumbers] = point.contact_numbers;

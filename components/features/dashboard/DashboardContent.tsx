@@ -26,6 +26,8 @@ import {
   getVendorDashboardRecentBookingsApi,
 } from "@/services/dashboard.service";
 import { queryKeys } from "@/lib/queryKeys";
+import { useVendorStatus } from "@/hooks/useVendorStatus";
+import { SUSPENDED_MESSAGE } from "@/components/ui/SuspendedNotice";
 import type {
   VendorDashboardStatus,
   VendorDashboardAttention,
@@ -63,8 +65,7 @@ const VENDOR_STATUS_BANNER: Record<
   },
   SUSPENDED: {
     style: "bg-red-50 text-red-800",
-    message: () =>
-      "Your vendor account has been suspended. Contact support for details.",
+    message: () => SUSPENDED_MESSAGE,
   },
   BANNED: {
     style: "bg-red-50 text-red-800",
@@ -235,6 +236,10 @@ export function DashboardContent({ token }: DashboardContentProps) {
 
 /** `className` must set the display (grid / hidden) for each breakpoint. */
 function QuickActions({ className }: { className: string }) {
+  // Every quick action leads to a change a suspended vendor can't make.
+  const { isSuspended } = useVendorStatus();
+  if (isSuspended) return null;
+
   return (
     <nav
       aria-label="Quick actions"

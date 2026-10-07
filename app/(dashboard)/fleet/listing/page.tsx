@@ -8,6 +8,8 @@ import { getListingDetailApi } from "@/services/fleet.service";
 import { getListingReviewsApi } from "@/services/reviews.service";
 import { queryKeys } from "@/lib/queryKeys";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { SuspendedNotice } from "@/components/ui/SuspendedNotice";
+import { useVendorStatus } from "@/hooks/useVendorStatus";
 import type {
   ListingDetail,
   ListingImage,
@@ -149,6 +151,7 @@ export default function ListingDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token } = useAuth();
+  const { isSuspended } = useVendorStatus();
   const listingId = searchParams.get("id");
 
   const {
@@ -216,6 +219,7 @@ export default function ListingDetailPage() {
         onBack={() => router.back()}
         rightSlot={
           listing && (
+            !isSuspended && (
             <button
               onClick={() =>
                 router.push(`/fleet/listing/edit?id=${listing.id}` as Route)
@@ -237,11 +241,13 @@ export default function ListingDetailPage() {
               </svg>
               Edit
             </button>
+            )
           )
         }
       />
 
       <main className="min-h-0 flex-1 overflow-y-auto hide-scrollbar px-5 pb-8 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-7">
+        {isSuspended && <SuspendedNotice className="mb-3" />}
         {isLoading && <PageLoader />}
 
         {error && !isLoading && (
